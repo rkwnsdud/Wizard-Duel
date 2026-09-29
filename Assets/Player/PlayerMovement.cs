@@ -16,19 +16,19 @@ public class PlayerMovement : MonoBehaviour
     {
         controller = GetComponent<CharacterController>();
 
-        Debug.Log("PlayerMovement ½ÇÇàµÊ");
+        Debug.Log("PlayerMovement ì‹¤í–‰ë¨");
     }
 
     void Update()
     {
-        // ¹Ù´Ú È®ÀÎ
+        // ë°”ë‹¥ í™•ì¸
         isGrounded = Physics.Raycast(
             transform.position,
             Vector3.down,
             1.2f
         );
 
-        // ÀÌµ¿ ¹æÇâ
+        // ì´ë™ ë°©í–¥
         Vector3 moveDirection = Vector3.zero;
 
         if (Keyboard.current.wKey.isPressed)
@@ -51,33 +51,21 @@ public class PlayerMovement : MonoBehaviour
             moveDirection -= transform.right;
         }
 
-        // ÀÌµ¿ ¹æÇâÀ» ¹Ù¶óº¸µµ·Ï ºÎµå·´°Ô È¸Àü
-        if (moveDirection != Vector3.zero)
-        {
-            Quaternion targetRotation = Quaternion.LookRotation(moveDirection);
-
-            transform.rotation = Quaternion.Slerp(
-                transform.rotation,
-                targetRotation,
-                5f * Time.deltaTime
-            );
-        }
-
-        // ÀÌµ¿
+        // ì´ë™
         controller.Move(
             moveDirection.normalized * moveSpeed * Time.deltaTime
         );
 
-        // ¹Ù´Ú¿¡ ÀÖÀ» ¶§
+        // ë°”ë‹¥ì— ìˆì„ ë•Œ
         if (isGrounded && velocity.y < 0)
         {
             velocity.y = -2f;
         }
 
-        // Á¡ÇÁ
+        // ì í”„
         if (Keyboard.current.spaceKey.wasPressedThisFrame)
         {
-            Debug.Log("½ºÆäÀÌ½º ÀÔ·Â / Grounded: " + isGrounded);
+            Debug.Log("ìŠ¤í˜ì´ìŠ¤ ì…ë ¥ / Grounded: " + isGrounded);
 
             if (isGrounded)
             {
@@ -85,10 +73,10 @@ public class PlayerMovement : MonoBehaviour
             }
         }
 
-        // Áß·Â
+        // ì¤‘ë ¥
         velocity.y += gravity * Time.deltaTime;
 
-        // À§¾Æ·¡ ÀÌµ¿
+        // ìœ„ì•„ë˜ ì´ë™
         controller.Move(velocity * Time.deltaTime);
     }
 }
