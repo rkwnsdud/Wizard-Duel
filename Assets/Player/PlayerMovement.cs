@@ -6,7 +6,6 @@ public class PlayerMovement : MonoBehaviour
     float moveSpeed = 5f;
     float jumpForce = 7f;
     float gravity = -20f;
-    float rotationSpeed = 360f;
 
     CharacterController controller;
     Vector3 velocity;
@@ -29,7 +28,7 @@ public class PlayerMovement : MonoBehaviour
             1.2f
         );
 
-        // 입력
+        // WASD 입력
         float horizontal = 0f;
         float vertical = 0f;
 
@@ -53,11 +52,10 @@ public class PlayerMovement : MonoBehaviour
             horizontal -= 1f;
         }
 
-        // 카메라 기준 이동 방향
+        // 카메라 기준 방향 계산
         Vector3 cameraForward = Camera.main.transform.forward;
         Vector3 cameraRight = Camera.main.transform.right;
 
-        // 위아래 방향 제거
         cameraForward.y = 0f;
         cameraRight.y = 0f;
 
@@ -68,7 +66,7 @@ public class PlayerMovement : MonoBehaviour
             cameraForward * vertical +
             cameraRight * horizontal;
 
-        // 대각선 포함 이동
+        // 대각선 이동 시 속도 증가 방지
         if (moveDirection != Vector3.zero)
         {
             moveDirection.Normalize();
@@ -80,7 +78,7 @@ public class PlayerMovement : MonoBehaviour
             transform.rotation = Quaternion.RotateTowards(
                 transform.rotation,
                 targetRotation,
-                rotationSpeed * Time.deltaTime
+                360f * Time.deltaTime
             );
         }
 
@@ -98,8 +96,6 @@ public class PlayerMovement : MonoBehaviour
         // 점프
         if (Keyboard.current.spaceKey.wasPressedThisFrame)
         {
-            Debug.Log("스페이스 입력 / Grounded: " + isGrounded);
-
             if (isGrounded)
             {
                 velocity.y = jumpForce;
@@ -112,4 +108,4 @@ public class PlayerMovement : MonoBehaviour
         // 위아래 이동
         controller.Move(velocity * Time.deltaTime);
     }
-} 
+}
