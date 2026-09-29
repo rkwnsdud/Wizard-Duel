@@ -9,12 +9,19 @@ public class PlayerMovement : MonoBehaviour
 
     CharacterController controller;
     Vector3 velocity;
+    float turnVelocity;
+    float targetAngle;
+    Transform character;
+    Animator animator;
 
     bool isGrounded;
 
     void Start()
     {
         controller = GetComponent<CharacterController>();
+        character = transform.Find("Wizard");
+        animator = character.GetComponent<Animator>();
+        targetAngle = character.eulerAngles.y;
 
         Debug.Log("PlayerMovement 실행됨");
     }
@@ -72,15 +79,12 @@ public class PlayerMovement : MonoBehaviour
             moveDirection.Normalize();
 
             // 이동 방향을 바라보도록 회전
-            Quaternion targetRotation =
-                Quaternion.LookRotation(moveDirection);
-
-            transform.rotation = Quaternion.RotateTowards(
-                transform.rotation,
-                targetRotation,
-                360f * Time.deltaTime
-            );
+            targetAngle = Mathf.Atan2(moveDirection.x, moveDirection.z) * Mathf.Rad2Deg;
         }
+
+        float angle = Mathf.SmoothDampAngle(character.eulerAngles.y, targetAngle, ref turnVelocity, 0.12f);
+        character.rotation = Quaternion.Euler(0f, angle, 0f);
+        animator.SetFloat("MoveSpeed", moveDirection.sqrMagnitude > 0f ? moveSpeed : 0f);
 
         // 이동
         controller.Move(
