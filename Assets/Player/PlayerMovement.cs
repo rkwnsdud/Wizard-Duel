@@ -28,11 +28,7 @@ public class PlayerMovement : MonoBehaviour
     void Update()
     {
         // 바닥 확인
-        isGrounded = Physics.Raycast(
-            transform.position,
-            Vector3.down,
-            1.2f
-        );
+        isGrounded = controller.isGrounded;
 
         // WASD 입력
         float horizontal = 0f;
