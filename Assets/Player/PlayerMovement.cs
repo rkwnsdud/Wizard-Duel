@@ -4,7 +4,6 @@ using UnityEngine.InputSystem;
 public class PlayerMovement : MonoBehaviour
 {
     float moveSpeed = 5f;
-    float jumpForce = 7f;
     float gravity = -20f;
 
     CharacterController controller;
@@ -95,15 +94,6 @@ public class PlayerMovement : MonoBehaviour
         if (isGrounded && velocity.y < 0)
         {
             velocity.y = -2f;
-        }
-
-        // 점프
-        if (Keyboard.current.spaceKey.wasPressedThisFrame)
-        {
-            if (isGrounded)
-            {
-                velocity.y = jumpForce;
-            }
         }
 
         // 중력
