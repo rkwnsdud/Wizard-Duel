@@ -35,3 +35,28 @@ float actualDensity = map.ActualObstacleDensity;
 - 잘못된 설정은 `ArgumentException` 계열 예외를 발생시킨다. 주어진 크기 안에서 연결된 바닥과 안전한 두 스폰을 32회 안에 만들 수 없으면 `InvalidOperationException`을 발생시킨다.
 
 Unity Test Runner에서 EditMode의 `WizardDuel.MapGeneration.EditorTests`를 실행해 형태, 노이즈 강도·스케일, 경계, 연결성, 밀도, 대칭, 스폰과 입력 검증을 확인할 수 있다.
+
+## 실제 맵 자동 생성
+
+`Assets/Scripts/Map/ProceduralMap.cs`의 `ProceduralMap`은 논리 맵을 생성한 뒤 `GridMap`과 같은 배치 규칙으로 `BlockFactory`를 통해 실제 블록을 만든다. 한 칸은 2단위이고 맵은 컴포넌트의 로컬 원점을 중심으로 배치된다.
+
+1. 맵 오브젝트에 기존 `GridMap` 대신 `ProceduralMap`을 추가한다. `BlockFactory`가 함께 추가된다.
+2. `BlockFactory`에 바닥·벽 블록과 두 스폰 블록을 지정한다. 스폰 순서는 파랑(`B`), 주황(`O`)이다.
+3. Inspector에서 시드, 형태, 장애물 밀도, 대칭, 노이즈를 설정한다. `Automatic Size`를 끄면 `Size`의 칸 수를 사용한다.
+4. 플레이어의 `PlayerSpawn`에 있는 `Map`에 `ProceduralMap`을 지정한다. 기존 `GridMap` 참조도 계속 사용할 수 있다.
+
+Play 시작 시 자동 생성되며, `GeneratedLayout`, `Blocks`, `SpawnPoints`로 생성 결과를 조회할 수 있다. 코드에서 외부 설정으로 생성하거나 다시 생성할 수도 있다.
+
+```csharp
+proceduralMap.Generate(new MapGenerationSettings
+{
+    Seed = 1234,
+    Size = new Vector2Int(31, 31),
+    Shape = MapShape.Donut,
+    ObstacleDensity = 0.2f,
+    NoiseStrength = 0.75f,
+    NoiseScale = 0.75f
+});
+```
+
+다시 생성하면 이전에 만든 블록을 비활성화하고 제거한 후 새 블록과 스폰을 배치한다. 논리 생성이 실패하면 기존 블록은 유지한다. 플레이어 위치 갱신은 호출자가 새 `SpawnPoints`를 기준으로 처리한다.
