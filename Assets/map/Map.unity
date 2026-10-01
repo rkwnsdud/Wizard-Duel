@@ -555,6 +555,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1420519221}
   - component: {fileID: 1420519222}
+  - component: {fileID: 1420519223}
   m_Layer: 0
   m_Name: Grid Map
   m_TagString: Untagged
@@ -589,19 +590,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e2b06340c3d62f743ba1b2eb0b0cf0a7, type: 3}
   m_Name:
   m_EditorClassIdentifier: Assembly-CSharp::GridMap
-  floorPrefabs:
-  - {fileID: 2998160536925107046, guid: 986326ec0bfd8f7429656c1d39ddcd2d, type: 3}
-  - {fileID: 2419551078304039022, guid: cc96f872f659b7149be488c8b6ab806a, type: 3}
-  - {fileID: 1956404662427341329, guid: d70230f6be575094d92601966232ed68, type: 3}
-  - {fileID: 252410984658201186, guid: 71e913f2dbf37f74d8694f53a993f571, type: 3}
-  wallPrefabs:
-  - {fileID: 2106855052635227586, guid: 278e048348be1e742b16babc96f2f61d, type: 3}
-  - {fileID: 5128893716761737519, guid: 51340cd2cd81764418be31faf0c03e6a, type: 3}
-  - {fileID: 1577100832473733561, guid: 2b5989713fb00e249829f90e0c154231, type: 3}
-  - {fileID: 2221133148808066758, guid: acefa3fa65caa1d419a6aeaaa4480ade, type: 3}
-  spawnPrefabs:
-  - {fileID: 3326646388536968078, guid: 57cb17e3681ece848b9f82433d8f88ff, type: 3}
-  - {fileID: 2514958744257686462, guid: ff3c1e5e26ff0b545845bfafb0351f39, type: 3}
   seed: 7301
   layout:
   - '###########'
@@ -613,6 +601,31 @@ MonoBehaviour:
   - '#.B...##..#'
   - '#.........#'
   - '###########'
+--- !u!114 &1420519223
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1420519220}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 948515391d62fae449b67dfc0f274619, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::BlockFactory
+  floorBlocks:
+  - {fileID: 1995253096088471428, guid: 986326ec0bfd8f7429656c1d39ddcd2d, type: 3}
+  - {fileID: 5527359961032963257, guid: cc96f872f659b7149be488c8b6ab806a, type: 3}
+  - {fileID: 5261112240152171569, guid: d70230f6be575094d92601966232ed68, type: 3}
+  - {fileID: 818492886333140396, guid: 71e913f2dbf37f74d8694f53a993f571, type: 3}
+  wallBlocks:
+  - {fileID: 6333956503313861839, guid: 278e048348be1e742b16babc96f2f61d, type: 3}
+  - {fileID: 2556189777204332245, guid: 51340cd2cd81764418be31faf0c03e6a, type: 3}
+  - {fileID: 6035069288633617733, guid: 2b5989713fb00e249829f90e0c154231, type: 3}
+  - {fileID: 7650263968882925252, guid: acefa3fa65caa1d419a6aeaaa4480ade, type: 3}
+  spawnBlocks:
+  - {fileID: 6194714110399475094, guid: 57cb17e3681ece848b9f82433d8f88ff, type: 3}
+  - {fileID: 7208045001040428938, guid: ff3c1e5e26ff0b545845bfafb0351f39, type: 3}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
