@@ -7,95 +7,59 @@ public class PlayerMovement : MonoBehaviour
     float gravity = -20f;
 
     CharacterController controller;
-    Vector3 velocity;
-    float turnVelocity;
-    float targetAngle;
-    Transform character;
     Animator animator;
-
-    bool isGrounded;
+    Vector3 velocity;
+    Transform cameraTransform;
 
     void Start()
     {
         controller = GetComponent<CharacterController>();
-        character = transform.Find("Wizard");
-        animator = character.GetComponent<Animator>();
-        targetAngle = character.eulerAngles.y;
 
-        Debug.Log("PlayerMovement 실행됨");
+        Transform character = transform.Find("Wizard");
+        character.localRotation = Quaternion.identity;
+        animator = character.GetComponent<Animator>();
+
+        cameraTransform = Camera.main.transform;
     }
 
     void Update()
     {
-        // 바닥 확인
-        isGrounded = controller.isGrounded;
+        bool isGrounded = controller.isGrounded;
 
-        // WASD 입력
         float horizontal = 0f;
         float vertical = 0f;
+        Keyboard keyboard = Keyboard.current;
 
-        if (Keyboard.current.wKey.isPressed)
+        if (keyboard != null)
         {
-            vertical += 1f;
+            if (keyboard.wKey.isPressed) vertical += 1f;
+            if (keyboard.sKey.isPressed) vertical -= 1f;
+            if (keyboard.dKey.isPressed) horizontal += 1f;
+            if (keyboard.aKey.isPressed) horizontal -= 1f;
         }
 
-        if (Keyboard.current.sKey.isPressed)
-        {
-            vertical -= 1f;
-        }
-
-        if (Keyboard.current.dKey.isPressed)
-        {
-            horizontal += 1f;
-        }
-
-        if (Keyboard.current.aKey.isPressed)
-        {
-            horizontal -= 1f;
-        }
-
-        // 카메라 기준 방향 계산
-        Vector3 cameraForward = Camera.main.transform.forward;
-        Vector3 cameraRight = Camera.main.transform.right;
-
+        Vector3 cameraForward = cameraTransform.forward;
+        Vector3 cameraRight = cameraTransform.right;
         cameraForward.y = 0f;
         cameraRight.y = 0f;
-
         cameraForward.Normalize();
         cameraRight.Normalize();
 
-        Vector3 moveDirection =
-            cameraForward * vertical +
-            cameraRight * horizontal;
-
-        // 대각선 이동 시 속도 증가 방지
+        Vector3 moveDirection = cameraForward * vertical + cameraRight * horizontal;
         if (moveDirection != Vector3.zero)
         {
             moveDirection.Normalize();
-
-            // 이동 방향을 바라보도록 회전
-            targetAngle = Mathf.Atan2(moveDirection.x, moveDirection.z) * Mathf.Rad2Deg;
         }
 
-        float angle = Mathf.SmoothDampAngle(character.eulerAngles.y, targetAngle, ref turnVelocity, 0.12f);
-        character.rotation = Quaternion.Euler(0f, angle, 0f);
         animator.SetFloat("MoveSpeed", moveDirection.sqrMagnitude > 0f ? moveSpeed : 0f);
+        controller.Move(moveDirection * moveSpeed * Time.deltaTime);
 
-        // 이동
-        controller.Move(
-            moveDirection * moveSpeed * Time.deltaTime
-        );
-
-        // 바닥에 있을 때
-        if (isGrounded && velocity.y < 0)
+        if (isGrounded && velocity.y < 0f)
         {
             velocity.y = -2f;
         }
 
-        // 중력
         velocity.y += gravity * Time.deltaTime;
-
-        // 위아래 이동
         controller.Move(velocity * Time.deltaTime);
     }
 }
