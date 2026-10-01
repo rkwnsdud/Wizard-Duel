@@ -44,7 +44,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 9668fa9cd18dec84fa9ebf97c37f2798, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LightningProjectile
   minRange: 4
   maxRange: 16
@@ -57,7 +57,7 @@ MonoBehaviour:
   hitHeight: 2
   wallLayer:
     serializedVersion: 2
-    m_Bits: 0
+    m_Bits: 4294967295
   mainLightning: {fileID: 4087128202808476603}
 --- !u!82 &-6458864547930279928
 AudioSource:
@@ -71,7 +71,7 @@ AudioSource:
   OutputAudioMixerGroup: {fileID: 0}
   m_audioClip: {fileID: 0}
   m_Resource: {fileID: 0}
-  m_PlayOnAwake: 1
+  m_PlayOnAwake: 0
   m_Volume: 1
   m_Pitch: 1
   Loop: 0
@@ -227,5 +227,5 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: f4ccbd71051b4697856f3c915a526670, type: 3}
-  m_Name:
-  m_EditorClassIdentifier:
+  m_Name: 
+  m_EditorClassIdentifier: 

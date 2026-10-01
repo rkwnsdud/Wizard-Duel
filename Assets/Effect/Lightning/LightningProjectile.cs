@@ -15,7 +15,7 @@ public class LightningProjectile : MonoBehaviour
     [SerializeField] private float maxHitWidth = 0.8f;
     [SerializeField] private float hitHeight = 2f;
 
-    [SerializeField] private LayerMask wallLayer;
+    [SerializeField] private LayerMask wallLayer = ~0;
 
     private float damage;
     [SerializeField] private LightningEffect mainLightning;
@@ -36,9 +36,16 @@ public class LightningProjectile : MonoBehaviour
         Vector3 endPosition = transform.position + transform.forward * range;
 
         // 벽에 맞으면 맞히게 설정
-        RaycastHit hit;
-        if (Physics.Raycast(startPosition, transform.forward, out hit, range, wallLayer))
+        float wallDistance = range;
+        foreach (RaycastHit hit in Physics.RaycastAll(startPosition, transform.forward, range, wallLayer, QueryTriggerInteraction.Ignore))
         {
+            // Player colliders are handled by the damage box, not as walls.
+            if (hit.collider.GetComponentInParent<PlayerHealth>() != null || hit.distance >= wallDistance)
+            {
+                continue;
+            }
+
+            wallDistance = hit.distance;
             endPosition = hit.point;
         }
 

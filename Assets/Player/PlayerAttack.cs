@@ -1,15 +1,16 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 
+[RequireComponent(typeof(AudioSource))]
 public class PlayerAttack : MonoBehaviour
 {
     PlayerInputActions inputActions;
     [SerializeField] private GameObject lightningPrefab;
     [SerializeField] private Transform firePoint;
     [SerializeField] private float maxChargeTime = 2f;
-    [SerializeField] private AudioSource audioSource;
     [SerializeField] private AudioClip thunderSound;
 
+    private AudioSource audioSource;
     private bool isCharging;
     private float chargeTime;
 
@@ -23,6 +24,7 @@ public class PlayerAttack : MonoBehaviour
     private void Awake()
     {
         inputActions = new PlayerInputActions();
+        audioSource = GetComponent<AudioSource>();
     }
 
     private void OnEnable()
@@ -57,7 +59,11 @@ public class PlayerAttack : MonoBehaviour
         GameObject projectile = Instantiate(lightningPrefab, firePoint.position, firePoint.rotation, firePoint);
         LightningProjectile projectileScript = projectile.GetComponent<LightningProjectile>();   
         projectileScript.SetCharge(chargeRatio);
-        audioSource.PlayOneShot(thunderSound);
+    }
+
+    private void OnDestroy()
+    {
+        inputActions?.Dispose();
     }
 
     private void ChargeStart(InputAction.CallbackContext context)
