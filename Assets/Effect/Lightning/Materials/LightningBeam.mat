@@ -28,13 +28,11 @@ Material:
         m_Texture: {fileID: 2800000, guid: eacbd9d96764476d9aa839df8fe55f7b, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
-    - _LUT:
-        m_Texture: {fileID: 2800000, guid: 61ef88d39bd748db8b6f607bc2ca7f86, type: 3}
-        m_Scale: {x: 1, y: 1}
-        m_Offset: {x: 0, y: 0}
     m_Ints: []
     m_Floats:
-    - _Intensity: 4
+    - _Intensity: 5
+    - _Opacity: 1
     m_Colors:
-    - _Tint: {r: 0.45, g: 0.9, b: 1, a: 1}
+    - _Tint: {r: 0.08, g: 0.35, b: 1, a: 1}
+    - _CoreColor: {r: 0.88, g: 0.96, b: 1, a: 1}
   m_BuildTextureStacks: []

@@ -1,0 +1,4 @@
+Triangles: 768
+Objects: 28
+Height: 1.87 meters
+Grip pivot: (0,0,0)
