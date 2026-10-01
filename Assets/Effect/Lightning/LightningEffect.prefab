@@ -48,12 +48,18 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   startPoint: {fileID: 2001}
   endPoint: {fileID: 3001}
-  duration: 1.5
+  duration: 0.2
   lightningBeamMaterial: {fileID: 2100000, guid: 35ad715fa9d64720a576178db21f8365, type: 2}
-  lightningSegmentCount: 14
+  lightningSegmentCount: 32
   lightningJitter: 0.3
-  lightningRefreshInterval: 0.08
-  lightningBeamWidth: 0.18
+  lightningRefreshInterval: 0.06
+  mainBoltWidth: 0.24
+  branchCount: 12
+  branchMaxLength: 1.8
+  branchWidthRatio: 0.32
+  branchBrightness: 0.65
+  branchSpread: 1.1
+  secondaryBranchChance: 0.6
 --- !u!1 &2000
 GameObject:
   m_ObjectHideFlags: 0
