@@ -52,14 +52,32 @@ MonoBehaviour:
   lightningBeamMaterial: {fileID: 2100000, guid: 35ad715fa9d64720a576178db21f8365, type: 2}
   lightningSegmentCount: 32
   lightningJitter: 0.3
-  lightningRefreshInterval: 0.06
+  lightningRefreshInterval: 0.04
   mainBoltWidth: 0.24
+  mainWander: 0.55
+  mainMaxStep: 0.28
+  mainEndConvergence: 0.03
   branchCount: 12
   branchMaxLength: 1.8
   branchWidthRatio: 0.32
   branchBrightness: 0.65
   branchSpread: 1.1
   secondaryBranchChance: 0.6
+  tailBranchBias: 0.5
+  tailSecondaryBoost: 0.25
+  tailBranchMaxLength: 0.5
+  tailOutwardBias: 0.85
+  majorArcWidthRatio: 0.65
+  majorArcBrightness: 0.55
+  majorArcOffset: 0.8
+  majorArcBranchLength: 0.55
+  majorArcLengthRange: {x: 4, y: 16}
+  terminalForkCount: 2
+  terminalForkWidthRatio: 0.55
+  terminalForkBrightness: 0.5
+  terminalForkSpread: 0.65
+  terminalForkEndRange: {x: 0.88, y: 0.97}
+  terminalForkMinOffset: 0.45
 --- !u!1 &2000
 GameObject:
   m_ObjectHideFlags: 0
