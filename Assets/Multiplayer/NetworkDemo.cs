@@ -3,7 +3,7 @@ using Unity.Netcode;
 using Unity.Netcode.Transports.UTP;
 using UnityEngine;
 
-// 1대1 연결 테스트: Host/Join/Server UI와 2인 제한. 비어 있는 슬롯 순서대로 Player-1/Player-2를 스폰한다.
+// 1대1 연결 테스트: Join/Server UI와 2인 제한. 비어 있는 슬롯 순서대로 Player-1/Player-2를 스폰한다.
 public class NetworkDemo : MonoBehaviour
 {
     [SerializeField] NetworkManager manager;
@@ -16,7 +16,7 @@ public class NetworkDemo : MonoBehaviour
     const string RoomClosed = "A player left, so the room was closed.";
     readonly ulong?[] slotOwners = new ulong?[2];
     string address = "127.0.0.1";
-    string status = "Choose Host or enter the host IP and Join.";
+    string status = "Enter the server IP and Join.";
     bool reopenServer;
 
     void Awake()
@@ -32,7 +32,7 @@ public class NetworkDemo : MonoBehaviour
         // -server: 전용 서버로 시작, -join <IP>: 실행하자마자 접속
         string[] args = Environment.GetCommandLineArgs();
         int join = Array.IndexOf(args, "-join") + 1;
-        if (Array.IndexOf(args, "-server") >= 0) StartServer(false);
+        if (Array.IndexOf(args, "-server") >= 0) StartServer();
         else if (join > 0 && join < args.Length) Join(args[join]);
     }
 
@@ -40,26 +40,26 @@ public class NetworkDemo : MonoBehaviour
     {
         if (!reopenServer || manager.IsListening) return;
         reopenServer = false;
-        StartServer(false);
+        StartServer();
     }
 
-    void StartServer(bool host)
+    void StartServer()
     {
         Array.Clear(slotOwners, 0, slotOwners.Length);
         transport.SetConnectionData("127.0.0.1", Port, "0.0.0.0");
-        bool started = host ? manager.StartHost() : manager.StartServer();
+        bool started = manager.StartServer();
         status = started ? $"Listening on UDP {Port}." : $"Could not start the server. Check port {Port}.";
         Debug.Log($"[Server] {status}");
     }
 
-    void Join(string hostAddress)
+    void Join(string serverAddress)
     {
-        address = hostAddress.Trim();
+        address = serverAddress.Trim();
         transport.SetConnectionData(address, Port);
         status = manager.StartClient() ? "Connecting..." : "Could not start the connection.";
     }
 
-    // 호스트 여부가 아니라 빈 슬롯이 1P/2P를 정하므로 호스트와 전용 서버가 같은 규칙을 쓴다.
+    // 빈 슬롯 순서대로 1P/2P를 정한다.
     void ApproveConnection(NetworkManager.ConnectionApprovalRequest request,
         NetworkManager.ConnectionApprovalResponse response)
     {
@@ -80,24 +80,23 @@ public class NetworkDemo : MonoBehaviour
     }
 
     // 한 명이라도 나가면(강제 종료 포함) 방을 닫는다. 강제 종료된 상대에게 보내던 소켓은
-    // Windows에서 수신 버퍼가 새어 서버가 먹통이 되므로, 전용 서버는 새 소켓으로 다시 연다.
+    // Windows에서 수신 버퍼가 새어 서버가 먹통이 되므로, 새 소켓으로 다시 연다.
     void OnDisconnected(ulong clientId)
     {
-        // 종료 중이거나, 종료를 마친 호스트가 자기 자신의 끊김을 통보받는 경우는 무시한다.
-        if (manager.ShutdownInProgress || !manager.IsListening) return;
+        if (manager.ShutdownInProgress) return;
         if (manager.IsServer)
         {
             if (Array.IndexOf(slotOwners, clientId) < 0) return;
             Debug.Log($"[Server] Client {clientId} left; closing the room.");
             foreach (ulong id in manager.ConnectedClientsIds)
-                if (id != clientId && id != NetworkManager.ServerClientId) manager.DisconnectClient(id, RoomClosed);
-            reopenServer = !manager.IsHost;
+                if (id != clientId) manager.DisconnectClient(id, RoomClosed);
+            reopenServer = true;
             status = RoomClosed;
             manager.Shutdown();
             return;
         }
 
-        status = string.IsNullOrEmpty(manager.DisconnectReason) ? "Disconnected from the host." : manager.DisconnectReason;
+        status = string.IsNullOrEmpty(manager.DisconnectReason) ? "Disconnected from the server." : manager.DisconnectReason;
         Debug.Log($"[Client] Disconnected: {status}");
     }
 
@@ -109,13 +108,12 @@ public class NetworkDemo : MonoBehaviour
         if (!manager.IsListening)
         {
             GUILayout.Label(status);
-            GUILayout.Label($"Host IP (same PC: 127.0.0.1) / Port: {Port}");
+            GUILayout.Label($"Server IP (same PC: 127.0.0.1) / Port: {Port}");
             address = GUILayout.TextField(address, 64);
             GUILayout.BeginHorizontal();
-            if (GUILayout.Button("Host", GUILayout.Height(36))) StartServer(true);
             if (GUILayout.Button("Join", GUILayout.Height(36))) Join(address);
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
-            if (GUILayout.Button("Server", GUILayout.Height(36))) StartServer(false);
+            if (GUILayout.Button("Server", GUILayout.Height(36))) StartServer();
 #endif
             GUILayout.EndHorizontal();
         }
@@ -126,7 +124,7 @@ public class NetworkDemo : MonoBehaviour
             if (GUILayout.Button(manager.IsClient ? "Disconnect" : "Stop Server", GUILayout.Height(36)))
             {
                 manager.Shutdown();
-                status = "Disconnected. Choose Host or Join.";
+                status = "Disconnected.";
             }
         }
         GUI.enabled = true;
