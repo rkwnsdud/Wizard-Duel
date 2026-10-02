@@ -1,7 +1,7 @@
 using Unity.Netcode;
 using UnityEngine;
 
-// 이동·조준·CharacterController는 프리팹에서 꺼 두고, 내 플레이어(소유자)만 켠다.
+// 이동·조준·공격·CharacterController는 프리팹에서 꺼 두고, 내 플레이어(소유자)만 켠다.
 // 상대 플레이어는 NetworkTransform으로 받은 이동에 맞춰 걷기 애니메이션만 재생한다.
 public class NetworkDemoPlayer : NetworkBehaviour
 {
@@ -29,6 +29,7 @@ public class NetworkDemoPlayer : NetworkBehaviour
         GetComponent<CharacterController>().enabled = true;
         GetComponent<PlayerMovement>().enabled = true;
         GetComponent<PlayerAim>().enabled = true;
+        GetComponent<PlayerAttack>().enabled = true;
         cameraFollow = Camera.main.GetComponent<CameraFollow>();
         cameraFollow.player = transform;
         cameraFollow.enabled = true;

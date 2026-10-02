@@ -20,7 +20,7 @@
 ## 구성
 
 - `NetworkDemo`: 연결 UI, 접속 승인, 방 닫기. **빈 슬롯 순서**로 `Player-1`(파랑)/`Player-2`(빨강) 프리팹과 `GridMap` 스폰 위치를 정한다.
-- `NetworkDemoPlayer`: 소유자에게만 `PlayerMovement`·`PlayerAim`·`CharacterController`·카메라 추적을 켜고, 상대는 받은 이동량으로 걷기 애니메이션만 재생한다.
-- `Assets/Player/Player-1.prefab`: 기존 마법사에 `NetworkObject`, 소유자 권한 `NetworkTransform`(위치·Y 회전), `NetworkDemoPlayer`를 붙인 프리팹. 공격·체력은 아직 동기화하지 않는다.
+- `NetworkDemoPlayer`: 소유자에게만 `PlayerMovement`·`PlayerAim`·`PlayerAttack`·`CharacterController`·카메라 추적을 켜고, 상대는 받은 이동량으로 걷기 애니메이션만 재생한다.
+- `Assets/Player/Player-1.prefab`: 기존 마법사에 `NetworkObject`, 소유자 권한 `NetworkTransform`(위치·Y 회전), `NetworkDemoPlayer`를 붙인 프리팹. 공격(`PlayerAttack`·`LightningWeapon`)은 `Player.prefab`과 같게 구성했지만 자기 화면에서만 보이고, 체력은 아직 없다.
 - `Assets/Player/Player-2.prefab`: `Player-1`의 변형으로 로브 재질(`RobeRed.mat`)과 `slot`만 바꾼다.
 - 두 프리팹은 `Assets/DefaultNetworkPrefabs.asset`에 등록되어 있고, 이 목록이 씬의 NetworkManager **Network Prefabs Lists**에 연결되어 있어야 2P가 스폰된다.
