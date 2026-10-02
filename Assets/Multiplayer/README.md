@@ -4,6 +4,10 @@
 
 ## 실행
 
+- **Tools > Wizard Duel > Network Test** 창에서 명령어 없이 테스트한다.
+  - **Build**: 이 씬만 Development 빌드로 `Build/NetworkTest/`에 만든다. 빌드 뒤 에셋이 바뀌면 `(assets changed since)`가 붙으니 다시 누른다.
+  - **Server**: 창 없는 전용 서버. **Client**: 640x480 창으로 띄워 바로 `127.0.0.1`에 접속하며, 누를 때마다 하나씩 늘어난다. **1v1**: 서버와 클라이언트 두 개.
+  - 목록의 **Kill**은 강제 종료다. **Close All**로 모두 닫고, 에디터를 끄면 함께 닫힌다. 로그는 **Open Logs**(`Logs/NetworkTest/`).
 - **Host**: 서버와 1P를 겸한다. 다른 인스턴스에서 호스트 IP(같은 PC는 `127.0.0.1`)를 입력하고 **Join**하면 2P가 된다.
 - **Server**(에디터/개발 빌드): 플레이어가 없는 전용 서버. 클라이언트 두 개가 각각 Join한다.
 - 빌드 실행 인자
