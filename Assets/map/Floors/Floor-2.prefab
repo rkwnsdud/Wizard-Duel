@@ -100,6 +100,7 @@ GameObject:
   m_Component:
   - component: {fileID: 6927678088738121100}
   - component: {fileID: 6022601509668783237}
+  - component: {fileID: 5527359961032963257}
   m_Layer: 0
   m_Name: Floor-2
   m_TagString: Untagged
@@ -147,6 +148,18 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 2, y: 0.24, z: 2}
   m_Center: {x: 0, y: -0.12, z: 0}
+--- !u!114 &5527359961032963257
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2419551078304039022}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c0c914661ce203043bacee88c42c73cd, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::FloorBlock
 --- !u!1 &3970596929008858612
 GameObject:
   m_ObjectHideFlags: 0
