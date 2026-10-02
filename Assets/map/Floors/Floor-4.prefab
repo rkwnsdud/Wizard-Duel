@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 91064084878941209}
   - component: {fileID: 8787717575463992757}
   - component: {fileID: 818492886333140396}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: Floor-4
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -81,7 +81,7 @@ GameObject:
   - component: {fileID: 3885353757153418507}
   - component: {fileID: 3386717996275839558}
   - component: {fileID: 1952009639841389440}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: Flagstone 1
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -171,7 +171,7 @@ GameObject:
   - component: {fileID: 5721027457362677421}
   - component: {fileID: 1097661513537207709}
   - component: {fileID: 5792415341620517143}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: Flagstone 3
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -261,7 +261,7 @@ GameObject:
   - component: {fileID: 7448027873949908456}
   - component: {fileID: 2225641186542555792}
   - component: {fileID: 227516399470441413}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: Grout bed
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -351,7 +351,7 @@ GameObject:
   - component: {fileID: 2326125981241736851}
   - component: {fileID: 8173489043724950425}
   - component: {fileID: 1303775082978891952}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: Flagstone 2
   m_TagString: Untagged
   m_Icon: {fileID: 0}

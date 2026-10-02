@@ -10,10 +10,12 @@ public class PlayerMovement : MonoBehaviour
     Animator animator;
     Vector3 velocity;
     Transform cameraTransform;
+    PlayerAttack playerAttack;
 
     void Start()
     {
         controller = GetComponent<CharacterController>();
+        playerAttack = GetComponent<PlayerAttack>();
 
         Transform character = transform.Find("Wizard");
         character.localRotation = Quaternion.identity;
@@ -24,6 +26,13 @@ public class PlayerMovement : MonoBehaviour
 
     void Update()
     {
+        if (playerAttack.IsAttacking)
+        {
+            animator.SetFloat("MoveSpeed", 0f);
+            return;
+        }
+
+        
         bool isGrounded = controller.isGrounded;
 
         float horizontal = 0f;
