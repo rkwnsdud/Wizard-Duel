@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 7741918848649406132}
   - component: {fileID: 2564003361202869066}
   - component: {fileID: 7650263968882925252}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: Wall-4
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -78,7 +78,7 @@ GameObject:
   - component: {fileID: 2224396899069998643}
   - component: {fileID: 6153614268121465941}
   - component: {fileID: 3727578945154416807}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: Rough-cut stone block
   m_TagString: Untagged
   m_Icon: {fileID: 0}

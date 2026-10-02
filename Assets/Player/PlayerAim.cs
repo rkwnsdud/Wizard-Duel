@@ -5,9 +5,13 @@ public class PlayerAim : MonoBehaviour
 {
     private PlayerInputActions inputActions;
     private Vector2 mousePosition;
-
+    private PlayerAttack playerAttack;
     private void Update()
     {
+        if (playerAttack.IsAttacking)
+        {
+            return;
+        }
         Ray ray = Camera.main.ScreenPointToRay(mousePosition);
 
         Plane groundPlane = new Plane(Vector3.up, transform.position);
@@ -27,6 +31,7 @@ public class PlayerAim : MonoBehaviour
     private void Awake()
     {
         inputActions = new PlayerInputActions();
+        playerAttack = GetComponent<PlayerAttack>();
     }
 
     private void OnEnable()

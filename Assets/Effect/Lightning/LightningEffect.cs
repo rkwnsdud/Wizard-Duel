@@ -92,9 +92,24 @@ public sealed class LightningEffect : MonoBehaviour
     private int majorArcVertexOffset, majorBranchVertexOffset;
     private int terminalVertexOffset, terminalBranchVertexOffset;
 
+    // Attack endpoints are a world-space snapshot, independent of the animated FirePoint.
+    // Standalone effects without SetEndpoints continue to follow their endpoint Transforms.
+    private bool hasWorldEndpoints;
+    private Vector3 worldStart, worldEnd;
+    private float renderedDistance;
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+    private bool logVisualLength;
+#endif
+
     public void SetEndpoints(Vector3 start, Vector3 end)
     {
         if (startPoint == null || endPoint == null) return;
+        worldStart = start;
+        worldEnd = end;
+        hasWorldEndpoints = true;
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        logVisualLength = true;
+#endif
         startPoint.position = start;
         endPoint.position = end;
         if (beamMesh != null) UpdateLightning();
@@ -561,8 +576,10 @@ public sealed class LightningEffect : MonoBehaviour
     {
         if (startPoint == null || endPoint == null) return;
         RefreshShapeIfNeeded();
-        Vector3 start = startPoint.position, end = endPoint.position;
+        Vector3 start = hasWorldEndpoints ? worldStart : startPoint.position;
+        Vector3 end = hasWorldEndpoints ? worldEnd : endPoint.position;
         float distance = Vector3.Distance(start, end);
+        renderedDistance = distance;
         Vector3 forward = distance > 0.0001f ? (end - start) / distance : Vector3.forward;
         Vector3 side = Vector3.Cross(forward, Vector3.up);
         if (side.sqrMagnitude < 0.0001f) side = Vector3.Cross(forward, Vector3.right);
@@ -576,6 +593,17 @@ public sealed class LightningEffect : MonoBehaviour
         UpdateMajorArcs(start, forward, side, up, distance, mainWidth, camera);
         UpdateTerminalForks(start, forward, side, up, distance, mainWidth, camera);
         UploadMesh();
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        // Temporary Play mode diagnostics: measure the rendered main ribbon, not its path bends.
+        if (logVisualLength)
+        {
+            Vector3 visualStart = transform.TransformPoint((vertices[0] + vertices[1]) * 0.5f);
+            int last = lightningSegmentCount * 2;
+            Vector3 visualEnd = transform.TransformPoint((vertices[last] + vertices[last + 1]) * 0.5f);
+            Debug.Log($"[Visual] actualLength={distance:F3}, visualLength={Vector3.Distance(visualStart, visualEnd):F3}, start={visualStart}, end={visualEnd}", this);
+            logVisualLength = false;
+        }
+#endif
     }
 
     private void RefreshShapeIfNeeded()
@@ -635,10 +663,13 @@ public sealed class LightningEffect : MonoBehaviour
     private Vector3 ClampToEnvelope(Vector3 point, Vector3 start, Vector3 forward, float width)
     {
         Vector3 delta = point - start;
-        Vector3 along = forward * Vector3.Dot(delta, forward);
+        // Side branches must not extend beyond the same start/end interval used for damage.
+        float progress = Vector3.Dot(delta, forward);
+        Vector3 radial = delta - forward * progress;
+        Vector3 along = forward * Mathf.Clamp(progress, 0f, renderedDistance);
         // Both branch generations share one envelope; reserve room for the glow ribbon.
         float radius = Mathf.Max(0f, branchSpread - width * 0.5f);
-        return start + along + Vector3.ClampMagnitude(delta - along, radius);
+        return start + along + Vector3.ClampMagnitude(radial, radius);
     }
 
     private void WriteRibbon(Vector3[] points, int offset, float width, float brightness, bool taper, Camera camera)
