@@ -13,9 +13,11 @@ public class NetworkDemo : MonoBehaviour
     [SerializeField] NetworkObject player2Prefab;
 
     const ushort Port = 7777;
+    const string RoomClosed = "A player left, so the room was closed.";
     readonly ulong?[] slotOwners = new ulong?[2];
     string address = "127.0.0.1";
     string status = "Choose Host or enter the host IP and Join.";
+    bool reopenServer;
 
     void Awake()
     {
@@ -32,6 +34,13 @@ public class NetworkDemo : MonoBehaviour
         int join = Array.IndexOf(args, "-join") + 1;
         if (Array.IndexOf(args, "-server") >= 0) StartServer(false);
         else if (join > 0 && join < args.Length) Join(args[join]);
+    }
+
+    void Update()
+    {
+        if (!reopenServer || manager.IsListening) return;
+        reopenServer = false;
+        StartServer(false);
     }
 
     void StartServer(bool host)
@@ -70,15 +79,21 @@ public class NetworkDemo : MonoBehaviour
         Debug.Log($"[Server] Client {request.ClientNetworkId} approved as Player-{slot + 1}.");
     }
 
+    // 한 명이라도 나가면(강제 종료 포함) 방을 닫는다. 강제 종료된 상대에게 보내던 소켓은
+    // Windows에서 수신 버퍼가 새어 서버가 먹통이 되므로, 전용 서버는 새 소켓으로 다시 연다.
     void OnDisconnected(ulong clientId)
     {
-        if (manager.ShutdownInProgress) return;
+        // 종료 중이거나, 종료를 마친 호스트가 자기 자신의 끊김을 통보받는 경우는 무시한다.
+        if (manager.ShutdownInProgress || !manager.IsListening) return;
         if (manager.IsServer)
         {
-            int slot = Array.IndexOf(slotOwners, clientId);
-            if (slot < 0) return;
-            slotOwners[slot] = null;
-            Debug.Log($"[Server] Client {clientId} left; Player-{slot + 1} slot is free.");
+            if (Array.IndexOf(slotOwners, clientId) < 0) return;
+            Debug.Log($"[Server] Client {clientId} left; closing the room.");
+            foreach (ulong id in manager.ConnectedClientsIds)
+                if (id != clientId && id != NetworkManager.ServerClientId) manager.DisconnectClient(id, RoomClosed);
+            reopenServer = !manager.IsHost;
+            status = RoomClosed;
+            manager.Shutdown();
             return;
         }
 
