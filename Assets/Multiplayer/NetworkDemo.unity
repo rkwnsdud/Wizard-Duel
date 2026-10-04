@@ -569,6 +569,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e2b06340c3d62f743ba1b2eb0b0cf0a7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GridMap
+  generateOnAwake: 1
   seed: 7301
   layout:
   - '###########'

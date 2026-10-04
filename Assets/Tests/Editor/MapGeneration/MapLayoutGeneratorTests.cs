@@ -365,13 +365,48 @@ public class MapLayoutGeneratorTests
     [TestCase(MapShape.Rectangle)]
     [TestCase(MapShape.Elongated)]
     [TestCase(MapShape.Donut)]
-    public void Generate_ImpossibleSizeFailsWithoutChangingRequestedShapeOrSize(MapShape shape)
+    public void Generate_RejectsSizeBelowShapeMinimumWithoutChangingSettings(MapShape shape)
     {
         var settings = new MapGenerationSettings { Size = new Vector2Int(5, 5), Shape = shape };
-        InvalidOperationException error = Assert.Throws<InvalidOperationException>(() => MapLayoutGenerator.Generate(settings));
-        Assert.That(error.Message, Does.Contain("5x5").And.Contain(shape.ToString()).And.Contain("32 attempts"));
+        ArgumentOutOfRangeException error = Assert.Throws<ArgumentOutOfRangeException>(() => MapLayoutGenerator.Generate(settings));
+        Assert.That(error.Message, Does.Contain(shape.ToString()).And.Contain("require a size"));
         Assert.That(settings.Size, Is.EqualTo(new Vector2Int(5, 5)));
         Assert.That(settings.Shape, Is.EqualTo(shape));
+    }
+
+    [Test]
+    public void Generate_RandomShapeWithFixedSizeChoosesACompatibleShape()
+    {
+        for (int seed = 0; seed < 20; seed++)
+        {
+            MapLayout map = MapLayoutGenerator.Generate(new MapGenerationSettings
+            {
+                Seed = seed, Shape = MapShape.Random, Size = new Vector2Int(30, 20), ObstacleDensity = 0f
+            });
+            Assert.That(map.Shape, Is.EqualTo(MapShape.Elongated));
+        }
+    }
+
+    [TestCase(MapShape.Circle, 25, 25)]
+    [TestCase(MapShape.Rectangle, 25, 25)]
+    [TestCase(MapShape.Donut, 25, 25)]
+    [TestCase(MapShape.Elongated, 41, 13)]
+    [TestCase(MapShape.Elongated, 13, 41)]
+    [TestCase(MapShape.Elongated, 25, 13)]
+    [TestCase(MapShape.Elongated, 13, 25)]
+    public void Generate_SupportedMinimumSizesProduceValidMaps(MapShape shape, int width, int height)
+    {
+        foreach (int seed in new[] { 0, 1, 7301 })
+        {
+            MapLayout map = MapLayoutGenerator.Generate(new MapGenerationSettings
+            {
+                Seed = seed,
+                Shape = shape,
+                Size = new Vector2Int(width, height),
+                ObstacleDensity = 0.15f
+            });
+            AssertValid(map, MapSymmetry.Rotate180);
+        }
     }
 
     static int CountDifferences(MapLayout first, MapLayout second)
