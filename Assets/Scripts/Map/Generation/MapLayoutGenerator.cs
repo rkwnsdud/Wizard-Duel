@@ -16,10 +16,9 @@ public static class MapLayoutGenerator
     {
         Validate(settings);
         var random = new Random(settings.Seed);
-        MapShape shape = settings.Shape == MapShape.Random
-            ? (MapShape)random.Next((int)MapShape.Circle, (int)MapShape.Donut + 1)
-            : settings.Shape;
+        MapShape shape = ChooseShape(settings, random);
         Vector2Int size = settings.Size ?? ChooseSize(shape, random);
+        ValidateMinimumSize(size, shape);
 
         for (int attempt = 0; attempt < maxAttempts; attempt++)
         {
@@ -41,6 +40,39 @@ public static class MapLayoutGenerator
         throw new InvalidOperationException(
             $"Could not generate a connected {shape} map of size {size.x}x{size.y} " +
             $"with two safe spawns after {maxAttempts} attempts (seed {settings.Seed}).");
+    }
+
+    static MapShape ChooseShape(MapGenerationSettings settings, Random random)
+    {
+        if (settings.Shape != MapShape.Random) return settings.Shape;
+        if (!settings.Size.HasValue)
+            return (MapShape)random.Next((int)MapShape.Circle, (int)MapShape.Donut + 1);
+
+        var compatible = new List<MapShape>();
+        for (int value = (int)MapShape.Circle; value <= (int)MapShape.Donut; value++)
+        {
+            MapShape candidate = (MapShape)value;
+            if (CanFitSize(settings.Size.Value, candidate)) compatible.Add(candidate);
+        }
+        if (compatible.Count == 0)
+            throw new ArgumentOutOfRangeException(nameof(settings.Size), settings.Size,
+                $"Size {settings.Size.Value.x}x{settings.Size.Value.y} is below the minimum supported size for every map shape.");
+        return compatible[random.Next(compatible.Count)];
+    }
+
+    static void ValidateMinimumSize(Vector2Int size, MapShape shape)
+    {
+        if (CanFitSize(size, shape)) return;
+        string minimum = shape == MapShape.Elongated ? "at least 25x13 (in either orientation)" : "at least 25x25";
+        throw new ArgumentOutOfRangeException(nameof(size), size,
+            $"{shape} maps require a size of {minimum} to provide connected floor space and two safe spawns.");
+    }
+
+    static bool CanFitSize(Vector2Int size, MapShape shape)
+    {
+        if (shape == MapShape.Elongated)
+            return (size.x >= 25 && size.y >= 13) || (size.y >= 25 && size.x >= 13);
+        return size.x >= 25 && size.y >= 25;
     }
 
     static void Validate(MapGenerationSettings settings)

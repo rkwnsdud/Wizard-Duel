@@ -4,6 +4,7 @@ using UnityEngine;
 [RequireComponent(typeof(BlockFactory))]
 public class GridMap : MonoBehaviour
 {
+    [SerializeField] bool generateOnAwake = true;
     [SerializeField] int seed = 7301;
 
     [SerializeField] string[] layout =
@@ -28,7 +29,10 @@ public class GridMap : MonoBehaviour
 
     void Awake()
     {
+        if (!generateOnAwake) return;
+
         BlockFactory blockFactory = GetComponent<BlockFactory>();
+        blockFactory.ValidateConfiguration();
         blockFactory.Initialize(seed);
         SpawnPoints = blockFactory.SpawnPoints;
         for (int z = 0; z < layout.Length; z++)

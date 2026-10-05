@@ -6,9 +6,10 @@ using UnityEngine;
 [DisallowMultipleComponent]
 public class ProceduralMap : MonoBehaviour
 {
+    [SerializeField] bool generateOnAwake = true;
     [SerializeField] int seed = 7301;
     [SerializeField] bool automaticSize = true;
-    [Tooltip("자동 크기를 끄면 적용되는 가로·세로 칸 수입니다.")]
+    [Tooltip("자동 크기를 끄면 적용되는 크기입니다. Circle/Rectangle/Donut은 최소 25x25, Elongated는 한 변 25·다른 변 13칸 이상이어야 합니다.")]
     [SerializeField] Vector2Int size = new Vector2Int(31, 31);
     [SerializeField] MapShape shape = MapShape.Random;
     [SerializeField, Range(0f, 1f)] float obstacleDensity = 0.15f;
@@ -25,6 +26,7 @@ public class ProceduralMap : MonoBehaviour
 
     void Awake()
     {
+        if (!generateOnAwake) return;
         // 비활성 오브젝트에 외부 설정으로 먼저 생성했다면 중복 생성하지 않는다.
         if (GeneratedLayout != null) return;
         Generate(new MapGenerationSettings
@@ -43,9 +45,8 @@ public class ProceduralMap : MonoBehaviour
     {
         MapLayout generatedLayout = MapLayoutGenerator.Generate(settings);
         BlockFactory blockFactory = GetComponent<BlockFactory>();
+        blockFactory.ValidateConfiguration();
         blockFactory.Initialize(settings.Seed);
-        if (blockFactory.SpawnPoints.Length < 2)
-            throw new InvalidOperationException("ProceduralMap requires two spawn blocks on its BlockFactory.");
 
         foreach (IBlock block in blocks)
         {
