@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using UnityEngine;
 
 [RequireComponent(typeof(BlockFactory))]
-public class GridMap : MonoBehaviour
+public class GridMap : MonoBehaviour, ISpawnPointProvider
 {
     [SerializeField] bool generateOnAwake = true;
     [SerializeField] int seed = 7301;
