@@ -9,8 +9,44 @@ public sealed class LightningWeapon : WeaponBase
     [SerializeField] private AudioSource audioSource;
     [SerializeField] private AudioClip thunderSound;
 
+    private LightningPreview preview;
+    private PlayerAim playerAim;
+
+    private void Awake()
+    {
+        playerAim = GetComponentInParent<PlayerAim>();
+        preview = GetComponent<LightningPreview>();
+        if (preview == null) preview = gameObject.AddComponent<LightningPreview>();
+    }
+
+    private Vector3 GetAimDirection()
+    {
+        Transform aimTransform = playerAim != null ? playerAim.transform : transform.root;
+        Vector3 direction = Vector3.ProjectOnPlane(aimTransform.forward, Vector3.up);
+        return direction.sqrMagnitude < 0.0001f ? Vector3.forward : direction.normalized;
+    }
+
+    public void ShowChargePreview(float chargeRatio)
+    {
+        if (preview == null || boltPrefab == null || firePoint == null) return;
+        Vector3 start = firePoint.position;
+        Vector3 direction = GetAimDirection();
+        preview.ShowPreview(start, boltPrefab.GetEndPosition(start, direction, chargeRatio),
+            direction, boltPrefab.GetHitWidth(chargeRatio));
+    }
+
+    public void HideChargePreview()
+    {
+        if (preview != null) preview.HidePreview();
+    }
+
+    private void OnDisable()
+    {
+        HideChargePreview();
+    }
     public override void Fire(float chargeRatio)
     {
+        HideChargePreview();
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
         // Temporary charge diagnostics for Play mode testing.
         Debug.Log($"[Charge] LightningWeapon.Fire chargeRatio={chargeRatio:F3}, prefab={boltPrefab}, firePoint={firePoint}", this);
@@ -26,11 +62,7 @@ public sealed class LightningWeapon : WeaponBase
 
         // PlayerAim rotates the player root on the ground plane. The staff and
         // FirePoint rotate with the cast animation, so only use their position.
-        PlayerAim playerAim = GetComponentInParent<PlayerAim>();
-        Transform aimTransform = playerAim != null ? playerAim.transform : transform.root;
-        Vector3 direction = Vector3.ProjectOnPlane(aimTransform.forward, Vector3.up);
-        if (direction.sqrMagnitude < 0.0001f) direction = Vector3.forward;
-        Quaternion rotation = Quaternion.LookRotation(direction.normalized, Vector3.up);
+        Quaternion rotation = Quaternion.LookRotation(GetAimDirection(), Vector3.up);
 
         // Awake captures the owner while parented. Detach before building the mesh
         // so later bone movement cannot move already-fired world-space geometry.

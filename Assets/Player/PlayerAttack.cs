@@ -30,10 +30,18 @@ public class PlayerAttack : MonoBehaviour
     {
         if (isCharging)
         {
-            chargeTime += Time.deltaTime;
+            chargeTime = Mathf.Min(chargeTime + Time.deltaTime, Mathf.Max(0f, maxChargeTime));
         }
     }
 
+    private float ChargeRatio => maxChargeTime > 0f ? Mathf.Clamp01(chargeTime / maxChargeTime) : 1f;
+
+    private void LateUpdate()
+    {
+        // PlayerAim updates first so the preview follows this frame's aim.
+        if (isCharging && currentWeapon is LightningWeapon lightning)
+            lightning.ShowChargePreview(ChargeRatio);
+    }
     private void OnEnable()
     {
         if (inputActions == null)
@@ -59,6 +67,7 @@ public class PlayerAttack : MonoBehaviour
 
         inputActions.Disable();
 
+        if (currentWeapon is LightningWeapon lightning) lightning.HideChargePreview();
         isCharging = false;
         chargeTime = 0f;
         IsAttacking = false;
@@ -84,6 +93,7 @@ public class PlayerAttack : MonoBehaviour
 
         isCharging = true;
         chargeTime = 0f;
+        if (currentWeapon is LightningWeapon lightning) lightning.ShowChargePreview(ChargeRatio);
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
         // Temporary charge diagnostics for Play mode testing.
         Debug.Log($"[Charge] Start maxChargeTime={maxChargeTime:F3}, weapon={currentWeapon}", this);
@@ -104,7 +114,8 @@ public class PlayerAttack : MonoBehaviour
 
         isCharging = false;
 
-        pendingChargeRatio = maxChargeTime > 0f ? Mathf.Clamp01(chargeTime / maxChargeTime) : 1f;
+        pendingChargeRatio = ChargeRatio;
+        if (currentWeapon is LightningWeapon lightning) lightning.HideChargePreview();
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
         // Temporary charge diagnostics: log once on release, not every frame.
         Debug.Log($"[Charge] Release chargeTime={chargeTime:F3}, maxChargeTime={maxChargeTime:F3}, pendingChargeRatio={pendingChargeRatio:F3}", this);
@@ -113,6 +124,7 @@ public class PlayerAttack : MonoBehaviour
         hasFired = false;
         IsAttacking = true;
 
+        // Release commits the charge; WizardAnimationEvent fires at the cast pose.
         animator.SetFloat("MoveSpeed", 0f);
         animator.SetTrigger("Attack");
     }

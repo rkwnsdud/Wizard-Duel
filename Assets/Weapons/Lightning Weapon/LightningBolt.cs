@@ -25,39 +25,48 @@ public class LightningBolt : MonoBehaviour
     {
         ownerHealth = GetComponentInParent<PlayerHealth>();
     }
+    public float GetRange(float chargeRatio)
+    {
+        return Mathf.Lerp(minRange, maxRange, Mathf.Clamp01(chargeRatio));
+    }
+
+    public float GetHitWidth(float chargeRatio)
+    {
+        return Mathf.Lerp(minHitWidth, maxHitWidth, Mathf.Clamp01(chargeRatio));
+    }
+
+    // Shared by preview and actual bolt, including existing wall filtering.
+    public Vector3 GetEndPosition(Vector3 start, Vector3 direction, float chargeRatio)
+    {
+        float range = GetRange(chargeRatio);
+        Vector3 end = start + direction * range;
+        float wallDistance = range;
+        foreach (RaycastHit hit in Physics.RaycastAll(start, direction, range, blockerMask, QueryTriggerInteraction.Ignore))
+        {
+            if (hit.collider.GetComponentInParent<PlayerHealth>() != null || hit.distance >= wallDistance)
+                continue;
+            wallDistance = hit.distance;
+            end = hit.point;
+        }
+        return end;
+    }
     public void SetCharge(float chargeRatio)
     {
         chargeRatio = Mathf.Clamp01(chargeRatio);
-        float range = Mathf.Lerp(minRange, maxRange, chargeRatio);
+        float range = GetRange(chargeRatio);
         float boltWidth = Mathf.Lerp(minBoltWidth, maxBoltWidth, chargeRatio);
-        float hitWidth = Mathf.Lerp(minHitWidth, maxHitWidth, chargeRatio);
+        float hitWidth = GetHitWidth(chargeRatio);
         damage = Mathf.Lerp(minDamage, maxDamage, chargeRatio);
 
         Vector3 startPosition = transform.position;
-        Vector3 endPosition = transform.position + transform.forward * range;
-
-        // Only wall/obstacle layers limit the bolt; damage uses a separate overlap below.
-        float wallDistance = range;
-        Collider blockingCollider = null;
-        foreach (RaycastHit hit in Physics.RaycastAll(startPosition, transform.forward, range, blockerMask, QueryTriggerInteraction.Ignore))
-        {
-            // Player colliders are handled by the damage box, not as walls.
-            if (hit.collider.GetComponentInParent<PlayerHealth>() != null || hit.distance >= wallDistance)
-            {
-                continue;
-            }
-
-            wallDistance = hit.distance;
-            blockingCollider = hit.collider;
-            endPosition = hit.point;
-        }
+        Vector3 endPosition = GetEndPosition(startPosition, transform.forward, chargeRatio);
 
         // 타격 박스 형성
         Vector3 center = (startPosition + endPosition) / 2f;
         float length = Vector3.Distance(startPosition, endPosition);
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
         // Temporary charge diagnostics: distinguish charge range from wall clipping.
-        Debug.Log($"[Charge] LightningBolt.SetCharge chargeRatio={chargeRatio:F3}, requestedRange={range:F3}, actualLength={length:F3}, blocker={(blockingCollider != null ? blockingCollider.name : "none")}, boltWidth={boltWidth:F3}, damage={damage:F3}", this);
+        Debug.Log($"[Charge] LightningBolt.SetCharge chargeRatio={chargeRatio:F3}, requestedRange={range:F3}, actualLength={length:F3}, boltWidth={boltWidth:F3}, damage={damage:F3}", this);
 #endif
         Vector3 halfExtents = new Vector3(hitWidth / 2f, hitHeight / 2f, length / 2f);
         Collider[] hits = Physics.OverlapBox(center, halfExtents, transform.rotation);
