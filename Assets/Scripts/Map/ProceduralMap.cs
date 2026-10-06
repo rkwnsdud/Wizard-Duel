@@ -4,7 +4,7 @@ using UnityEngine;
 
 [RequireComponent(typeof(BlockFactory))]
 [DisallowMultipleComponent]
-public class ProceduralMap : MonoBehaviour
+public class ProceduralMap : MonoBehaviour, ISpawnPointProvider
 {
     [SerializeField] bool generateOnAwake = true;
     [SerializeField] int seed = 7301;
@@ -29,7 +29,12 @@ public class ProceduralMap : MonoBehaviour
         if (!generateOnAwake) return;
         // 비활성 오브젝트에 외부 설정으로 먼저 생성했다면 중복 생성하지 않는다.
         if (GeneratedLayout != null) return;
-        Generate(new MapGenerationSettings
+        Generate(CreateSettings());
+    }
+
+    public MapGenerationSettings CreateSettings()
+    {
+        return new MapGenerationSettings
         {
             Seed = seed,
             Size = automaticSize ? (Vector2Int?)null : size,
@@ -38,7 +43,7 @@ public class ProceduralMap : MonoBehaviour
             Symmetry = symmetry,
             NoiseStrength = noiseStrength,
             NoiseScale = noiseScale
-        });
+        };
     }
 
     public void Generate(MapGenerationSettings settings)

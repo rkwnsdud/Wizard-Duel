@@ -21,7 +21,7 @@ public class NetworkDemoPlayer : NetworkBehaviour
 
     public override void OnNetworkSpawn()
     {
-        Debug.Log($"[Player] Spawned slot={slot} owner={OwnerClientId} local={IsOwner}.");
+        Debug.Log($"[Player] Spawned slot={slot} owner={OwnerClientId} local={IsOwner} position={transform.position} rotation={transform.rotation}.");
         name = $"Player-{slot + 1}" + (IsOwner ? " (Me)" : "");
         previousPosition = transform.position;
         if (!IsOwner) return;

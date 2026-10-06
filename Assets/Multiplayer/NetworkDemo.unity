@@ -536,7 +536,7 @@ GameObject:
   - component: {fileID: 1420519222}
   - component: {fileID: 1420519223}
   m_Layer: 0
-  m_Name: Grid Map
+  m_Name: Procedural Map
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -566,21 +566,18 @@ MonoBehaviour:
   m_GameObject: {fileID: 1420519220}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e2b06340c3d62f743ba1b2eb0b0cf0a7, type: 3}
+  m_Script: {fileID: 11500000, guid: ff6a83c9313be934cbbfc5abee4338e2, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::GridMap
-  generateOnAwake: 1
+  m_EditorClassIdentifier: Assembly-CSharp::ProceduralMap
+  generateOnAwake: 0
   seed: 7301
-  layout:
-  - '###########'
-  - '#.........#'
-  - '#..##...O.#'
-  - '#.........#'
-  - '#.........#'
-  - '#.........#'
-  - '#.B...##..#'
-  - '#.........#'
-  - '###########'
+  automaticSize: 1
+  size: {x: 31, y: 31}
+  shape: 0
+  obstacleDensity: 0.15
+  symmetry: 1
+  noiseStrength: 0.5
+  noiseScale: 0.75
 --- !u!114 &1420519223
 MonoBehaviour:
   m_ObjectHideFlags: 0
