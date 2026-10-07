@@ -1,5 +1,6 @@
 using UnityEngine;
 
+[DisallowMultipleComponent]
 public class LightningPreview : MonoBehaviour
 {
     [SerializeField] private LineRenderer lineRenderer;
@@ -8,12 +9,10 @@ public class LightningPreview : MonoBehaviour
 
     private void Awake()
     {
-        bool createdRenderer = lineRenderer == null;
         if (lineRenderer == null)
         {
-            GameObject visual = new GameObject("Lightning Charge Preview");
-            visual.transform.SetParent(transform, false);
-            lineRenderer = visual.AddComponent<LineRenderer>();
+            Debug.LogError("LightningPreview requires a PreviewVisual LineRenderer reference.", this);
+            return;
         }
         lineRenderer.enabled = false;
         lineRenderer.useWorldSpace = true;
@@ -24,7 +23,7 @@ public class LightningPreview : MonoBehaviour
         lineRenderer.startColor = lineRenderer.endColor = Color.cyan;
         lineRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
         lineRenderer.receiveShadows = false;
-        if (createdRenderer || lineRenderer.sharedMaterial == null)
+        if (lineRenderer.sharedMaterial == null)
         {
             Shader shader = Resources.Load<Shader>("LightningChargePreview");
             if (shader != null)
@@ -37,6 +36,7 @@ public class LightningPreview : MonoBehaviour
     }
     public void ShowPreview(Vector3 start, Vector3 end, Vector3 direction, float hitWidth)
     {
+        if (lineRenderer == null) return;
         // Horizontal footprint of the existing hit box, at the bolt's height.
         Vector3 side = Vector3.Cross(Vector3.up, direction).normalized * (hitWidth * 0.5f);
         lineRenderer.SetPosition(0, start - side);

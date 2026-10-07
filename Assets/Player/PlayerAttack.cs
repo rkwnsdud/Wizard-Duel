@@ -39,8 +39,8 @@ public class PlayerAttack : MonoBehaviour
     private void LateUpdate()
     {
         // PlayerAim updates first so the preview follows this frame's aim.
-        if (isCharging && currentWeapon is LightningWeapon lightning)
-            lightning.ShowChargePreview(ChargeRatio);
+        if (isCharging && currentWeapon != null)
+            currentWeapon.ShowChargePreview(ChargeRatio);
     }
     private void OnEnable()
     {
@@ -67,7 +67,7 @@ public class PlayerAttack : MonoBehaviour
 
         inputActions.Disable();
 
-        if (currentWeapon is LightningWeapon lightning) lightning.HideChargePreview();
+        if (currentWeapon != null) currentWeapon.HideChargePreview();
         isCharging = false;
         chargeTime = 0f;
         IsAttacking = false;
@@ -93,7 +93,7 @@ public class PlayerAttack : MonoBehaviour
 
         isCharging = true;
         chargeTime = 0f;
-        if (currentWeapon is LightningWeapon lightning) lightning.ShowChargePreview(ChargeRatio);
+        if (currentWeapon != null) currentWeapon.ShowChargePreview(ChargeRatio);
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
         // Temporary charge diagnostics for Play mode testing.
         Debug.Log($"[Charge] Start maxChargeTime={maxChargeTime:F3}, weapon={currentWeapon}", this);
@@ -115,7 +115,7 @@ public class PlayerAttack : MonoBehaviour
         isCharging = false;
 
         pendingChargeRatio = ChargeRatio;
-        if (currentWeapon is LightningWeapon lightning) lightning.HideChargePreview();
+        if (currentWeapon != null) currentWeapon.HideChargePreview();
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
         // Temporary charge diagnostics: log once on release, not every frame.
         Debug.Log($"[Charge] Release chargeTime={chargeTime:F3}, maxChargeTime={maxChargeTime:F3}, pendingChargeRatio={pendingChargeRatio:F3}", this);

@@ -129,9 +129,8 @@ GameObject:
   m_Component:
   - component: {fileID: 69106044}
   - component: {fileID: 69106046}
-  - component: {fileID: 69106045}
   m_Layer: 0
-  m_Name: LightningPreview
+  m_Name: PreviewVisual
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -158,7 +157,7 @@ MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 69106043}
+  m_GameObject: {fileID: 2003209120}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: b32d5660cd705464f8dd365832f135a3, type: 3}
@@ -304,37 +303,6 @@ AudioSource:
   m_CorrespondingSourceObject: {fileID: 5861356721983838770, guid: a1cc0d0fb37c35449bd995841e69ab7a, type: 3}
   m_PrefabInstance: {fileID: 257733373}
   m_PrefabAsset: {fileID: 0}
---- !u!1 &152994457
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 152994458}
-  m_Layer: 0
-  m_Name: BeamGlow
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &152994458
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 152994457}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 633421735}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &257733373
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -476,6 +444,10 @@ PrefabInstance:
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 5349335071379819595, guid: a1cc0d0fb37c35449bd995841e69ab7a, type: 3}
+      propertyPath: m_Name
+      value: Lightning_Model
+      objectReference: {fileID: 0}
+    - target: {fileID: 5349335071379819595, guid: a1cc0d0fb37c35449bd995841e69ab7a, type: 3}
       propertyPath: m_IsActive
       value: 1
       objectReference: {fileID: 0}
@@ -605,11 +577,11 @@ PrefabInstance:
       objectReference: {fileID: 962945635}
     - target: {fileID: 7304179585884765599, guid: a1cc0d0fb37c35449bd995841e69ab7a, type: 3}
       propertyPath: m_IsActive
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 7475994701345486329, guid: a1cc0d0fb37c35449bd995841e69ab7a, type: 3}
       propertyPath: m_Name
-      value: LightningStaff
+      value: Model
       objectReference: {fileID: 0}
     - target: {fileID: 7630473011716073542, guid: a1cc0d0fb37c35449bd995841e69ab7a, type: 3}
       propertyPath: m_LocalEulerAnglesHint.x
@@ -641,7 +613,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 7713191432823955937, guid: a1cc0d0fb37c35449bd995841e69ab7a, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 2.055
+      value: 3.15
       objectReference: {fileID: 0}
     - target: {fileID: 7713191432823955937, guid: a1cc0d0fb37c35449bd995841e69ab7a, type: 3}
       propertyPath: m_LocalPosition.z
@@ -752,6 +724,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 7304179585884765599, guid: a1cc0d0fb37c35449bd995841e69ab7a, type: 3}
       insertIndex: -1
       addedObject: {fileID: 962945635}
+    - targetCorrespondingSourceObject: {fileID: 7304179585884765599, guid: a1cc0d0fb37c35449bd995841e69ab7a, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 570386276}
   m_SourcePrefab: {fileID: 100100000, guid: a1cc0d0fb37c35449bd995841e69ab7a, type: 3}
 --- !u!1 &359582326
 GameObject:
@@ -889,13 +864,14 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 372785342}
+  - component: {fileID: 372785343}
   m_Layer: 0
   m_Name: LightStaff
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &372785342
 Transform:
   m_ObjectHideFlags: 0
@@ -911,45 +887,27 @@ Transform:
   m_Children:
   - {fileID: 483383063}
   - {fileID: 697366672}
-  - {fileID: 1597416761}
   m_Father: {fileID: 2003209119}
   m_LocalEulerAnglesHint: {x: 197.972, y: 165.234, z: -51.563995}
+--- !u!114 &372785343
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 372785341}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 739c3faa52f75ff4598a91019c6e0a45, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::LightWeapon
+  firePoint: {fileID: 483383063}
+  lightAttackPrefab: {fileID: 191058561687818987, guid: 7ec76eb30e1afaa43ad22a995b8ab4b9, type: 3}
 --- !u!4 &376847392 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 7713191432823955937, guid: a1cc0d0fb37c35449bd995841e69ab7a, type: 3}
   m_PrefabInstance: {fileID: 257733373}
   m_PrefabAsset: {fileID: 0}
---- !u!1 &432956778
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 432956779}
-  m_Layer: 0
-  m_Name: BeamCore
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &432956779
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 432956778}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 633421735}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &483383062
 GameObject:
   m_ObjectHideFlags: 0
@@ -960,7 +918,7 @@ GameObject:
   m_Component:
   - component: {fileID: 483383063}
   m_Layer: 0
-  m_Name: FIrePoint
+  m_Name: FirePoint
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -975,7 +933,7 @@ Transform:
   m_GameObject: {fileID: 483383062}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 2.055, z: 0}
+  m_LocalPosition: {x: 0, y: 3.15, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -991,9 +949,8 @@ GameObject:
   m_Component:
   - component: {fileID: 570386275}
   - component: {fileID: 570386277}
-  - component: {fileID: 570386276}
   m_Layer: 0
-  m_Name: LightningPreview
+  m_Name: PreviewVisual
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1020,7 +977,7 @@ MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 570386274}
+  m_GameObject: {fileID: 962945633}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: b32d5660cd705464f8dd365832f135a3, type: 3}
@@ -1137,39 +1094,6 @@ LineRenderer:
   m_UseWorldSpace: 1
   m_Loop: 0
   m_ApplyActiveColorSpace: 1
---- !u!1 &633421734
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 633421735}
-  m_Layer: 0
-  m_Name: BeamRoot
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &633421735
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 633421734}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0.000000029802312, y: 0.00000026822082, z: -0.00000004470347, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children:
-  - {fileID: 432956779}
-  - {fileID: 152994458}
-  m_Father: {fileID: 1388327596}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!4 &640204925 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 8004607256499747338, guid: a1cc0d0fb37c35449bd995841e69ab7a, type: 3}
@@ -1237,7 +1161,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 919132149155446097, guid: 141498fafe2fe22439a65f4272556980, type: 3}
       propertyPath: m_Name
-      value: LightStaff
+      value: LightStaff_Model
+      objectReference: {fileID: 0}
+    - target: {fileID: 919132149155446097, guid: 141498fafe2fe22439a65f4272556980, type: 3}
+      propertyPath: m_IsActive
+      value: 1
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -1259,7 +1187,7 @@ GameObject:
   m_Component:
   - component: {fileID: 792164255}
   m_Layer: 0
-  m_Name: FIrePoint
+  m_Name: FirePoint
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1274,7 +1202,7 @@ Transform:
   m_GameObject: {fileID: 792164254}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 2.055, z: 0}
+  m_LocalPosition: {x: 0, y: 3.15, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -1434,37 +1362,6 @@ MonoBehaviour:
   height: 10
   distance: 8
   lookHeight: 1
---- !u!1 &930591067
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 930591068}
-  m_Layer: 0
-  m_Name: BeamGlow
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &930591068
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 930591067}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 1597416761}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &962945633 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 7304179585884765599, guid: a1cc0d0fb37c35449bd995841e69ab7a, type: 3}
@@ -1491,6 +1388,7 @@ MonoBehaviour:
   firePoint: {fileID: 376847392}
   audioSource: {fileID: 129268499}
   thunderSound: {fileID: 8300000, guid: 3979f3f418ffb8f4eb10424a8269730c, type: 3}
+  preview: {fileID: 570386276}
 --- !u!1001 &1132011680
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -1553,7 +1451,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 919132149155446097, guid: 141498fafe2fe22439a65f4272556980, type: 3}
       propertyPath: m_Name
-      value: LightStaff
+      value: LightStaff_Model
+      objectReference: {fileID: 0}
+    - target: {fileID: 919132149155446097, guid: 141498fafe2fe22439a65f4272556980, type: 3}
+      propertyPath: m_IsActive
+      value: 1
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -1574,13 +1476,14 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1388327596}
+  - component: {fileID: 1388327597}
   m_Layer: 0
   m_Name: LightStaff
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &1388327596
 Transform:
   m_ObjectHideFlags: 0
@@ -1596,9 +1499,22 @@ Transform:
   m_Children:
   - {fileID: 792164255}
   - {fileID: 1132011681}
-  - {fileID: 633421735}
   m_Father: {fileID: 640204925}
   m_LocalEulerAnglesHint: {x: 197.972, y: 165.234, z: -51.563995}
+--- !u!114 &1388327597
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1388327595}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 739c3faa52f75ff4598a91019c6e0a45, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::LightWeapon
+  firePoint: {fileID: 792164255}
+  lightAttackPrefab: {fileID: 191058561687818987, guid: 7ec76eb30e1afaa43ad22a995b8ab4b9, type: 3}
 --- !u!1 &1420519220
 GameObject:
   m_ObjectHideFlags: 0
@@ -1681,70 +1597,6 @@ MonoBehaviour:
   spawnBlocks:
   - {fileID: 6194714110399475094, guid: 57cb17e3681ece848b9f82433d8f88ff, type: 3}
   - {fileID: 7208045001040428938, guid: ff3c1e5e26ff0b545845bfafb0351f39, type: 3}
---- !u!1 &1597416760
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1597416761}
-  m_Layer: 0
-  m_Name: BeamRoot
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &1597416761
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1597416760}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0.000000029802312, y: 0.00000026822082, z: -0.00000004470347, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children:
-  - {fileID: 1909227279}
-  - {fileID: 930591068}
-  m_Father: {fileID: 372785342}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &1909227278
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1909227279}
-  m_Layer: 0
-  m_Name: BeamCore
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &1909227279
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1909227278}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 1597416761}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &2003209115
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -1886,6 +1738,10 @@ PrefabInstance:
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 5349335071379819595, guid: a1cc0d0fb37c35449bd995841e69ab7a, type: 3}
+      propertyPath: m_Name
+      value: Lightning_Model
+      objectReference: {fileID: 0}
+    - target: {fileID: 5349335071379819595, guid: a1cc0d0fb37c35449bd995841e69ab7a, type: 3}
       propertyPath: m_IsActive
       value: 1
       objectReference: {fileID: 0}
@@ -2015,11 +1871,11 @@ PrefabInstance:
       objectReference: {fileID: 2003209123}
     - target: {fileID: 7304179585884765599, guid: a1cc0d0fb37c35449bd995841e69ab7a, type: 3}
       propertyPath: m_IsActive
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 7475994701345486329, guid: a1cc0d0fb37c35449bd995841e69ab7a, type: 3}
       propertyPath: m_Name
-      value: LightningStaff
+      value: Model
       objectReference: {fileID: 0}
     - target: {fileID: 7630473011716073542, guid: a1cc0d0fb37c35449bd995841e69ab7a, type: 3}
       propertyPath: m_LocalEulerAnglesHint.x
@@ -2051,7 +1907,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 7713191432823955937, guid: a1cc0d0fb37c35449bd995841e69ab7a, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 2.055
+      value: 3.15
       objectReference: {fileID: 0}
     - target: {fileID: 7713191432823955937, guid: a1cc0d0fb37c35449bd995841e69ab7a, type: 3}
       propertyPath: m_LocalPosition.z
@@ -2162,6 +2018,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 7304179585884765599, guid: a1cc0d0fb37c35449bd995841e69ab7a, type: 3}
       insertIndex: -1
       addedObject: {fileID: 2003209123}
+    - targetCorrespondingSourceObject: {fileID: 7304179585884765599, guid: a1cc0d0fb37c35449bd995841e69ab7a, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 69106045}
   m_SourcePrefab: {fileID: 100100000, guid: a1cc0d0fb37c35449bd995841e69ab7a, type: 3}
 --- !u!1 &2003209116 stripped
 GameObject:
@@ -2223,6 +2082,7 @@ MonoBehaviour:
   firePoint: {fileID: 2003209117}
   audioSource: {fileID: 2003209121}
   thunderSound: {fileID: 8300000, guid: 3979f3f418ffb8f4eb10424a8269730c, type: 3}
+  preview: {fileID: 69106045}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
