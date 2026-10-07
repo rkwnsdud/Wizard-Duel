@@ -11,7 +11,7 @@ using Debug = UnityEngine.Debug;
 // Tools > Wizard Duel > Network Test: 테스트 빌드를 만들고 전용 서버와 클라이언트를 띄우거나 강제 종료한다.
 public class NetworkTestWindow : EditorWindow
 {
-    const string ScenePath = "Assets/Multiplayer/NetworkDemo.unity";
+    const string ScenePath = "Assets/Scenes/NetworkDemo.unity";
     const string ExePath = "Build/NetworkTest/WizardDuel.exe";
     const string LogDir = "Logs/NetworkTest";
     const string ServerArgs = "-batchmode -nographics -server";

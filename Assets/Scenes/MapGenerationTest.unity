@@ -178,10 +178,10 @@ Camera:
     width: 1
     height: 1
   near clip plane: 0.3
-  far clip plane: 1000
+  far clip plane: 500
   field of view: 60
   orthographic: 1
-  orthographic size: 12
+  orthographic size: 65
   m_Depth: -1
   m_CullingMask:
     serializedVersion: 2
@@ -205,8 +205,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 173269442}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.3302866, y: -0.29337943, z: 0.10881388, w: 0.89050484}
-  m_LocalPosition: {x: 17, y: 25, z: -23}
+  m_LocalRotation: {x: 0.7071068, y: 0, z: 0, w: 0.7071068}
+  m_LocalPosition: {x: 0, y: 100, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -222,7 +222,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: a79441f348de89743a2939f4d699eac1, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Unity.RenderPipelines.Universal.Runtime::UnityEngine.Rendering.Universal.UniversalAdditionalCameraData
   m_RenderShadows: 1
   m_RequiresDepthTextureOption: 2
@@ -392,39 +392,15 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 912997905}
-  - component: {fileID: 912997904}
   - component: {fileID: 912997906}
+  - component: {fileID: 912997907}
   m_Layer: 0
-  m_Name: Grid Map
+  m_Name: Procedural Map
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &912997904
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 912997903}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e2b06340c3d62f743ba1b2eb0b0cf0a7, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::GridMap
-  generateOnAwake: 1
-  seed: 7301
-  layout:
-  - '###########'
-  - '#.........#'
-  - '#..##.....#'
-  - '#.........#'
-  - '#.........#'
-  - '#.........#'
-  - '#.....##..#'
-  - '#.........#'
-  - '###########'
 --- !u!4 &912997905
 Transform:
   m_ObjectHideFlags: 0
@@ -450,7 +426,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 948515391d62fae449b67dfc0f274619, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BlockFactory
   floorBlocks:
   - {fileID: 1995253096088471428, guid: 986326ec0bfd8f7429656c1d39ddcd2d, type: 3}
@@ -462,7 +438,30 @@ MonoBehaviour:
   - {fileID: 2556189777204332245, guid: 51340cd2cd81764418be31faf0c03e6a, type: 3}
   - {fileID: 6035069288633617733, guid: 2b5989713fb00e249829f90e0c154231, type: 3}
   - {fileID: 7650263968882925252, guid: acefa3fa65caa1d419a6aeaaa4480ade, type: 3}
-  spawnBlocks: []
+  spawnBlocks:
+  - {fileID: 6194714110399475094, guid: 57cb17e3681ece848b9f82433d8f88ff, type: 3}
+  - {fileID: 7208045001040428938, guid: ff3c1e5e26ff0b545845bfafb0351f39, type: 3}
+--- !u!114 &912997907
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 912997903}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ff6a83c9313be934cbbfc5abee4338e2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ProceduralMap
+  generateOnAwake: 1
+  seed: 7301
+  automaticSize: 1
+  size: {x: 31, y: 31}
+  shape: 0
+  obstacleDensity: 0.15
+  symmetry: 1
+  noiseStrength: 0.5
+  noiseScale: 0.75
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
