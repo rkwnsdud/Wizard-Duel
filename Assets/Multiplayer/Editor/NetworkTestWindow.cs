@@ -15,7 +15,7 @@ public class NetworkTestWindow : EditorWindow
     const string ExePath = "Build/NetworkTest/WizardDuel.exe";
     const string LogDir = "Logs/NetworkTest";
     const string ServerArgs = "-batchmode -nographics -server";
-    const string ClientArgs = "-join 127.0.0.1 -screen-fullscreen 0 -screen-width 640 -screen-height 480";
+    const string ClientArgs = "-join 127.0.0.1 -screen-fullscreen 0 -screen-width 1280 -screen-height 720";
     const string RunningKey = "NetworkTestWindow.Running";
 
     // 플레이 모드 진입(도메인 리로드)으로 비워지면 SessionState에 남긴 "이름:PID"로 다시 찾는다.
