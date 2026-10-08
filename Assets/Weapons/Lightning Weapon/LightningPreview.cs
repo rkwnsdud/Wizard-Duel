@@ -3,6 +3,8 @@ using UnityEngine;
 public class LightningPreview : MonoBehaviour
 {
     [SerializeField] private LineRenderer lineRenderer;
+    [SerializeField]
+    private Color previewColor = new Color(0.65f, 0.91f, 0.96f, 1f);
     private Material ownedMaterial;
 
 
@@ -21,7 +23,7 @@ public class LightningPreview : MonoBehaviour
         lineRenderer.positionCount = 4;
         lineRenderer.widthMultiplier = 1f;
         lineRenderer.startWidth = lineRenderer.endWidth = 0.04f;
-        lineRenderer.startColor = lineRenderer.endColor = Color.cyan;
+        lineRenderer.startColor = lineRenderer.endColor = previewColor;
         lineRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
         lineRenderer.receiveShadows = false;
         if (createdRenderer || lineRenderer.sharedMaterial == null)
@@ -37,6 +39,11 @@ public class LightningPreview : MonoBehaviour
     }
     public void ShowPreview(Vector3 start, Vector3 end, Vector3 direction, float hitWidth)
     {
+
+        const float previewY = 0.03f;
+        start.y = previewY;
+        end.y = previewY;
+
         // Horizontal footprint of the existing hit box, at the bolt's height.
         Vector3 side = Vector3.Cross(Vector3.up, direction).normalized * (hitWidth * 0.5f);
         lineRenderer.SetPosition(0, start - side);
