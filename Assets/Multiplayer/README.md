@@ -1,6 +1,6 @@
 # 1대1 온라인 연결 테스트
 
-`Assets/Multiplayer/NetworkDemo.unity`에서 Netcode for GameObjects로 두 플레이어를 연결한다. 직접 연결(UDP 7777)만 사용하며 Relay는 쓰지 않는다.
+`Assets/Scenes/NetworkDemo.unity`에서 Netcode for GameObjects로 두 플레이어를 연결한다. 직접 연결(UDP 7777)만 사용하며 Relay는 쓰지 않는다.
 
 ## 실행
 
