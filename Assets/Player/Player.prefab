@@ -209,7 +209,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f1ac26d11de8fb64085f709d8f7cb224, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerAttack
-  currentWeapon: {fileID: 0}
+  currentWeapon: {fileID: 4100219137000000001}
   maxChargeTime: 2
 --- !u!1 &2343295430808842415
 GameObject:
@@ -283,6 +283,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 280721123358532884}
+  - component: {fileID: 4100219137000000001}
   m_Layer: 0
   m_Name: LightningStaff
   m_TagString: Untagged
@@ -307,6 +308,23 @@ Transform:
   - {fileID: 4717370300051904241}
   m_Father: {fileID: 8004607256499747338}
   m_LocalEulerAnglesHint: {x: 197.972, y: 165.234, z: -51.563995}
+--- !u!114 &4100219137000000001
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7304179585884765599}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6603f066e23843c5bc44622674594772, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::LightningWeapon
+  boltPrefab: {fileID: 3518806986799842853, guid: 85f5f47d4e14e8043bca515fdfecfe64, type: 3}
+  firePoint: {fileID: 7713191432823955937}
+  audioSource: {fileID: 5861356721983838770}
+  thunderSound: {fileID: 8300000, guid: 3979f3f418ffb8f4eb10424a8269730c, type: 3}
+  preview: {fileID: 0}
 --- !u!1001 &5115471483861152026
 PrefabInstance:
   m_ObjectHideFlags: 0

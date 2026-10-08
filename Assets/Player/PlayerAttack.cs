@@ -22,6 +22,10 @@ public class PlayerAttack : MonoBehaviour
     {
         inputActions = new PlayerInputActions();
 
+        // Keep player variants working if the weapon reference is not serialized on the variant.
+        if (currentWeapon == null)
+            currentWeapon = GetComponentInChildren<WeaponBase>(true);
+
         Transform character = transform.Find("Wizard");
         animator = character.GetComponent<Animator>();
     }

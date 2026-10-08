@@ -53,7 +53,7 @@ MonoBehaviour:
   lightningSegmentCount: 32
   lightningJitter: 0.3
   lightningRefreshInterval: 0.04
-  mainBoltWidth: 0.24
+  mainBoltWidth: 0.34
   mainWander: 0.55
   mainMaxStep: 0.28
   mainEndConvergence: 0.03
