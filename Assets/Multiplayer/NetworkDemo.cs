@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Security.Cryptography;
@@ -144,13 +145,27 @@ public class NetworkDemo : MonoBehaviour
         foreach (ulong? owner in slotOwners)
             if (!owner.HasValue || !readyClients.Contains(owner.Value)) return;
 
+        NetworkDemoPlayer[] spawnedPlayers = new NetworkDemoPlayer[slotOwners.Length];
         for (int slot = 0; slot < slotOwners.Length; slot++)
         {
             Transform spawn = spawnProvider.SpawnPoints[slot];
             NetworkObject player = Instantiate(slot == 0 ? player1Prefab : player2Prefab, spawn.position, spawn.rotation);
             player.SpawnAsPlayerObject(slotOwners[slot].Value);
+            spawnedPlayers[slot] = player.GetComponent<NetworkDemoPlayer>();
             Debug.Log($"[Server] Player-{slot + 1} placed at {spawn.position} rotation={spawn.rotation}.");
         }
+        StartCoroutine(EnableCombatAfterSpawn(spawnedPlayers));
+    }
+
+    IEnumerator EnableCombatAfterSpawn(NetworkDemoPlayer[] players)
+    {
+        float duration = 1.2f;
+        foreach (NetworkDemoPlayer player in players)
+            if (player != null) duration = Mathf.Max(duration, player.SpawnEffectDuration);
+        // Allow the reliable spawn messages to reach clients before opening the combat gate.
+        yield return new WaitForSeconds(duration + 0.15f);
+        foreach (NetworkDemoPlayer player in players)
+            if (player != null) player.ServerEnableCombat();
     }
 
     bool GenerateMap()
