@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
@@ -15,9 +16,15 @@ public class TitleBackdrop : MonoBehaviour
     [Tooltip("맵 아래에 깔리는 바닥 빛. 맵 크기에 맞춰 늘어난다.")]
     [SerializeField] Transform ground;
     [SerializeField] float regenerateInterval = 12f;
-    [Tooltip("맵이 바닥 아래로 숨는 깊이와 오르내리는 시간.")]
+    [Tooltip("블록이 바닥 아래로 숨는 깊이.")]
     [SerializeField] float sinkDepth = 10f;
-    [SerializeField] float moveDuration = 0.8f;
+    [Tooltip("물결이 맵 중심에서 모서리까지 퍼지는 시간.")]
+    [SerializeField] float waveDuration = 1f;
+    [Tooltip("블록 하나가 올라오거나 내려가는 시간.")]
+    [SerializeField, Min(0.05f)] float blockDuration = 0.7f;
+    [Tooltip("블록 하나가 올라오는 모양. 0은 숨은 위치, 1은 제자리이고 1을 넘는 부분이 바운스다. 내려갈 때는 거꾸로 쓴다.")]
+    [SerializeField] AnimationCurve riseCurve = new AnimationCurve(
+        new Keyframe(0f, 0f, 0f, 3.5f), new Keyframe(0.55f, 1.06f), new Keyframe(0.8f, 0.98f), new Keyframe(1f, 1f));
     [SerializeField] float orbitSpeed = 3f;
     [SerializeField, Range(20f, 80f)] float pitch = 52f;
     [Tooltip("맵 중심이 놓일 화면 위치. (0, 0)은 왼쪽 아래, (1, 1)은 오른쪽 위.")]
@@ -30,6 +37,8 @@ public class TitleBackdrop : MonoBehaviour
     float distance;
     UniversalRenderPipelineAsset pipeline;
     float originalShadowDistance;
+    Vector3[] homes;
+    float[] delays;
 
     void OnEnable()
     {
@@ -72,21 +81,38 @@ public class TitleBackdrop : MonoBehaviour
             // 멀리서 내려다보면 기본 그림자 거리로는 그림자가 안 생겨서 잠시 늘린다.
             if (pipeline != null) pipeline.shadowDistance = Mathf.Max(originalShadowDistance, distance + radius * 1.5f);
 
-            yield return Move(-sinkDepth, 0f);
+            // 맵 중심에서 먼 블록일수록 늦게 출발해 가운데부터 물결이 퍼진다.
+            // 같은 칸의 바닥과 벽은 거리가 같아서 한 기둥처럼 함께 움직인다.
+            IReadOnlyList<IBlock> blocks = map.Blocks;
+            homes = new Vector3[blocks.Count];
+            delays = new float[blocks.Count];
+            for (int b = 0; b < blocks.Count; b++)
+            {
+                homes[b] = blocks[b].Transform.localPosition;
+                delays[b] = new Vector2(homes[b].x, homes[b].z).magnitude / radius * waveDuration;
+            }
+
+            yield return Wave(true);
             yield return new WaitForSeconds(regenerateInterval);
-            yield return Move(0f, -sinkDepth);
+            yield return Wave(false);
         }
     }
 
-    // 맵 전체를 바닥 아래에서 올리거나 내린다.
-    IEnumerator Move(float fromY, float toY)
+    // 블록을 하나씩 바닥 아래에서 올리거나 내린다. 첫 프레임에 바로 위치를 정해서 새 맵이 잠깐 보이는 일이 없다.
+    IEnumerator Wave(bool rising)
     {
-        for (float t = 0f; t < 1f; t += Time.deltaTime / moveDuration)
+        IReadOnlyList<IBlock> blocks = map.Blocks;
+        for (float time = 0f; ; time += Time.deltaTime)
         {
-            map.transform.position = center + Vector3.up * Mathf.Lerp(fromY, toY, Mathf.SmoothStep(0f, 1f, t));
+            for (int b = 0; b < blocks.Count; b++)
+            {
+                float t = Mathf.Clamp01((time - delays[b]) / blockDuration);
+                float height = riseCurve.Evaluate(rising ? t : 1f - t);
+                blocks[b].Transform.localPosition = homes[b] + Vector3.down * (sinkDepth * (1f - height));
+            }
+            if (time >= waveDuration + blockDuration) yield break;
             yield return null;
         }
-        map.transform.position = center + Vector3.up * toY;
     }
 
     void LateUpdate()
