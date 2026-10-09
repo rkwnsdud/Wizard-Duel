@@ -7,8 +7,21 @@ public class NetworkDemoPlayer : NetworkBehaviour
 {
     // 0 = Player-1(파랑), 1 = Player-2(빨강). Player-2 변형 프리팹에서 1로 덮어쓴다.
     [SerializeField] int slot;
+    [SerializeField, Min(0f)] float spawnEffectDuration = 1.35f;
+    [SerializeField, Min(0.1f)] float spawnRuneRadius = 1.35f;
+    [SerializeField, Min(0f)] float spawnFloorOffset = 0.06f;
+    [SerializeField, Min(0f)] float spawnRuneRotationSpeed = 240f;
+    [SerializeField, Min(0f)] float spawnParticleRiseSpeed = 2.1f;
+    [SerializeField, Min(1)] int spawnParticleCount = 36;
+    [SerializeField] Color blueSpawnColor = new Color(0.08f, 1.4f, 2.2f, 1f);
+    [SerializeField] Color redSpawnColor = new Color(2.2f, 0.22f, 0.035f, 1f);
 
     public int Slot => slot;
+    public float SpawnEffectDuration => spawnEffectDuration;
+    public bool CombatEnabled => combatEnabled.Value;
+
+    readonly NetworkVariable<bool> combatEnabled = new NetworkVariable<bool>(false,
+        NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
 
     Animator animator;
     CameraFollow cameraFollow;
@@ -24,20 +37,59 @@ public class NetworkDemoPlayer : NetworkBehaviour
         Debug.Log($"[Player] Spawned slot={slot} owner={OwnerClientId} local={IsOwner} position={transform.position} rotation={transform.rotation}.");
         name = $"Player-{slot + 1}" + (IsOwner ? " (Me)" : "");
         previousPosition = transform.position;
-        if (!IsOwner) return;
+        combatEnabled.OnValueChanged += OnCombatEnabledChanged;
+        if (IsClient)
+        {
+            SpawnEffectController.Play(transform.position, slot, spawnEffectDuration, spawnRuneRadius,
+                spawnFloorOffset, spawnRuneRotationSpeed, spawnParticleRiseSpeed, spawnParticleCount,
+                blueSpawnColor, redSpawnColor);
+        }
 
-        GetComponent<CharacterController>().enabled = true;
-        GetComponent<PlayerMovement>().enabled = true;
-        GetComponent<PlayerAim>().enabled = true;
-        GetComponent<PlayerAttack>().enabled = true;
-        cameraFollow = Camera.main.GetComponent<CameraFollow>();
-        cameraFollow.player = transform;
-        cameraFollow.enabled = true;
+        if (IsOwner)
+        {
+            cameraFollow = Camera.main != null ? Camera.main.GetComponent<CameraFollow>() : null;
+            if (cameraFollow != null)
+            {
+                cameraFollow.player = transform;
+                cameraFollow.enabled = true;
+            }
+            ApplyCombatState(combatEnabled.Value);
+        }
+        else
+        {
+            // Player prefab variants inherit enabled input components; remote proxies must never read local input.
+            ApplyCombatState(false);
+        }
+    }
+
+    public void ServerEnableCombat()
+    {
+        if (IsServer && IsSpawned) combatEnabled.Value = true;
+    }
+
+    void OnCombatEnabledChanged(bool previous, bool current)
+    {
+        if (IsOwner) ApplyCombatState(current);
+    }
+
+    void ApplyCombatState(bool enabled)
+    {
+        CharacterController controller = GetComponent<CharacterController>();
+        PlayerMovement movement = GetComponent<PlayerMovement>();
+        PlayerAim aim = GetComponent<PlayerAim>();
+        PlayerAttack attack = GetComponent<PlayerAttack>();
+        // Keep proxy colliders available for local attacks and overlap/raycast hit detection.
+        if (controller != null && IsOwner) controller.enabled = enabled;
+        if (movement != null) movement.enabled = enabled;
+        if (aim != null) aim.enabled = enabled;
+        if (attack != null) attack.enabled = enabled;
     }
 
     public override void OnNetworkDespawn()
     {
         Debug.Log($"[Player] Despawned slot={slot} owner={OwnerClientId}.");
+        combatEnabled.OnValueChanged -= OnCombatEnabledChanged;
+        SpawnEffectController.Stop(slot);
         // 파괴될 플레이어를 계속 따라가지 않도록 카메라 추적을 끈다.
         if (cameraFollow != null) cameraFollow.enabled = false;
     }
