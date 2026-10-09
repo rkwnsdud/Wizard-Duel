@@ -3,6 +3,8 @@ using UnityEngine.Serialization;
 
 public sealed class LightningWeapon : WeaponBase
 {
+    public override bool UsesCharge => true;
+
     [FormerlySerializedAs("projectilePrefab")]
     [SerializeField] private LightningBolt boltPrefab;
     [SerializeField] private Transform firePoint;
@@ -47,10 +49,6 @@ public sealed class LightningWeapon : WeaponBase
     public override void Fire(float chargeRatio)
     {
         HideChargePreview();
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
-        // Temporary charge diagnostics for Play mode testing.
-        Debug.Log($"[Charge] LightningWeapon.Fire chargeRatio={chargeRatio:F3}, prefab={boltPrefab}, firePoint={firePoint}", this);
-#endif
         if (boltPrefab == null || firePoint == null)
         {
             Debug.LogError("LightningWeapon requires a bolt prefab and fire point.", this);

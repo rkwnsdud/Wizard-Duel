@@ -64,10 +64,6 @@ public class LightningBolt : MonoBehaviour
         // 타격 박스 형성
         Vector3 center = (startPosition + endPosition) / 2f;
         float length = Vector3.Distance(startPosition, endPosition);
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
-        // Temporary charge diagnostics: distinguish charge range from wall clipping.
-        Debug.Log($"[Charge] LightningBolt.SetCharge chargeRatio={chargeRatio:F3}, requestedRange={range:F3}, actualLength={length:F3}, boltWidth={boltWidth:F3}, damage={damage:F3}", this);
-#endif
         Vector3 halfExtents = new Vector3(hitWidth / 2f, hitHeight / 2f, length / 2f);
         Collider[] hits = Physics.OverlapBox(center, halfExtents, transform.rotation);
         foreach (Collider hitCollider in hits)
@@ -84,7 +80,6 @@ public class LightningBolt : MonoBehaviour
                 continue;
             }
 
-            Debug.Log("플레이어 감지: " + playerHealth.gameObject.name);
             playerHealth.TakeDamage(damage);
             break;
         }

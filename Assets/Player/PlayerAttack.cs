@@ -4,6 +4,7 @@ using UnityEngine.InputSystem;
 public class PlayerAttack : MonoBehaviour
 {
     private PlayerInputActions inputActions;
+    private PlayerHealth playerHealth;
 
     [SerializeField] private WeaponBase currentWeapon;
     [Min(0.01f)] [SerializeField] private float maxChargeTime = 2f;
@@ -21,6 +22,7 @@ public class PlayerAttack : MonoBehaviour
     private void Awake()
     {
         inputActions = new PlayerInputActions();
+        playerHealth = GetComponent<PlayerHealth>();
 
         // Keep player variants working if the weapon reference is not serialized on the variant.
         if (currentWeapon == null)
@@ -53,7 +55,7 @@ public class PlayerAttack : MonoBehaviour
             inputActions = new PlayerInputActions();
         }
 
-        inputActions.Player.Attack.started += ChargeStart;
+        inputActions.Player.Attack.started += AttackStarted;
         inputActions.Player.Attack.canceled += Attack;
 
         inputActions.Enable();
@@ -66,7 +68,7 @@ public class PlayerAttack : MonoBehaviour
             return;
         }
 
-        inputActions.Player.Attack.started -= ChargeStart;
+        inputActions.Player.Attack.started -= AttackStarted;
         inputActions.Player.Attack.canceled -= Attack;
 
         inputActions.Disable();
@@ -84,51 +86,50 @@ public class PlayerAttack : MonoBehaviour
     }
 
     // 공격 버튼을 누른 순간 차징 시작
-    private void ChargeStart(InputAction.CallbackContext context)
+    private void AttackStarted(InputAction.CallbackContext context)
     {
-        if (IsAttacking)
+        if (IsAttacking || (playerHealth != null && playerHealth.IsDead))
         {
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
-            // Temporary charge diagnostics for Play mode testing.
-            Debug.Log("[Charge] Start ignored: attack animation still active.", this);
-#endif
+            return;
+        }
+
+        if (currentWeapon == null || !currentWeapon.UsesCharge)
+        {
+            CommitAttack(0f);
             return;
         }
 
         isCharging = true;
         chargeTime = 0f;
         if (currentWeapon != null) currentWeapon.ShowChargePreview(ChargeRatio);
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
-        // Temporary charge diagnostics for Play mode testing.
-        Debug.Log($"[Charge] Start maxChargeTime={maxChargeTime:F3}, weapon={currentWeapon}", this);
-#endif
     }
 
     // 공격 버튼을 뗀 순간 공격 애니메이션 시작
     private void Attack(InputAction.CallbackContext context)
     {
-        if (IsAttacking || !isCharging)
+        if (IsAttacking || !isCharging || (playerHealth != null && playerHealth.IsDead))
         {
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
-            // Temporary charge diagnostics for Play mode testing.
-            Debug.Log($"[Charge] Release ignored: IsAttacking={IsAttacking}, isCharging={isCharging}", this);
-#endif
             return;
         }
 
         isCharging = false;
 
-        pendingChargeRatio = ChargeRatio;
+        float chargeRatio = ChargeRatio;
         if (currentWeapon != null) currentWeapon.HideChargePreview();
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
-        // Temporary charge diagnostics: log once on release, not every frame.
-        Debug.Log($"[Charge] Release chargeTime={chargeTime:F3}, maxChargeTime={maxChargeTime:F3}, pendingChargeRatio={pendingChargeRatio:F3}", this);
-#endif
 
+        CommitAttack(chargeRatio);
+    }
+
+    private void CommitAttack(float chargeRatio)
+    {
+        if (playerHealth != null && playerHealth.IsDead)
+            return;
+
+        pendingChargeRatio = chargeRatio;
         hasFired = false;
         IsAttacking = true;
 
-        // Release commits the charge; WizardAnimationEvent fires at the cast pose.
+        // WizardAnimationEvent fires at the cast pose.
         animator.SetFloat("MoveSpeed", 0f);
         animator.SetTrigger("Attack");
     }
@@ -136,12 +137,8 @@ public class PlayerAttack : MonoBehaviour
     // 공격 애니메이션 중간 Animation Event에서 호출
     public void FireMagic()
     {
-        if (!IsAttacking || hasFired)
+        if (!IsAttacking || hasFired || (playerHealth != null && playerHealth.IsDead))
         {
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
-            // Temporary charge diagnostics for duplicate or out-of-order events.
-            Debug.Log($"[Charge] FireMagic ignored: IsAttacking={IsAttacking}, hasFired={hasFired}", this);
-#endif
             return;
         }
 
@@ -149,10 +146,6 @@ public class PlayerAttack : MonoBehaviour
 
         if (currentWeapon != null)
         {
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
-            // Temporary charge diagnostics: confirms the animation event arrived.
-            Debug.Log($"[Charge] FireMagic pendingChargeRatio={pendingChargeRatio:F3}, weapon={currentWeapon.name}", this);
-#endif
             currentWeapon.Fire(pendingChargeRatio);
         }
         else
@@ -164,10 +157,6 @@ public class PlayerAttack : MonoBehaviour
     // 공격 애니메이션 마지막 Animation Event에서 호출
     public void EndAttack()
     {
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
-        // Temporary charge diagnostics: verifies the final animation event.
-        Debug.Log($"[Charge] EndAttack hasFired={hasFired}", this);
-#endif
         IsAttacking = false;
     }
 

@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 
 public class LightWeapon : WeaponBase
 {
@@ -25,6 +25,9 @@ public class LightWeapon : WeaponBase
             Quaternion.identity
         );
 
-        attack.Initialize(direction);
+        // 발사자 정보 가져오기
+        PlayerHealth owner = GetComponentInParent<PlayerHealth>();
+
+        attack.Initialize(direction, owner);
     }
 }
