@@ -48,8 +48,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::LightningBolt
   minRange: 2
   maxRange: 8
-  minBoltWidth: 0.18
-  maxBoltWidth: 0.35
+  minBoltWidth: 0.28
+  maxBoltWidth: 0.5
   minDamage: 5
   maxDamage: 15
   minHitWidth: 0.4

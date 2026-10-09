@@ -92,7 +92,7 @@ Shader "ReusableEffects/Lightning Beam"
                 half core = exp2(-radius * radius * 180.0);
                 half halo = exp2(-radius * radius * 7.0) * edgeFade;
                 half detail = lerp(0.85, 1.0, mask);
-                half3 color = (_CoreColor.rgb * core + _Tint.rgb * halo * 0.45)
+                half3 color = (_CoreColor.rgb * core + _Tint.rgb * halo * 0.22)
                     * (_Intensity * detail * input.color.a * _Opacity);
                 return half4(color, 1.0);
             }

@@ -9,7 +9,7 @@ public sealed class LightningWeapon : WeaponBase
     [SerializeField] private AudioSource audioSource;
     [SerializeField] private AudioClip thunderSound;
 
-    private LightningPreview preview;
+    [SerializeField] private LightningPreview preview;
     private PlayerAim playerAim;
 
     private void Awake()
@@ -26,7 +26,7 @@ public sealed class LightningWeapon : WeaponBase
         return direction.sqrMagnitude < 0.0001f ? Vector3.forward : direction.normalized;
     }
 
-    public void ShowChargePreview(float chargeRatio)
+    public override void ShowChargePreview(float chargeRatio)
     {
         if (preview == null || boltPrefab == null || firePoint == null) return;
         Vector3 start = firePoint.position;
@@ -35,7 +35,7 @@ public sealed class LightningWeapon : WeaponBase
             direction, boltPrefab.GetHitWidth(chargeRatio));
     }
 
-    public void HideChargePreview()
+    public override void HideChargePreview()
     {
         if (preview != null) preview.HidePreview();
     }
