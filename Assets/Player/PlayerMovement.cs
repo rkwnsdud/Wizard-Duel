@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 
+[DefaultExecutionOrder(10)]
 public class PlayerMovement : MonoBehaviour
 {
     float moveSpeed = 5f;
@@ -29,6 +30,8 @@ public class PlayerMovement : MonoBehaviour
         if (playerAttack.IsAttacking)
         {
             animator.SetFloat("MoveSpeed", 0f);
+            animator.SetFloat("MoveX", 0f);
+            animator.SetFloat("MoveZ", 0f);
             return;
         }
 
@@ -60,7 +63,11 @@ public class PlayerMovement : MonoBehaviour
             moveDirection.Normalize();
         }
 
+        float directionDampTime = animator.GetFloat("MoveSpeed") > 0f ? 0.1f : 0f;
         animator.SetFloat("MoveSpeed", moveDirection.sqrMagnitude > 0f ? moveSpeed : 0f);
+        Vector3 localDirection = transform.InverseTransformDirection(moveDirection);
+        animator.SetFloat("MoveX", localDirection.x, directionDampTime, Time.deltaTime);
+        animator.SetFloat("MoveZ", localDirection.z, directionDampTime, Time.deltaTime);
         controller.Move(moveDirection * moveSpeed * Time.deltaTime);
 
         if (isGrounded && velocity.y < 0f)

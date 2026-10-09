@@ -47,7 +47,12 @@ public class NetworkDemoPlayer : NetworkBehaviour
         if (!IsSpawned || IsOwner) return;
         Vector3 displacement = transform.position - previousPosition;
         displacement.y = 0f;
-        animator.SetFloat("MoveSpeed", displacement.sqrMagnitude > 0.00001f ? 5f : 0f);
+        bool isMoving = displacement.sqrMagnitude > 0.00001f;
+        float directionDampTime = animator.GetFloat("MoveSpeed") > 0f ? 0.1f : 0f;
+        animator.SetFloat("MoveSpeed", isMoving ? 5f : 0f);
+        Vector3 localDirection = isMoving ? transform.InverseTransformDirection(displacement.normalized) : Vector3.zero;
+        animator.SetFloat("MoveX", localDirection.x, directionDampTime, Time.deltaTime);
+        animator.SetFloat("MoveZ", localDirection.z, directionDampTime, Time.deltaTime);
         previousPosition = transform.position;
     }
 }
