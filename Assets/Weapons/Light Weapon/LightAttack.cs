@@ -14,19 +14,29 @@ public class LightAttack : MonoBehaviour
     [SerializeField] private LineRenderer beamGlow;
     [SerializeField] private float damage = 10f;
     [SerializeField, Min(0f)] private float damageIncreaseRate = 0.5f; // 데미지 증가율
+    [SerializeField] private AudioClip reflectSound;
 
     private float currentDistance;
     private Vector3 currentPoint;
     private Vector3 direction;
     private int reflectionCount;
     private PlayerHealth ownerHealth;
+    private LineRenderer currentBeamCore;
+    private LineRenderer currentBeamGlow;
+    private AudioSource audioSource;
 
-    public void Initialize(Vector3 fireDirection, PlayerHealth owner)
+    public void Initialize(Vector3 fireDirection, PlayerHealth owner, AudioSource source)
     {
         direction = fireDirection;
         currentPoint = transform.position;
         ownerHealth = owner;
-        
+        audioSource = source;
+
+        currentBeamCore = beamCore;
+        currentBeamGlow = beamGlow;
+        beamCore.positionCount = 2;
+        beamGlow.positionCount = 2;
+
         beamCore.SetPosition(0, transform.position);
         beamCore.SetPosition(1, transform.position);
 
@@ -35,6 +45,16 @@ public class LightAttack : MonoBehaviour
 
     }
 
+
+    private LineRenderer CreateBeamSegment(LineRenderer template, Vector3 startPoint)
+    {
+        // 기존 설정과 활성 상태를 복제하고, LightAttack의 자식으로 함께 제거되게 한다.
+        LineRenderer segment = Instantiate(template, template.transform.parent);
+        segment.positionCount = 2;
+        segment.SetPosition(0, startPoint);
+        segment.SetPosition(1, startPoint);
+        return segment;
+    }
 
     private void Update()
     {
@@ -91,14 +111,20 @@ public class LightAttack : MonoBehaviour
             }
 
             // 벽 반사 처리
+            Debug.Log($"Light Reflect: {hit.collider.name}, Layer: {LayerMask.LayerToName(hit.collider.gameObject.layer)}", hit.collider);
             currentPoint = hit.point;
             currentDistance += hit.distance;
 
             Instantiate(reflectPrefab, hit.point, Quaternion.identity);
 
+            if (audioSource != null && reflectSound != null)
+            {
+                audioSource.PlayOneShot(reflectSound);
+            }
+
             // 현재 선 끝을 벽에 고정
-            beamCore.SetPosition(beamCore.positionCount - 1, hit.point);
-            beamGlow.SetPosition(beamGlow.positionCount - 1, hit.point);
+            currentBeamCore.SetPosition(1, hit.point);
+            currentBeamGlow.SetPosition(1, hit.point);
 
             // 이미 최대 횟수만큼 반사했다면
             if (reflectionCount >= maxReflections)
@@ -107,11 +133,9 @@ public class LightAttack : MonoBehaviour
                 return;
             }
             
-            // 아직 반사 가능하면 새 끝점 생성
-            beamCore.positionCount++;
-            beamGlow.positionCount++;
-            beamCore.SetPosition(beamCore.positionCount - 1, hit.point);
-            beamGlow.SetPosition(beamGlow.positionCount-1, hit.point);
+            // 반사 지점에서 시작하는 독립적인 2점 구간 생성
+            currentBeamCore = CreateBeamSegment(beamCore, hit.point);
+            currentBeamGlow = CreateBeamSegment(beamGlow, hit.point);
 
 
             direction = Vector3.Reflect(direction, hit.normal);
@@ -126,8 +150,8 @@ public class LightAttack : MonoBehaviour
         }
 
 
-        beamCore.SetPosition(beamCore.positionCount-1, currentPoint);
-        beamGlow.SetPosition(beamGlow.positionCount - 1, currentPoint);
+        currentBeamCore.SetPosition(1, currentPoint);
+        currentBeamGlow.SetPosition(1, currentPoint);
 
         if (currentDistance >= maxDistance)
         {

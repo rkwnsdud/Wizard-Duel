@@ -1196,6 +1196,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::LightWeapon
   firePoint: {fileID: 483383063}
   lightAttackPrefab: {fileID: 191058561687818987, guid: 7ec76eb30e1afaa43ad22a995b8ab4b9, type: 3}
+  audioSource: {fileID: 0}
+  lightSound: {fileID: 0}
 --- !u!4 &376847392 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 7713191432823955937, guid: a1cc0d0fb37c35449bd995841e69ab7a, type: 3}
@@ -2025,6 +2027,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::LightWeapon
   firePoint: {fileID: 792164255}
   lightAttackPrefab: {fileID: 191058561687818987, guid: 7ec76eb30e1afaa43ad22a995b8ab4b9, type: 3}
+  audioSource: {fileID: 129268499}
+  lightSound: {fileID: 8300000, guid: f894578f7e6f5774bbe05758d5ee9225, type: 3}
 --- !u!1 &1420519220
 GameObject:
   m_ObjectHideFlags: 0

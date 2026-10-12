@@ -4,7 +4,8 @@ public class LightWeapon : WeaponBase
 {
     [SerializeField] private Transform firePoint;
     [SerializeField] private LightAttack lightAttackPrefab;
-
+    [SerializeField] private AudioSource audioSource;
+    [SerializeField] private AudioClip lightSound;
     private PlayerAim playerAim;
 
     private void Awake()
@@ -18,6 +19,11 @@ public class LightWeapon : WeaponBase
 
         direction.y = 0f;
         direction.Normalize();
+      
+        if (audioSource != null && lightSound != null)
+        {
+            audioSource.PlayOneShot(lightSound);
+        }
 
         LightAttack attack = Instantiate(
             lightAttackPrefab,
@@ -28,6 +34,6 @@ public class LightWeapon : WeaponBase
         // 발사자 정보 가져오기
         PlayerHealth owner = GetComponentInParent<PlayerHealth>();
 
-        attack.Initialize(direction, owner);
+        attack.Initialize(direction, owner, audioSource);
     }
 }
