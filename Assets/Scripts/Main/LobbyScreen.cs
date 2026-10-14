@@ -64,7 +64,7 @@ public class LobbyScreen : MonoBehaviour
         typing = mapSettings.IsTyping;
 
         // 시작할 수 있을 때는 버튼이 천천히 밝아졌다 어두워진다.
-        if (isHost && opponentPresent)
+        if (isHost && opponentPresent && startButton.interactable)
             startButton.targetGraphic.color = Color.Lerp(Gold, GoldBright, Mathf.Sin(Time.unscaledTime * 3.5f) * 0.5f + 0.5f);
     }
 
@@ -75,6 +75,8 @@ public class LobbyScreen : MonoBehaviour
         this.opponentPresent = opponentPresent;
         codeLabel.text = code.Insert(code.Length / 2, " ");
         startFace.localPosition = startHome;
+        // 전투 시작은 후속 작업에서 연결한다.
+        startButton.interactable = false;
         mapSettings.Open(isHost, settings);
         Refresh();
         EventSystem.current.SetSelectedGameObject(isHost ? startButton.gameObject : null);
@@ -120,10 +122,10 @@ public class LobbyScreen : MonoBehaviour
         redWaiting.SetActive(!opponentPresent);
         startButton.gameObject.SetActive(isHost);
         waitPlaque.SetActive(!isHost);
-        startButton.targetGraphic.color = opponentPresent ? Gold : Idle;
-        startLabel.color = opponentPresent ? GoldInk : IdleInk;
+        startButton.targetGraphic.color = Idle;
+        startLabel.color = IdleInk;
         status.text = !isHost ? "설정은 방장이 정해요. 바뀌면 여기에도 바로 보여요."
-            : opponentPresent ? "모두 모였어요 · 2 / 2"
+            : opponentPresent ? "모두 모였어요 · 2 / 2 · 전투 시작은 준비 중이에요"
             : "상대가 들어오면 시작할 수 있어요 · 1 / 2";
     }
 
