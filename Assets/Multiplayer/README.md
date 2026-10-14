@@ -2,9 +2,25 @@
 
 `Assets/Scenes/NetworkDemo.unity`에서 Netcode for GameObjects로 두 플레이어를 연결한다. 직접 연결(UDP 7777)만 사용하며 Relay는 쓰지 않는다.
 
+## Main 대기실 테스트
+
+**Tools > Wizard Duel > Network Test** 창의 **Mode**를 `Main`으로 두고 **Build**를 누르면 `Assets/Scenes/Main.unity`만 Development 빌드해 `Build/LobbyTest/WizardDuel.exe`에 만든다. **Server**는 창 없는 전용 서버로 UDP 7777을 열고, **Client**는 보이는 창에서 `-join 127.0.0.1` 주소를 설정해 시작 화면을 띄운다. `-join`은 방을 만들거나 참가하지 않으므로, 클라이언트 화면에서 **Create**를 누르거나 방장이 보여 준 6자리 코드로 **Join**한다.
+
+서버는 한 번에 방 하나와 확정 참가자 두 명만 받는다. 자동 시드는 방을 만들 때 서버가 한 번 정해 설정 변경과 늦은 참가에도 유지한다. 고정에서 자동으로 바꾸면 새 시드를 한 번 정하고, 자동 시드에서 고정으로 바꿔도 현재 시드를 유지한다. 고정 모드의 명시적 시드 편집은 적용된다. 확정 참가자 중 한 명이라도 나가면 방 전체를 닫는다. Main 빌드는 대기실·설정 동기화·맵 미리보기 검증 범위이며 전투는 시작하지 않는다. 빌드와 로그는 NetworkDemo와 분리해 `Build/LobbyTest/`, `Logs/LobbyTest/server.log`, `client1.log`, `client2.log`에 둔다. `Open Logs`에서 같은 로그 폴더를 열 수 있고, `[LobbyPreview]` 로그의 시드·형태·크기·스폰 셀·hash를 비교한다. 상세 비교 기록은 `Logs/LobbyTest/stage3-preview-comparison.json`에 있다.
+
+검사와 인계:
+
+- Unity Test Runner의 EditMode에서 `LobbySessionTests`, `NetworkLobbySnapshotTests`, `LobbyNetworkSettingsTests`, `NetworkMapSettingsTests`, `LobbyInputTests`를 실행한다.
+- `Logs/LobbyTest/stage3-validation.txt`에는 412/412 통과, Main Development 빌드 성공, 실제 UI 미리보기 hash 일치가 기록되어 있다. 이는 Stage 3의 이전 검증 결과이며, Stage 4 전체 EditMode 결과는 아래에 기록한다.
+- `Logs/LobbyTest/stage4-validation.txt`에는 방 종료·서버 재시작·오프라인 참가 취소와 최종 Main 실제 UI 시나리오, 호스트·게스트 preview hash 대조를 기록했다. Unity Test Runner에서 `Assembly-CSharp-Editor`와 `WizardDuel.MapGeneration.EditorTests`를 포함해 EditMode 전체를 실행한다. `stage4-complete.xml` 결과는 422/422 통과, 실패·건너뜀 0이다. 여기에 DynamicUpdate에서 가상 키보드 `QueueStateEvent`로 실행한 `LobbyInputTests` 6개가 포함된다. 이것은 물리 키보드 Esc 입력을 검증한 결과가 아니다.
+- `Logs/NetworkTest/LobbyRegression/`의 Stage 4 NetworkDemo 로그는 seed 7301 fingerprint `002A0CBA456D3E38F8B6FBA8B63A246EFBDDB462163C2CEED7DB6AE16EEBD1E6` 일치, 1명 준비 중 미스폰, 2명 준비 후 두 플레이어의 스폰 위치·회전 일치, 3번째 참가 거절, 게스트 강제 종료 후 방 닫힘과 서버 재수신을 확인한다. 첫 Demo Development 빌드는 성공(0 errors, 485 warnings)했으며 기존 Sentis/`ConvGeneric.compute` 셰이더 경고가 포함됐다. 후속 증분 빌드 `stage4-networkdemo-incremental-build.json`은 성공, 0 errors, 0 warnings이다.
+- 같은 NetworkDemo 런타임 로그에는 서버와 client1/client2에서 각각 2회 `LightningPreview requires a PreviewVisual LineRenderer reference.` 오류가 있다. 기존 프리팹의 `LightningWeapon.Awake`가 참조 없는 `LightningPreview`를 `AddComponent`하는 경로에서 나온다. 무기·플레이어·Demo 파일은 기준 브랜치와 diff가 없음을 독립 검토했지만 기준 바이너리는 재실행하지 않아 기준 빌드에서도 재현된다고 단정하지 않는다. 이 오류는 현재 대기실 변경 범위 밖이며 그대로 기록한다.
+- 최종 상태: Stage 4 EditMode 422/422(실패·건너뜀 0), Main 및 NetworkDemo 증분 Development 빌드, Main 실제 Create/Join/Leave UI 확인이 완료됐다. Main 첫 빌드는 0 errors, 485 기존 셰이더 warnings였고 최종 증분 빌드는 0 errors, 0 warnings였다. 실제 UI에서 코드 206204의 호스트·게스트 자동 시드 357524259와 Circle(36,26), spawnA (32,10), spawnB (3,15), hash C5CCBDE2가 일치했고, 두 실행 모두 playerobjects=0/mapgenerated=false였다. 호스트 Leave 후 게스트가 시작 화면으로 돌아오고 서버 UDP 7777 재수신 및 같은 호스트의 새 방 202405 생성도 확인했다. 최종 바이너리에는 임시 InputDiagnostics/ValidationRunner가 없다. 가상 키보드 테스트는 통과했지만 IMGUI Esc 주입은 raw InputSystem 이벤트를 만들지 않으므로 물리 키보드 Esc 동작은 확인하지 않았다.
+- PR #37은 기존 UI 변경 PR이며 현재 Open, base는 `main`이다. 이 후속 네트워크 브랜치의 비교 기준은 `issue-19-lobby`이며, `codex/issue-19-lobby-network`는 `af9704f7e4b7593eb38265841276f314daec4a67`에서 분기했다. PR #37 병합 뒤에는 분기점부터 현재 HEAD까지 이 브랜치의 커밋만 최신 `main`으로 옮겨 다시 검증한다.
+
 ## 실행
 
-- **Tools > Wizard Duel > Network Test** 창에서 명령어 없이 테스트한다.
+- **Tools > Wizard Duel > Network Test** 창에서 **Mode: NetworkDemo**를 선택해 명령어 없이 테스트한다.
   - **Build**: 이 씬만 Development 빌드로 `Build/NetworkTest/`에 만든다. 빌드 뒤 에셋이 바뀌면 `(assets changed since)`가 붙으니 다시 누른다.
   - **Server**: 창 없는 전용 서버. **Client**: 1280x720 창으로 띄워 바로 `127.0.0.1`에 접속하며, 누를 때마다 하나씩 늘어난다. **1v1**: 서버와 클라이언트 두 개.
   - 목록의 **Kill**은 강제 종료다. **Close All**로 모두 닫고, 에디터를 끄면 함께 닫힌다. 로그는 **Open Logs**(`Logs/NetworkTest/`).

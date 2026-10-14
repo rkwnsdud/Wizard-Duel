@@ -12,10 +12,14 @@ public class LobbyNetworkSettingsTests
     GameObject root;
     LobbyNetwork network;
     NetworkManager manager;
+    bool initializedManager;
 
     [TearDown]
     public void TearDown()
     {
+        if (initializedManager && manager != null)
+            typeof(NetworkManager).GetMethod("OnDestroy", PrivateInstance).Invoke(manager, null);
+        initializedManager = false;
         if (root != null) Object.DestroyImmediate(root);
     }
 
@@ -75,6 +79,47 @@ public class LobbyNetworkSettingsTests
         Assert.That(network.HasPendingSettings, Is.True);
     }
 
+    [TestCase(false)]
+    [TestCase(true)]
+    public void CancelIgnoresLateSnapshots_AndPublishesClosedOnceOnlyAfterJoining(bool acceptedSnapshot)
+    {
+        CreateNetwork(1);
+        SetField("inLobby", false);
+        SetField("connecting", true);
+        var received = new List<NetworkLobbySnapshot>();
+        var closed = new List<string>();
+        int failed = 0;
+        network.SnapshotChanged += received.Add;
+        network.Closed += closed.Add;
+        network.Failed += _ => failed++;
+        if (acceptedSnapshot) SendSnapshot(Snapshot(0, 100, MapShape.Random));
+        Assert.That(network.IsInLobby, Is.EqualTo(acceptedSnapshot));
+
+        network.Cancel();
+        network.Cancel();
+        SendSnapshot(Snapshot(1, 222, MapShape.Circle));
+        SendSnapshot(Snapshot(1, 222, MapShape.Circle));
+        Assert.That(network.IsInLobby, Is.False);
+        Assert.That(network.IsBusy, Is.True);
+        Assert.That(received.Count, Is.EqualTo(acceptedSnapshot ? 1 : 0));
+        Assert.That(closed, Is.Empty);
+
+        // 실제 Update의 종료 완료 경로를 호출한다. 소켓 없는 manager는 이미 중지된 상태다.
+        Invoke("Update");
+        Assert.That(network.IsBusy, Is.False);
+        Assert.That(closed.Count, Is.EqualTo(acceptedSnapshot ? 1 : 0));
+        if (acceptedSnapshot) Assert.That(closed[0], Is.Empty);
+        Assert.That(failed, Is.Zero);
+
+        network.Cancel();
+        SendSnapshot(Snapshot(1, 222, MapShape.Circle));
+        Invoke("Update");
+        Assert.That(network.IsInLobby, Is.False);
+        Assert.That(received.Count, Is.EqualTo(acceptedSnapshot ? 1 : 0));
+        Assert.That(closed.Count, Is.EqualTo(acceptedSnapshot ? 1 : 0));
+        Assert.That(failed, Is.Zero);
+    }
+
     void CreateNetwork(uint requestedRevision)
     {
         root = new GameObject("LobbyNetworkSettingsTests");
@@ -83,6 +128,12 @@ public class LobbyNetworkSettingsTests
         network = root.AddComponent<LobbyNetwork>();
         SetField("manager", manager);
         root.SetActive(true);
+        // EditMode에서는 Awake가 자동 실행되지 않는다. NGO의 실제 초기화/종료를 짝지어 호출한다.
+        if (typeof(NetworkManager).GetField("Log", PrivateInstance).GetValue(manager) == null)
+        {
+            typeof(NetworkManager).GetMethod("Awake", PrivateInstance).Invoke(manager, null);
+            initializedManager = true;
+        }
 
         SetField("inLobby", true);
         SetField("connecting", false);
@@ -118,6 +169,9 @@ public class LobbyNetworkSettingsTests
     void Invoke(string methodName, ulong senderId, FastBufferReader reader) =>
         typeof(LobbyNetwork).GetMethod(methodName, PrivateInstance)
             .Invoke(network, new object[] { senderId, reader });
+
+    void Invoke(string methodName) =>
+        typeof(LobbyNetwork).GetMethod(methodName, PrivateInstance).Invoke(network, null);
 
     void SetField(string name, object value) =>
         typeof(LobbyNetwork).GetField(name, PrivateInstance).SetValue(network, value);

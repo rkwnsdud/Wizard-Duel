@@ -69,6 +69,22 @@ public class LobbySessionTests
     }
 
     [Test]
+    public void CancelledHostReservationCannotBeConfirmedOrJoinedByItsOldCode()
+    {
+        var session = CreateSession();
+        Assert.That(session.TryCreate(1, Settings(), out _), Is.True);
+        string abandonedCode = session.RoomCode;
+
+        Assert.That(session.CancelReservation(1), Is.True);
+        Assert.That(session.Confirm(1), Is.False);
+        Assert.That(session.TryJoin(2, abandonedCode, out string reason), Is.False);
+        Assert.That(reason, Is.Not.Empty);
+        Assert.That(session.HasRoom, Is.False);
+        Assert.That(session.HasReservation(1), Is.False);
+        Assert.That(session.HasReservation(2), Is.False);
+    }
+
+    [Test]
     public void OutsiderOperationsDoNotCloseRoom_ConfirmedDepartureDoes()
     {
         var session = CreateSession();
@@ -89,6 +105,39 @@ public class LobbySessionTests
         Assert.That(session.Confirm(2), Is.True);
         Assert.That(session.Disconnect(1), Is.True);
         Assert.That(session.HasRoom, Is.False);
+    }
+
+    [Test]
+    public void DepartureInvalidatesOldRoomAndStaleDisconnectCannotCloseNewRoom()
+    {
+        var session = CreateSession();
+        CreateAndConfirmHost(session, 1);
+        string previousCode = session.RoomCode;
+        Assert.That(session.TryJoin(2, previousCode, out _), Is.True);
+        Assert.That(session.Confirm(2), Is.True);
+
+        Assert.That(session.Disconnect(2), Is.True);
+        Assert.That(session.HasRoom, Is.False);
+        Assert.That(session.Contains(1), Is.False);
+        Assert.That(session.Contains(2), Is.False);
+        Assert.That(session.HasReservation(1), Is.False);
+        Assert.That(session.HasReservation(2), Is.False);
+        Assert.That(session.TryJoin(3, previousCode, out _), Is.False);
+
+        Assert.That(session.TryCreate(3, Settings(), out _), Is.True);
+        Assert.That(session.RoomCode, Is.Not.EqualTo(previousCode));
+        Assert.That(session.Confirm(3), Is.True);
+        Assert.That(session.TryJoin(5, previousCode, out _), Is.False);
+        Assert.That(session.TryJoin(4, session.RoomCode, out _), Is.True);
+        Assert.That(session.Confirm(4), Is.True);
+
+        // This session API identifies members by client ID; later room members have fresh IDs.
+        Assert.That(session.Disconnect(1), Is.False);
+        Assert.That(session.Disconnect(2), Is.False);
+        Assert.That(session.HasRoom, Is.True);
+        Assert.That(session.Ready, Is.True);
+        Assert.That(session.Contains(3), Is.True);
+        Assert.That(session.Contains(4), Is.True);
     }
 
     [Test]
