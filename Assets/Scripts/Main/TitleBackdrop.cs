@@ -160,7 +160,7 @@ public class TitleBackdrop : MonoBehaviour
     // 시작 화면 맵 설정. 시드는 시드 고정과 상관없이 늘 새로 뽑고, 형태가 랜덤이면 멀리서도 잘 보이는 형태 중 하나를 쓴다.
     MapGenerationSettings TitleMap(MapShape shape)
     {
-        MapGenerationSettings settings = titleSettings.ToMapSettings(0);
+        MapGenerationSettings settings = titleSettings.ToMapSettings();
         settings.Seed = Random.Range(1, int.MaxValue);
         if (settings.Shape == MapShape.Random) settings.Shape = shape;
         return settings;

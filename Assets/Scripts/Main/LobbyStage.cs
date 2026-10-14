@@ -24,10 +24,6 @@ public class LobbyStage : MonoBehaviour
     [SerializeField] Color blueEffectColor = new Color(0.08f, 1.4f, 2.2f, 1f);
     [SerializeField] Color redEffectColor = new Color(2.2f, 0.22f, 0.035f, 1f);
 
-    // 시드를 고정하지 않은 동안 미리보기에 쓰는 시드와 형태. 대기실에 들어올 때 배경에 서 있던 맵의 것을 이어받는다.
-    // 형태는 설정이 랜덤일 때만 쓰며, 다른 설정을 바꿀 때 형태까지 바뀌지 않게 한다.
-    int previewSeed;
-    MapShape previewShape;
     MapGenerationSettings pending;
     float regenerateAt;
     // 들어올 때 배경 맵이 설정과 달라서 Reveal에서 새로 만들 맵. 그대로 쓰면 null이다.
@@ -38,13 +34,11 @@ public class LobbyStage : MonoBehaviour
     public void Show(DuelSettings settings, bool opponentPresent)
     {
         MapGenerationSettings current = backdrop.Current;
-        previewSeed = current.Seed;
-        previewShape = current.Shape;
         pending = null;
         revealOpponent = opponentPresent;
         foreach (Transform wizard in wizards) wizard.gameObject.SetActive(false);
         backdrop.HoldPreview();
-        MapGenerationSettings wanted = ToPreview(settings);
+        MapGenerationSettings wanted = settings.ToMapSettings();
         revealMap = SameMap(current, wanted) ? null : wanted;
     }
 
@@ -77,7 +71,7 @@ public class LobbyStage : MonoBehaviour
     // 바뀐 설정으로 미리보기를 다시 만든다. 슬라이더를 끄는 동안 매번 만들지 않도록 잠깐 모았다가 한 번만 만든다.
     public void Preview(DuelSettings settings)
     {
-        pending = ToPreview(settings);
+        pending = settings.ToMapSettings();
         regenerateAt = Time.unscaledTime + regenerateDelay;
     }
 
@@ -85,14 +79,6 @@ public class LobbyStage : MonoBehaviour
     {
         if (present && !wizards[1].gameObject.activeSelf) Appear(1);
         else wizards[1].gameObject.SetActive(present);
-    }
-
-    // 미리보기로 만들 맵 설정. 시드를 고정하지 않았으면 이어받은 시드를 쓰고, 형태가 랜덤이면 이어받은 형태를 쓴다.
-    MapGenerationSettings ToPreview(DuelSettings settings)
-    {
-        MapGenerationSettings map = settings.ToMapSettings(previewSeed);
-        if (!settings.SeedFixed && map.Shape == MapShape.Random) map.Shape = previewShape;
-        return map;
     }
 
     static bool SameMap(MapGenerationSettings a, MapGenerationSettings b) =>

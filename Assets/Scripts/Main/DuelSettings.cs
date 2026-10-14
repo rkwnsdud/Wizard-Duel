@@ -6,17 +6,17 @@ public sealed class DuelSettings
     public const int MaxSize = 61;
     public const float MaxObstacleDensity = 0.35f;
 
-    // 꺼져 있으면 Map.Seed는 쓰지 않고, 전투마다 서버가 시드를 새로 정한다.
+    // 켜져 있으면 방장이 시드를 직접 입력한다. 자동이어도 서버가 확정한 Map.Seed를 그대로 쓴다.
     public bool SeedFixed;
     // 노이즈는 강도만 고른다. 스케일은 강도에 따라 변형이 가장 고르게 커지는 생성기 기본값(0.75)을 그대로 쓴다.
     public MapGenerationSettings Map = new MapGenerationSettings();
 
-    public DuelSettings Clone() => new DuelSettings { SeedFixed = SeedFixed, Map = ToMapSettings(Map.Seed) };
+    public DuelSettings Clone() => new DuelSettings { SeedFixed = SeedFixed, Map = ToMapSettings() };
 
-    // 맵을 실제로 만들 때 넘길 설정. 시드를 고정하지 않았으면 받은 시드를 쓴다.
-    public MapGenerationSettings ToMapSettings(int seed) => new MapGenerationSettings
+    // 미리보기와 전투가 같은 맵을 만들도록 확정한 시드를 복사한다.
+    public MapGenerationSettings ToMapSettings() => new MapGenerationSettings
     {
-        Seed = SeedFixed ? Map.Seed : seed,
+        Seed = Map.Seed,
         Size = Map.Size,
         Shape = Map.Shape,
         ObstacleDensity = Map.ObstacleDensity,
