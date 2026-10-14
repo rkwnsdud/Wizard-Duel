@@ -81,6 +81,8 @@ public sealed class SpawnEffectController : MonoBehaviour
         GameObject particleObject = new GameObject("RisingRunes");
         particleObject.transform.SetParent(transform, false);
         particles = particleObject.AddComponent<ParticleSystem>();
+        // A freshly added system starts playing right away, and its duration can only be set while stopped.
+        particles.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
         var main = particles.main;
         main.duration = duration;
         main.loop = false;

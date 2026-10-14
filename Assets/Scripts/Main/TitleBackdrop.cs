@@ -7,7 +7,7 @@ using UnityEngine.Rendering.Universal;
 using Random = UnityEngine.Random;
 
 // 화면 뒤에 맵을 띄우고 카메라를 맞춘다. 시작 화면에서는 맵을 주기적으로 새로 만들며 천천히 돌고,
-// 대기실에서는 받은 설정의 맵을 미리보기로 세워 둔다.
+// 대기실에서는 받은 설정의 맵을 미리보기로 세워 둔다. 두 화면 사이에서는 맵을 그대로 두고 카메라만 옮길 수 있다.
 // 안개와 배경색은 씬의 Lighting 설정에 있고, 여기서는 맵 크기에 맞춰 거리만 바꾼다.
 public class TitleBackdrop : MonoBehaviour
 {
@@ -46,9 +46,14 @@ public class TitleBackdrop : MonoBehaviour
     [SerializeField] float viewSharpness = 2.2f;
 
     public Transform[] SpawnPoints => map.SpawnPoints;
+    // 지금 서 있는 맵을 만든 설정.
+    public MapGenerationSettings Current { get; private set; }
 
+    // 시작 화면 맵을 만들 때 쓰는 대기실 설정. 맵을 그대로 대기실로 가져가도 설정 패널과 맞도록 같은 값으로 만든다.
+    DuelSettings titleSettings = new DuelSettings();
     Vector3 center;
     float yaw;
+    float radius;
     float distance;
     float targetDistance;
     Vector2 anchor;
@@ -68,7 +73,7 @@ public class TitleBackdrop : MonoBehaviour
         anchor = screenAnchor;
         pipeline = GraphicsSettings.currentRenderPipeline as UniversalRenderPipelineAsset;
         if (pipeline != null) originalShadowDistance = pipeline.shadowDistance;
-        ShowTitle();
+        ShowTitle(titleSettings, false);
     }
 
     void OnDisable()
@@ -79,12 +84,23 @@ public class TitleBackdrop : MonoBehaviour
         if (viewCamera != null) viewCamera.ResetProjectionMatrix();
     }
 
-    // 랜덤 맵을 주기적으로 바꾸며 도는 시작 화면 배경으로 돌아간다.
-    public void ShowTitle()
+    // 맵을 주기적으로 바꾸며 도는 시작 화면 배경으로 돌아간다. 새 맵은 settings로 만들고 시드와 형태만 랜덤으로 고른다.
+    // keepMap이면 지금 맵을 그대로 두고 카메라만 시작 화면 자리로 옮긴 뒤, 잠시 뒤부터 새 맵으로 바꿔 간다.
+    public void ShowTitle(DuelSettings settings, bool keepMap)
     {
+        titleSettings = settings.Clone();
         preview = false;
         StopAllCoroutines();
-        StartCoroutine(Cycle());
+        StartCoroutine(Cycle(keepMap));
+    }
+
+    // 순환을 멈추고 지금 맵을 그대로 대기실 미리보기로 쓴다. 카메라만 대기실 자리로 옮긴다.
+    public void HoldPreview()
+    {
+        preview = true;
+        StopAllCoroutines();
+        Aim();
+        StartCoroutine(Settle());
     }
 
     // 순환을 멈추고 이 설정의 맵을 바로 솟게 한다. 만들 수 없는 설정이면 이전 맵을 그대로 두고 false를 돌려준다.
@@ -109,35 +125,66 @@ public class TitleBackdrop : MonoBehaviour
         return true;
     }
 
-    IEnumerator Cycle()
+    IEnumerator Cycle(bool keepMap)
     {
         for (int i = Random.Range(0, Shapes.Length); ; i++)
         {
-            Rebuild(new MapGenerationSettings
+            if (keepMap)
             {
-                Seed = Random.Range(1, int.MaxValue),
-                Shape = Shapes[i % Shapes.Length],
-                ObstacleDensity = Random.Range(0.1f, 0.22f),
-                Symmetry = MapSymmetry.Rotate180,
-                NoiseStrength = Random.Range(0.3f, 0.7f),
-                NoiseScale = Random.Range(0.5f, 1.25f)
-            });
+                Aim();
+                yield return Settle();
+                keepMap = false;
+            }
+            else
+            {
+                MapShape shape = Shapes[i % Shapes.Length];
+                try
+                {
+                    Rebuild(TitleMap(shape));
+                }
+                catch (Exception exception) when (exception is InvalidOperationException || exception is ArgumentException)
+                {
+                    // 대기실에서 만들 수 없었던 설정이 남아 있을 수 있다. 그때는 설정과 상관없는 맵으로 배경을 채운다.
+                    Debug.LogWarning($"설정으로 배경 맵을 만들지 못해 임의의 맵을 띄워요: {exception.Message}", this);
+                    Rebuild(FallbackMap(shape));
+                }
+                yield return Wave(true);
+            }
 
-            yield return Wave(true);
             yield return new WaitForSeconds(regenerateInterval);
             yield return Wave(false);
             snapDistance = true;
         }
     }
 
+    // 시작 화면 맵 설정. 시드는 시드 고정과 상관없이 늘 새로 뽑고, 형태가 랜덤이면 멀리서도 잘 보이는 형태 중 하나를 쓴다.
+    MapGenerationSettings TitleMap(MapShape shape)
+    {
+        MapGenerationSettings settings = titleSettings.ToMapSettings(0);
+        settings.Seed = Random.Range(1, int.MaxValue);
+        if (settings.Shape == MapShape.Random) settings.Shape = shape;
+        return settings;
+    }
+
+    static MapGenerationSettings FallbackMap(MapShape shape) => new MapGenerationSettings
+    {
+        Seed = Random.Range(1, int.MaxValue),
+        Shape = shape,
+        ObstacleDensity = Random.Range(0.1f, 0.22f),
+        Symmetry = MapSymmetry.Rotate180,
+        NoiseStrength = Random.Range(0.3f, 0.7f),
+        NoiseScale = Random.Range(0.5f, 1.25f)
+    };
+
     // 맵을 새로 만들고 카메라 거리, 바닥, 그림자와 물결 순서를 맵 크기에 맞춘다.
     void Rebuild(MapGenerationSettings settings)
     {
         map.Generate(settings);
+        Current = settings;
 
         // 칸 크기가 2라서 대각선 칸 수가 곧 반지름이다. 카메라가 돌아도 맵이 잘리지 않게 대각선을 쓴다.
         Vector2Int size = map.GeneratedLayout.Size;
-        float radius = Mathf.Sqrt(size.x * size.x + size.y * size.y);
+        radius = Mathf.Sqrt(size.x * size.x + size.y * size.y);
 
         // 맵 중심에서 먼 블록일수록 늦게 출발해 가운데부터 물결이 퍼진다.
         // 같은 칸의 바닥과 벽은 거리가 같아서 한 기둥처럼 함께 움직인다.
@@ -150,6 +197,13 @@ public class TitleBackdrop : MonoBehaviour
             delays[b] = new Vector2(homes[b].x, homes[b].z).magnitude / radius * waveDuration;
         }
 
+        ground.localScale = new Vector3(radius, 1f, radius);
+        Aim();
+    }
+
+    // 카메라가 향할 방향과 거리, 그림자 거리를 지금 맵과 화면(시작 화면 또는 대기실)에 맞춘다.
+    void Aim()
+    {
         if (preview)
         {
             // 파랑이 왼쪽, 빨강이 오른쪽에 오도록 두 스폰을 잇는 선을 화면 가로에 맞춘다.
@@ -160,7 +214,6 @@ public class TitleBackdrop : MonoBehaviour
         else targetDistance = radius * distanceScale;
         if (snapDistance) distance = targetDistance;
         snapDistance = false;
-        ground.localScale = new Vector3(radius, 1f, radius);
         // 멀리서 내려다보면 기본 그림자 거리로는 그림자가 안 생겨서 잠시 늘린다.
         if (pipeline != null) pipeline.shadowDistance = Mathf.Max(originalShadowDistance, targetDistance + radius * 1.5f);
     }
@@ -198,6 +251,25 @@ public class TitleBackdrop : MonoBehaviour
                 float t = Mathf.Clamp01((time - delays[b]) / blockDuration);
                 float height = riseCurve.Evaluate(rising ? t : 1f - t);
                 blocks[b].Transform.localPosition = homes[b] + Vector3.down * (sinkDepth * (1f - height));
+            }
+            if (time >= waveDuration + blockDuration) yield break;
+            yield return null;
+        }
+    }
+
+    // 블록을 지금 높이에서 제자리로 물결처럼 돌려놓는다. 올라오거나 가라앉던 도중이어도 끊기지 않고 이어지고,
+    // 이미 제자리에 있는 블록은 움직이지 않는다.
+    IEnumerator Settle()
+    {
+        IReadOnlyList<IBlock> blocks = map.Blocks;
+        float[] starts = new float[blocks.Count];
+        for (int b = 0; b < blocks.Count; b++) starts[b] = blocks[b].Transform.localPosition.y - homes[b].y;
+        for (float time = 0f; ; time += Time.deltaTime)
+        {
+            for (int b = 0; b < blocks.Count; b++)
+            {
+                float t = Mathf.Clamp01((time - delays[b]) / blockDuration);
+                blocks[b].Transform.localPosition = homes[b] + Vector3.up * (starts[b] * (1f - riseCurve.Evaluate(t)));
             }
             if (time >= waveDuration + blockDuration) yield break;
             yield return null;

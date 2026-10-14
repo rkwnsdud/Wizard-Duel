@@ -5265,6 +5265,8 @@ GameObject:
   - component: {fileID: 662905213}
   - component: {fileID: 662905212}
   - component: {fileID: 662905211}
+  - component: {fileID: 662905217}
+  - component: {fileID: 662905216}
   m_Layer: 5
   m_Name: Start Screen
   m_TagString: Untagged
@@ -5380,6 +5382,40 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0, y: 0}
+--- !u!114 &662905216
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 662905210}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: de6b58db133666046a6829f0cff64d01, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ScreenTransition
+  group: {fileID: 662905217}
+  sliding:
+  - {fileID: 1051103744}
+  - {fileID: 485543490}
+  - {fileID: 1565942265}
+  - {fileID: 1262688436}
+  - {fileID: 939815000}
+  distance: 40
+  hideDuration: 0.3
+  showDuration: 0.4
+--- !u!225 &662905217
+CanvasGroup:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 662905210}
+  m_Enabled: 1
+  m_Alpha: 1
+  m_Interactable: 1
+  m_BlocksRaycasts: 1
+  m_IgnoreParentGroups: 0
 --- !u!1 &675758536
 GameObject:
   m_ObjectHideFlags: 0
@@ -10228,6 +10264,8 @@ GameObject:
   - component: {fileID: 1175320678}
   - component: {fileID: 1175320677}
   - component: {fileID: 1175320676}
+  - component: {fileID: 1175320682}
+  - component: {fileID: 1175320681}
   m_Layer: 5
   m_Name: Lobby Screen
   m_TagString: Untagged
@@ -10348,6 +10386,40 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0, y: 0}
+--- !u!114 &1175320681
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1175320675}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: de6b58db133666046a6829f0cff64d01, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ScreenTransition
+  group: {fileID: 1175320682}
+  sliding:
+  - {fileID: 1637166910}
+  - {fileID: 481791512}
+  - {fileID: 321601325}
+  - {fileID: 373510803}
+  - {fileID: 2028857355}
+  distance: 40
+  hideDuration: 0.3
+  showDuration: 0.4
+--- !u!225 &1175320682
+CanvasGroup:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1175320675}
+  m_Enabled: 1
+  m_Alpha: 1
+  m_Interactable: 1
+  m_BlocksRaycasts: 1
+  m_IgnoreParentGroups: 0
 --- !u!1 &1189672519
 GameObject:
   m_ObjectHideFlags: 0
@@ -11927,7 +11999,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MainFlow
   startScreen: {fileID: 662905211}
+  startTransition: {fileID: 662905216}
   lobby: {fileID: 1175320676}
+  lobbyTransition: {fileID: 1175320681}
   stage: {fileID: 15067041}
   backdrop: {fileID: 1688729992}
   toast: {fileID: 964096983}

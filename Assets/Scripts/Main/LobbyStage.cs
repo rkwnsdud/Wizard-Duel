@@ -18,45 +18,100 @@ public class LobbyStage : MonoBehaviour
     [Tooltip("설정을 연달아 바꿀 때 마지막 변경 뒤 이만큼 기다렸다가 맵을 다시 만든다.")]
     [SerializeField] float regenerateDelay = 0.25f;
 
-    [Header("상대가 들어올 때의 이펙트")]
+    [Header("마법사가 나타날 때의 이펙트")]
     [SerializeField] float effectDuration = 1.35f;
     [SerializeField] float effectRadius = 1.35f;
     [SerializeField] Color blueEffectColor = new Color(0.08f, 1.4f, 2.2f, 1f);
     [SerializeField] Color redEffectColor = new Color(2.2f, 0.22f, 0.035f, 1f);
 
-    // 시드를 고정하지 않은 동안 미리보기에 쓰는 시드. 대기실에 들어올 때마다 새로 뽑는다.
+    // 시드를 고정하지 않은 동안 미리보기에 쓰는 시드와 형태. 대기실에 들어올 때 배경에 서 있던 맵의 것을 이어받는다.
+    // 형태는 설정이 랜덤일 때만 쓰며, 다른 설정을 바꿀 때 형태까지 바뀌지 않게 한다.
     int previewSeed;
+    MapShape previewShape;
     MapGenerationSettings pending;
     float regenerateAt;
+    // 들어올 때 배경 맵이 설정과 달라서 Reveal에서 새로 만들 맵. 그대로 쓰면 null이다.
+    MapGenerationSettings revealMap;
+    bool revealOpponent;
 
+    // 배경 맵을 이어받아 카메라를 대기실 자리로 옮기기 시작한다. 마법사는 Reveal에서 세운다.
     public void Show(DuelSettings settings, bool opponentPresent)
     {
-        previewSeed = UnityEngine.Random.Range(1, int.MaxValue);
-        wizards[1].gameObject.SetActive(opponentPresent);
+        MapGenerationSettings current = backdrop.Current;
+        previewSeed = current.Seed;
+        previewShape = current.Shape;
         pending = null;
-        if (!backdrop.ShowPreview(settings.ToMapSettings(previewSeed))) PreviewFailed?.Invoke();
+        revealOpponent = opponentPresent;
+        foreach (Transform wizard in wizards) wizard.gameObject.SetActive(false);
+        backdrop.HoldPreview();
+        MapGenerationSettings wanted = ToPreview(settings);
+        revealMap = SameMap(current, wanted) ? null : wanted;
+    }
+
+    // 대기실 UI가 올라오기 시작할 때 부른다. 이어받은 맵이면 마법사를 이펙트와 함께 세우고,
+    // 새로 만들어야 하면 맵을 다시 솟게 해서 마법사도 물결을 타고 올라오게 한다.
+    public void Reveal()
+    {
+        if (revealMap != null)
+        {
+            wizards[0].gameObject.SetActive(true);
+            wizards[1].gameObject.SetActive(revealOpponent);
+            if (!backdrop.ShowPreview(revealMap)) PreviewFailed?.Invoke();
+            revealMap = null;
+            return;
+        }
+        Appear(0);
+        if (revealOpponent) Appear(1);
+    }
+
+    // 대기실을 나갈 때 부른다. 기다리던 재생성을 버리고, 들어오자마자 나가서 남아 있는 등장 이펙트도 끈다.
+    // 마법사는 이펙트 없이 대기실 UI가 다 사라질 때 무대와 함께 꺼진다.
+    public void Hide()
+    {
+        pending = null;
+        revealMap = null;
+        SpawnEffectController.Stop(0);
+        SpawnEffectController.Stop(1);
     }
 
     // 바뀐 설정으로 미리보기를 다시 만든다. 슬라이더를 끄는 동안 매번 만들지 않도록 잠깐 모았다가 한 번만 만든다.
     public void Preview(DuelSettings settings)
     {
-        pending = settings.ToMapSettings(previewSeed);
+        pending = ToPreview(settings);
         regenerateAt = Time.unscaledTime + regenerateDelay;
     }
 
     public void SetOpponentPresent(bool present)
     {
+        if (present && !wizards[1].gameObject.activeSelf) Appear(1);
+        else wizards[1].gameObject.SetActive(present);
+    }
+
+    // 미리보기로 만들 맵 설정. 시드를 고정하지 않았으면 이어받은 시드를 쓰고, 형태가 랜덤이면 이어받은 형태를 쓴다.
+    MapGenerationSettings ToPreview(DuelSettings settings)
+    {
+        MapGenerationSettings map = settings.ToMapSettings(previewSeed);
+        if (!settings.SeedFixed && map.Shape == MapShape.Random) map.Shape = previewShape;
+        return map;
+    }
+
+    static bool SameMap(MapGenerationSettings a, MapGenerationSettings b) =>
+        a.Seed == b.Seed && a.Size == b.Size && a.Shape == b.Shape && a.ObstacleDensity == b.ObstacleDensity &&
+        a.Symmetry == b.Symmetry && a.NoiseStrength == b.NoiseStrength && a.NoiseScale == b.NoiseScale;
+
+    // 스폰 지점에 마법진 이펙트를 띄우며 마법사를 세운다.
+    void Appear(int slot)
+    {
         Transform[] spawns = backdrop.SpawnPoints;
-        if (present && !wizards[1].gameObject.activeSelf && spawns != null && spawns[1] != null)
-            SpawnEffectController.Play(spawns[1].position, 1, effectDuration, effectRadius,
+        if (spawns != null && spawns[slot] != null)
+            SpawnEffectController.Play(spawns[slot].position, slot, effectDuration, effectRadius,
                 0.06f, 240f, 2.1f, 36, blueEffectColor, redEffectColor);
-        wizards[1].gameObject.SetActive(present);
+        wizards[slot].gameObject.SetActive(true);
     }
 
     void OnDisable()
     {
         pending = null;
-        SpawnEffectController.Stop(1);
     }
 
     void Update()
