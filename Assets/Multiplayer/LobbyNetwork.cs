@@ -106,7 +106,7 @@ public sealed class LobbyNetwork : MonoBehaviour
     public void Create(DuelSettings settings)
     {
         if (serverMode || IsBusy) return;
-        if (!LobbySession.ValidateSettings(settings, out string reason))
+        if (!DuelSettings.ValidateSettings(settings, out string reason))
         {
             Failed?.Invoke(reason);
             return;
@@ -128,7 +128,7 @@ public sealed class LobbyNetwork : MonoBehaviour
     public void UpdateSettings(DuelSettings settings)
     {
         if (!IsInLobby || closing) return;
-        if (!LobbySession.ValidateSettings(settings, out string reason))
+        if (!DuelSettings.ValidateSettings(settings, out string reason))
         {
             Debug.Log($"[Lobby] Settings rejected: {reason}");
             SettingsRejected?.Invoke(reason);
@@ -270,7 +270,7 @@ public sealed class LobbyNetwork : MonoBehaviour
             bool isHost = snapshot.HostClientId == localId;
             bool isGuest = snapshot.OpponentPresent && snapshot.GuestClientId == localId;
             if (reader.Position != reader.Length || !LobbySession.IsValidCode(snapshot.Code) ||
-                !LobbySession.ValidateSettings(snapshot.Settings.ToSettings(), out _) ||
+                !DuelSettings.ValidateSettings(snapshot.Settings.ToSettings(), out _) ||
                 (!isHost && !isGuest) || (snapshot.OpponentPresent && snapshot.GuestClientId == snapshot.HostClientId) ||
                 (!inLobby && (createdRoom != isHost || (!createdRoom && snapshot.Code != requestedCode))) ||
                 (isHost && snapshot.SettingsRevision > requestedSettingsRevision) ||

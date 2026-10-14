@@ -43,7 +43,7 @@ public sealed class LobbySession
     {
         reason = "A room already exists.";
         if (HasRoom) return false;
-        if (!ValidateSettings(requested, out reason)) return false;
+        if (!DuelSettings.ValidateSettings(requested, out reason)) return false;
 
         settings = new NetworkLobbySettings(requested);
         int code = (int)((uint)codeGenerator() % 1000000);
@@ -113,7 +113,7 @@ public sealed class LobbySession
     {
         reason = "Only the connected host can change room settings.";
         if (!hostConfirmed || hostOwner != sender) return false;
-        if (!ValidateSettings(requested, out reason)) return false;
+        if (!DuelSettings.ValidateSettings(requested, out reason)) return false;
 
         settings = new NetworkLobbySettings(requested);
         reason = string.Empty;
@@ -125,24 +125,6 @@ public sealed class LobbySession
         if (code == null || code.Length != 6) return false;
         foreach (char digit in code)
             if (digit < '0' || digit > '9') return false;
-        return true;
-    }
-
-    public static bool ValidateSettings(DuelSettings requested, out string reason)
-    {
-        reason = "Room settings are invalid.";
-        if (requested == null || requested.Map == null) return false;
-        MapGenerationSettings map = requested.Map;
-        if (map.Size.HasValue &&
-            (map.Size.Value.x < DuelSettings.MinSize || map.Size.Value.x > DuelSettings.MaxSize ||
-             map.Size.Value.y < DuelSettings.MinSize || map.Size.Value.y > DuelSettings.MaxSize)) return false;
-        if (!Enum.IsDefined(typeof(MapShape), map.Shape) ||
-            !Enum.IsDefined(typeof(MapSymmetry), map.Symmetry)) return false;
-        // 양방향 범위 비교는 NaN과 무한대도 거절한다.
-        if (!(map.ObstacleDensity >= 0 && map.ObstacleDensity <= DuelSettings.MaxObstacleDensity) ||
-            !(map.NoiseStrength >= 0 && map.NoiseStrength <= 1) ||
-            !(map.NoiseScale >= 0.25f && map.NoiseScale <= 2)) return false;
-        reason = string.Empty;
         return true;
     }
 

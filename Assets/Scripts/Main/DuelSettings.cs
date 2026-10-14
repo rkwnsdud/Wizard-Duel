@@ -1,3 +1,5 @@
+using System;
+
 // 대기실에서 방장이 정하는 대결 설정.
 public sealed class DuelSettings
 {
@@ -22,4 +24,22 @@ public sealed class DuelSettings
         NoiseStrength = Map.NoiseStrength,
         NoiseScale = Map.NoiseScale
     };
+
+    public static bool ValidateSettings(DuelSettings requested, out string reason)
+    {
+        reason = "Room settings are invalid.";
+        if (requested == null || requested.Map == null) return false;
+        MapGenerationSettings map = requested.Map;
+        if (map.Size.HasValue &&
+            (map.Size.Value.x < DuelSettings.MinSize || map.Size.Value.x > DuelSettings.MaxSize ||
+             map.Size.Value.y < DuelSettings.MinSize || map.Size.Value.y > DuelSettings.MaxSize)) return false;
+        if (!Enum.IsDefined(typeof(MapShape), map.Shape) ||
+            !Enum.IsDefined(typeof(MapSymmetry), map.Symmetry)) return false;
+        // 양방향 범위 비교는 NaN과 무한대도 거절한다.
+        if (!(map.ObstacleDensity >= 0 && map.ObstacleDensity <= DuelSettings.MaxObstacleDensity) ||
+            !(map.NoiseStrength >= 0 && map.NoiseStrength <= 1) ||
+            !(map.NoiseScale >= 0.25f && map.NoiseScale <= 2)) return false;
+        reason = string.Empty;
+        return true;
+    }
 }

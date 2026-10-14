@@ -33,7 +33,7 @@ public class LobbySessionTests
         Assert.That(session.TryJoin(3, session.RoomCode, out _), Is.False);
 
         Assert.That(session.TryCreate(4, Settings(), out string createReason), Is.False);
-        Assert.That(createReason, Is.Not.Empty);
+        Assert.That(createReason, Is.EqualTo("A room already exists."));
     }
 
     [Test]
@@ -153,17 +153,24 @@ public class LobbySessionTests
     [Test]
     public void GuestCannotUpdateSettings_AndInvalidHostUpdatesLeaveSnapshotUnchanged()
     {
+        var unconfirmedSession = CreateSession();
+        Assert.That(unconfirmedSession.TryCreate(9, Settings(), out _), Is.True);
+        DuelSettings beforeUnconfirmedUpdate = unconfirmedSession.Snapshot.Settings.ToSettings();
+        foreach (ulong sender in new ulong[] { 9, 10 })
+        {
+            Assert.That(unconfirmedSession.TryUpdateSettings(sender, null, out string reason), Is.False);
+            Assert.That(reason, Is.EqualTo("Only the connected host can change room settings."));
+            AssertSettingsEqual(beforeUnconfirmedUpdate, unconfirmedSession.Snapshot.Settings.ToSettings());
+        }
+
         var session = CreateSession();
         CreateAndConfirmHost(session);
         Assert.That(session.TryJoin(2, session.RoomCode, out _), Is.True);
         Assert.That(session.Confirm(2), Is.True);
         DuelSettings beforeGuestUpdate = session.Snapshot.Settings.ToSettings();
 
-        Assert.That(session.TryUpdateSettings(2, new DuelSettings
-        {
-            Map = new MapGenerationSettings { Seed = -99, Shape = MapShape.Donut }
-        }, out string guestReason), Is.False);
-        Assert.That(guestReason, Is.Not.Empty);
+        Assert.That(session.TryUpdateSettings(2, new DuelSettings { Map = null }, out string guestReason), Is.False);
+        Assert.That(guestReason, Is.EqualTo("Only the connected host can change room settings."));
         AssertSettingsEqual(beforeGuestUpdate, session.Snapshot.Settings.ToSettings());
 
         DuelSettings beforeInvalidUpdates = session.Snapshot.Settings.ToSettings();
@@ -175,7 +182,7 @@ public class LobbySessionTests
         foreach (DuelSettings invalid in invalidSettings)
         {
             Assert.That(session.TryUpdateSettings(1, invalid, out string reason), Is.False);
-            Assert.That(reason, Is.Not.Empty);
+            Assert.That(reason, Is.EqualTo("Room settings are invalid."));
             AssertSettingsEqual(beforeInvalidUpdates, session.Snapshot.Settings.ToSettings());
         }
     }

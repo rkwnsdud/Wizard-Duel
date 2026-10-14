@@ -162,10 +162,13 @@ public class NetworkLobbySnapshotTests
     [Test]
     public void ValidationRejectsInvalidEnumsNonFiniteNumbersAndOutOfRangeMapValues()
     {
+        AssertInvalid((DuelSettings)null);
+        AssertInvalid(new DuelSettings { Map = null });
         AssertInvalid(s => s.Map.Shape = (MapShape)999);
         AssertInvalid(s => s.Map.Symmetry = (MapSymmetry)999);
         AssertInvalid(s => s.Map.ObstacleDensity = float.NaN);
         AssertInvalid(s => s.Map.ObstacleDensity = float.PositiveInfinity);
+        AssertInvalid(s => s.Map.ObstacleDensity = float.NegativeInfinity);
         AssertInvalid(s => s.Map.ObstacleDensity = -0.01f);
         AssertInvalid(s => s.Map.ObstacleDensity = DuelSettings.MaxObstacleDensity + 0.01f);
         AssertInvalid(s => s.Map.NoiseStrength = float.NaN);
@@ -174,19 +177,51 @@ public class NetworkLobbySnapshotTests
         AssertInvalid(s => s.Map.NoiseStrength = -0.01f);
         AssertInvalid(s => s.Map.NoiseStrength = 1.01f);
         AssertInvalid(s => s.Map.NoiseScale = float.PositiveInfinity);
+        AssertInvalid(s => s.Map.NoiseScale = float.NegativeInfinity);
         AssertInvalid(s => s.Map.NoiseScale = float.NaN);
         AssertInvalid(s => s.Map.NoiseScale = 0.24f);
         AssertInvalid(s => s.Map.NoiseScale = 2.01f);
         AssertInvalid(s => s.Map.Size = new Vector2Int(DuelSettings.MinSize - 1, DuelSettings.MinSize));
+        AssertInvalid(s => s.Map.Size = new Vector2Int(DuelSettings.MinSize, DuelSettings.MinSize - 1));
         AssertInvalid(s => s.Map.Size = new Vector2Int(DuelSettings.MaxSize + 1, DuelSettings.MaxSize));
+        AssertInvalid(s => s.Map.Size = new Vector2Int(DuelSettings.MaxSize, DuelSettings.MaxSize + 1));
+
+        AssertValid(Settings());
+        AssertValid(WithMapSizeAndRanges(
+            new Vector2Int(DuelSettings.MinSize, DuelSettings.MaxSize), 0,
+            0, 0.25f));
+        AssertValid(WithMapSizeAndRanges(
+            new Vector2Int(DuelSettings.MaxSize, DuelSettings.MinSize),
+            DuelSettings.MaxObstacleDensity, 1, 2));
     }
 
     static void AssertInvalid(System.Action<DuelSettings> change)
     {
         DuelSettings settings = Settings();
         change(settings);
-        Assert.That(LobbySession.ValidateSettings(settings, out string reason), Is.False);
-        Assert.That(reason, Is.Not.Empty);
+        AssertInvalid(settings);
+    }
+
+    static void AssertInvalid(DuelSettings settings)
+    {
+        Assert.That(DuelSettings.ValidateSettings(settings, out string reason), Is.False);
+        Assert.That(reason, Is.EqualTo("Room settings are invalid."));
+    }
+
+    static void AssertValid(DuelSettings settings)
+    {
+        Assert.That(DuelSettings.ValidateSettings(settings, out string reason), Is.True, reason);
+        Assert.That(reason, Is.Empty);
+    }
+
+    static DuelSettings WithMapSizeAndRanges(Vector2Int? size, float density, float strength, float scale)
+    {
+        DuelSettings settings = Settings();
+        settings.Map.Size = size;
+        settings.Map.ObstacleDensity = density;
+        settings.Map.NoiseStrength = strength;
+        settings.Map.NoiseScale = scale;
+        return settings;
     }
 
     static void AssertSettingsEqual(DuelSettings expected, DuelSettings actual)
