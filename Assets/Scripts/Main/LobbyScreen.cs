@@ -17,7 +17,7 @@ public class LobbyScreen : MonoBehaviour
     static readonly Color Idle = new Color32(0x37, 0x3C, 0x48, 0xFF);
     static readonly Color IdleInk = new Color32(0x95, 0x9C, 0xAB, 0xFF);
 
-    public event Action<DuelSettings> SettingsChanged;
+    public event Action<DuelSettings, bool> SettingsChanged;
     public event Action StartRequested;
     public event Action LeaveRequested;
 
@@ -55,7 +55,7 @@ public class LobbyScreen : MonoBehaviour
     {
         startFace = startButton.targetGraphic.transform;
         startHome = startFace.localPosition;
-        mapSettings.Changed += changed => SettingsChanged?.Invoke(changed);
+        mapSettings.Changed += (changed, seedEdited) => SettingsChanged?.Invoke(changed, seedEdited);
     }
 
     void Update()

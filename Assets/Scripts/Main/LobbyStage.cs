@@ -72,6 +72,11 @@ public class LobbyStage : MonoBehaviour
     public void Preview(DuelSettings settings)
     {
         pending = settings.ToMapSettings();
+        if (SameMap(backdrop.Current, pending))
+        {
+            pending = null;
+            return;
+        }
         regenerateAt = Time.unscaledTime + regenerateDelay;
     }
 

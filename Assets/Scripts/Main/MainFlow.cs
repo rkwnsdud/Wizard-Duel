@@ -32,6 +32,7 @@ public class MainFlow : MonoBehaviour
         network.SnapshotChanged += OnSnapshot;
         network.Failed += OnConnectionFailed;
         network.Closed += OnClosed;
+        network.SettingsRejected += OnSettingsRejected;
     }
 
     void OnDisable()
@@ -45,6 +46,7 @@ public class MainFlow : MonoBehaviour
         network.SnapshotChanged -= OnSnapshot;
         network.Failed -= OnConnectionFailed;
         network.Closed -= OnClosed;
+        network.SettingsRejected -= OnSettingsRejected;
     }
 
     void Create()
@@ -86,7 +88,8 @@ public class MainFlow : MonoBehaviour
     void ApplySnapshot()
     {
         lobby.SetOpponentPresent(latest.OpponentPresent);
-        lobby.ApplySettings(settings);
+        // 이전 요청의 응답이 더 최신인 방장 입력을 되돌리지 않게 한다.
+        if (!network.IsHost || !network.HasPendingSettings) lobby.ApplySettings(settings);
         stage.SetOpponentPresent(latest.OpponentPresent);
         stage.Preview(settings);
     }
@@ -149,11 +152,22 @@ public class MainFlow : MonoBehaviour
         transition = null;
     }
 
-    // 설정 동기화는 다음 단계에서 서버 요청에 연결한다.
-    void OnSettingsChanged(DuelSettings changed)
+    // 미리보기는 서버가 확정한 스냅샷으로만 바꾼다.
+    void OnSettingsChanged(DuelSettings changed, bool seedEdited)
     {
-        settings = changed.Clone();
-        stage.Preview(settings);
+        network.UpdateSettings(changed, seedEdited);
+    }
+
+    void OnSettingsRejected(string reason)
+    {
+        if (!network.IsInLobby) return;
+        if (lobbyVisible && transition == null) ApplySnapshot();
+        toast.Show(reason switch
+        {
+            "Only the connected host can change room settings." => "방장만 대기실 설정을 바꿀 수 있어요.",
+            "Room settings are invalid." => "맵 설정이 올바르지 않아 변경하지 않았어요.",
+            _ => "맵 설정을 적용할 수 없어요. 다시 시도해 주세요."
+        });
     }
 
     void OnPreviewFailed() => toast.Show("이 설정으로는 맵을 만들 수 없어요");

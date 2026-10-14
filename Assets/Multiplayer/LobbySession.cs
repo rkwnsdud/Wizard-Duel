@@ -113,7 +113,7 @@ public sealed class LobbySession
         return true;
     }
 
-    public bool TryUpdateSettings(ulong sender, DuelSettings requested, out string reason)
+    public bool TryUpdateSettings(ulong sender, DuelSettings requested, out string reason, bool seedEdited = true)
     {
         reason = "Only the connected host can change room settings.";
         if (!hostConfirmed || hostOwner != sender) return false;
@@ -123,6 +123,8 @@ public sealed class LobbySession
         // 자동 모드의 일반 수정과 고정 전환은 현재 시드를 유지한다.
         if (!settings.SeedFixed) updated.Map.Seed = settings.Map.Seed;
         else if (!updated.SeedFixed) updated.Map.Seed = seedGenerator();
+        // 일반 설정 변경에 남아 있는 오래된 입력 시드는 확정한 서버 시드를 덮어쓰지 않는다.
+        else if (!seedEdited) updated.Map.Seed = settings.Map.Seed;
         settings = updated;
         reason = string.Empty;
         return true;

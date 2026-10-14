@@ -37,13 +37,18 @@ public sealed class LobbyNetwork : MonoBehaviour
     string failureReason;
     float snapshotDeadline;
     NetworkLobbySnapshot currentSnapshot;
+    uint requestedSettingsRevision;
+    uint settledSettingsRevision;
+    uint serverSettingsRevision;
 
     public event Action<NetworkLobbySnapshot> SnapshotChanged;
     public event Action<string> Failed;
     public event Action<string> Closed;
+    public event Action<string> SettingsRejected;
     public bool IsBusy => connecting || closing || inLobby || (manager != null && manager.ShutdownInProgress);
     public bool IsInLobby => inLobby;
     public bool IsHost => inLobby && currentSnapshot.HostClientId == manager.LocalClientId;
+    public bool HasPendingSettings => inLobby && requestedSettingsRevision > settledSettingsRevision;
 
     void Awake()
     {
@@ -120,15 +125,18 @@ public sealed class LobbyNetwork : MonoBehaviour
         StartRequest(new LobbyJoinRequest(false, code, null));
     }
 
-    public void UpdateSettings(DuelSettings settings)
+    public void UpdateSettings(DuelSettings settings, bool seedEdited = false)
     {
         if (!IsInLobby || closing) return;
         if (!LobbySession.ValidateSettings(settings, out string reason))
         {
-            Debug.LogWarning($"[Lobby] Settings rejected: {reason}");
+            Debug.Log($"[Lobby] Settings rejected: {reason}");
+            SettingsRejected?.Invoke(reason);
             return;
         }
         using var writer = new FastBufferWriter(BufferSize, Allocator.Temp);
+        writer.WriteValueSafe(++requestedSettingsRevision);
+        writer.WriteValueSafe(seedEdited);
         writer.WriteNetworkSerializable(new NetworkLobbySettings(settings));
         manager.CustomMessagingManager.SendNamedMessage(SettingsMessage, NetworkManager.ServerClientId,
             writer, NetworkDelivery.ReliableSequenced);
@@ -152,6 +160,9 @@ public sealed class LobbyNetwork : MonoBehaviour
         if (manager.IsListening || manager.ShutdownInProgress) return;
         createdRoom = request.CreateRoom;
         requestedCode = request.Code;
+        requestedSettingsRevision = 0;
+        settledSettingsRevision = 0;
+        currentSnapshot = default;
         connecting = true;
         snapshotDeadline = Time.realtimeSinceStartup + manager.NetworkConfig.ClientConnectionBufferTimeout + 5;
         using var writer = new FastBufferWriter(BufferSize, Allocator.Temp);
@@ -238,13 +249,14 @@ public sealed class LobbyNetwork : MonoBehaviour
     void BroadcastSnapshot()
     {
         NetworkLobbySnapshot snapshot = session.Snapshot;
+        snapshot.SettingsRevision = serverSettingsRevision;
         using var writer = new FastBufferWriter(BufferSize, Allocator.Temp);
         writer.WriteNetworkSerializable(snapshot);
         foreach (ulong clientId in manager.ConnectedClientsIds)
             if (session.Contains(clientId))
                 manager.CustomMessagingManager.SendNamedMessage(SnapshotMessage, clientId, writer,
                     NetworkDelivery.ReliableSequenced);
-        Debug.Log($"[Lobby] Snapshot code={snapshot.Code} host={snapshot.HostClientId} members={(snapshot.OpponentPresent ? 2 : 1)} seed={snapshot.Settings.Map.Seed} settings={JsonUtility.ToJson(snapshot.Settings)} playerobjects={manager.SpawnManager.PlayerObjects.Count} mapgenerated=false");
+        Debug.Log($"[Lobby] Snapshot code={snapshot.Code} host={snapshot.HostClientId} members={(snapshot.OpponentPresent ? 2 : 1)} revision={snapshot.SettingsRevision} seed={snapshot.Settings.Map.Seed} settings={JsonUtility.ToJson(snapshot.Settings)} playerobjects={manager.SpawnManager.PlayerObjects.Count} mapgenerated=false");
     }
 
     void OnSnapshot(ulong senderId, FastBufferReader reader)
@@ -262,12 +274,15 @@ public sealed class LobbyNetwork : MonoBehaviour
                 !LobbySession.ValidateSettings(snapshot.Settings.ToSettings(), out _) ||
                 (!isHost && !isGuest) || (snapshot.OpponentPresent && snapshot.GuestClientId == snapshot.HostClientId) ||
                 (!inLobby && (createdRoom != isHost || (!createdRoom && snapshot.Code != requestedCode))) ||
-                (inLobby && (snapshot.Code != currentSnapshot.Code || snapshot.HostClientId != currentSnapshot.HostClientId)))
+                (isHost && snapshot.SettingsRevision > requestedSettingsRevision) ||
+                (inLobby && (snapshot.Code != currentSnapshot.Code || snapshot.HostClientId != currentSnapshot.HostClientId ||
+                    snapshot.SettingsRevision < currentSnapshot.SettingsRevision)))
                 throw new InvalidOperationException(InvalidRequest);
             connecting = false;
             inLobby = true;
             currentSnapshot = snapshot;
-            Debug.Log($"[Lobby] Joined code={snapshot.Code} host={isHost} members={(snapshot.OpponentPresent ? 2 : 1)} seed={snapshot.Settings.Map.Seed} playerobjects=0 mapgenerated=false");
+            settledSettingsRevision = Math.Max(settledSettingsRevision, snapshot.SettingsRevision);
+            Debug.Log($"[Lobby] Joined code={snapshot.Code} host={isHost} members={(snapshot.OpponentPresent ? 2 : 1)} revision={snapshot.SettingsRevision} seed={snapshot.Settings.Map.Seed} playerobjects=0 mapgenerated=false");
         }
         catch (Exception exception)
         {
@@ -281,13 +296,20 @@ public sealed class LobbyNetwork : MonoBehaviour
     void OnSettings(ulong senderId, FastBufferReader reader)
     {
         if (!serverMode || closing || !session.Contains(senderId)) return;
+        uint revision = 0;
         string reason = InvalidRequest;
         try
         {
             if (reader.Length - reader.Position > BufferSize) throw new InvalidOperationException(InvalidRequest);
+            reader.ReadValueSafe(out revision);
+            reader.ReadValueSafe(out bool seedEdited);
             reader.ReadNetworkSerializable(out NetworkLobbySettings settings);
-            if (reader.Position == reader.Length && session.TryUpdateSettings(senderId, settings.ToSettings(), out reason))
+            if (reader.Position != reader.Length) throw new InvalidOperationException(InvalidRequest);
+            if (revision == 0 || revision <= serverSettingsRevision)
+                reason = "The settings update is out of date.";
+            else if (session.TryUpdateSettings(senderId, settings.ToSettings(), out reason, seedEdited))
             {
+                serverSettingsRevision = revision;
                 BroadcastSnapshot();
                 return;
             }
@@ -297,6 +319,7 @@ public sealed class LobbyNetwork : MonoBehaviour
             Debug.LogWarning($"[Lobby] Invalid settings client={senderId}: {exception.Message}");
         }
         using var writer = new FastBufferWriter(BufferSize, Allocator.Temp);
+        writer.WriteValueSafe(revision);
         writer.WriteValueSafe(reason);
         manager.CustomMessagingManager.SendNamedMessage(ErrorMessage, senderId, writer, NetworkDelivery.ReliableSequenced);
     }
@@ -304,16 +327,24 @@ public sealed class LobbyNetwork : MonoBehaviour
     void OnError(ulong senderId, FastBufferReader reader)
     {
         if (serverMode || closing || !inLobby || senderId != NetworkManager.ServerClientId) return;
+        uint revision;
+        string reason;
         try
         {
-            if (reader.Length - reader.Position > BufferSize) return;
-            reader.ReadValueSafe(out string reason);
-            if (reader.Position == reader.Length) Debug.LogWarning($"[Lobby] Settings rejected: {reason}");
+            if (reader.Length - reader.Position > BufferSize) throw new InvalidOperationException(InvalidRequest);
+            reader.ReadValueSafe(out revision);
+            reader.ReadValueSafe(out reason);
+            if (reader.Position != reader.Length || revision > requestedSettingsRevision)
+                throw new InvalidOperationException(InvalidRequest);
         }
         catch (Exception exception)
         {
             Debug.LogWarning($"[Lobby] Invalid error message: {exception.Message}");
+            return;
         }
+        settledSettingsRevision = Math.Max(settledSettingsRevision, revision);
+        Debug.Log($"[Lobby] Settings rejected revision={revision}: {reason}");
+        SettingsRejected?.Invoke(reason);
     }
 
     void OnDisconnected(ulong clientId)
@@ -338,6 +369,7 @@ public sealed class LobbyNetwork : MonoBehaviour
     {
         NetworkLobbySnapshot snapshot = session.Snapshot;
         session.Disconnect(departingClient);
+        serverSettingsRevision = 0;
         reservations.Clear();
         closing = true;
         restartServer = true;
@@ -383,6 +415,7 @@ public sealed class LobbyNetwork : MonoBehaviour
         if (serverMode)
         {
             if (session.HasRoom) session.Disconnect(session.HostClientId);
+            serverSettingsRevision = 0;
             reservations.Clear();
             UnregisterMessages();
             closing = true;

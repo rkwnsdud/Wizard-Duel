@@ -122,6 +122,13 @@ public class TitleBackdrop : MonoBehaviour
         }
 
         StartCoroutine(Wave(true));
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        MapLayout layout = map.GeneratedLayout;
+        uint signature = 2166136261;
+        foreach (string row in layout.ToLayout())
+            foreach (char cell in row) signature = unchecked((signature ^ cell) * 16777619);
+        Debug.Log($"[LobbyPreview] seed={settings.Seed} shape={layout.Shape} size={layout.Size} spawnA={layout.SpawnA} spawnB={layout.SpawnB} hash={signature:X8}");
+#endif
         return true;
     }
 

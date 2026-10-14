@@ -8,6 +8,7 @@ public struct NetworkLobbySnapshot : INetworkSerializable
     public ulong HostClientId;
     public bool OpponentPresent;
     public ulong GuestClientId;
+    public uint SettingsRevision;
     public NetworkLobbySettings Settings;
 
     public void NetworkSerialize<T>(BufferSerializer<T> serializer) where T : IReaderWriter
@@ -18,6 +19,7 @@ public struct NetworkLobbySnapshot : INetworkSerializable
         serializer.SerializeValue(ref HostClientId);
         serializer.SerializeValue(ref OpponentPresent);
         serializer.SerializeValue(ref GuestClientId);
+        serializer.SerializeValue(ref SettingsRevision);
         serializer.SerializeValue(ref Settings);
     }
 }

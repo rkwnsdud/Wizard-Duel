@@ -13,7 +13,7 @@ public class MapSettingsPanel : MonoBehaviour
     const float DensitySteps = 100f;
     const float NoiseSteps = 20f;
 
-    public event Action<DuelSettings> Changed;
+    public event Action<DuelSettings, bool> Changed;
 
     [SerializeField] GameObject lockNote;
     [Tooltip("방장만 만질 수 있는 컨트롤 묶음. 참가자에게는 흐리게 보인다.")]
@@ -37,6 +37,9 @@ public class MapSettingsPanel : MonoBehaviour
 
     DuelSettings settings = new DuelSettings();
     Coroutine[] highlights;
+    TMP_Text automaticSeed;
+    bool isHost;
+    bool seedInputChanged;
 
     // 입력 칸에서 글자를 넣고 있는지.
     public bool IsTyping => seedField.isFocused || widthField.isFocused || heightField.isFocused;
@@ -44,8 +47,14 @@ public class MapSettingsPanel : MonoBehaviour
     void Awake()
     {
         highlights = new Coroutine[rowHighlights.Length];
+        automaticSeed = seedRandomNote.GetComponent<TMP_Text>();
+        seedField.textComponent.fontSizeMax = seedField.textComponent.fontSize;
+        seedField.textComponent.fontSizeMin = 9f;
+        seedField.textComponent.enableAutoSizing = true;
         seedFixed.onValueChanged.AddListener(_ => Edit());
-        seedField.onEndEdit.AddListener(_ => Edit());
+        seedField.onSelect.AddListener(_ => seedInputChanged = false);
+        seedField.onValueChanged.AddListener(_ => seedInputChanged = true);
+        seedField.onEndEdit.AddListener(_ => Edit(seedInputChanged && !seedField.wasCanceled));
         sizeMode.Changed += _ => Edit();
         widthField.onEndEdit.AddListener(_ => Edit());
         heightField.onEndEdit.AddListener(_ => Edit());
@@ -58,6 +67,7 @@ public class MapSettingsPanel : MonoBehaviour
     // 대기실을 열 때 설정을 받아 보여 준다. 참가자에게는 컨트롤을 잠근다.
     public void Open(bool isHost, DuelSettings settings)
     {
+        this.isHost = isHost;
         this.settings = settings.Clone();
         foreach (Graphic highlight in rowHighlights) SetAlpha(highlight, 0f);
         lockNote.SetActive(!isHost);
@@ -75,7 +85,7 @@ public class MapSettingsPanel : MonoBehaviour
         MapGenerationSettings before = settings.Map, after = changed.Map;
         bool[] rows =
         {
-            settings.SeedFixed != changed.SeedFixed || (changed.SeedFixed && before.Seed != after.Seed),
+            settings.SeedFixed != changed.SeedFixed || before.Seed != after.Seed,
             before.Size != after.Size,
             before.Shape != after.Shape,
             !Mathf.Approximately(before.ObstacleDensity, after.ObstacleDensity),
@@ -95,17 +105,24 @@ public class MapSettingsPanel : MonoBehaviour
     // 시드 줄의 "새로" 버튼이 호출한다.
     public void RollSeed()
     {
+        if (!isHost || !settings.SeedFixed) return;
         settings.Map.Seed = Random.Range(1000, 100000);
         ShowSettings();
-        Changed?.Invoke(settings);
+        Changed?.Invoke(settings, true);
     }
 
     // 컨트롤의 값을 읽어 설정에 담고 알린다. 범위를 벗어난 입력은 고쳐서 다시 보여 준다.
-    void Edit()
+    void Edit(bool seedEdited = false)
     {
+        if (!isHost) return;
         MapGenerationSettings map = settings.Map;
         settings.SeedFixed = seedFixed.isOn;
-        if (int.TryParse(seedField.text, out int seed)) map.Seed = seed;
+        if (seedEdited && settings.SeedFixed && int.TryParse(seedField.text, out int seed))
+        {
+            seedEdited = seed != map.Seed;
+            map.Seed = seed;
+        }
+        else seedEdited = false;
         Vector2Int size = map.Size ?? new Vector2Int(31, 31);
         if (int.TryParse(widthField.text, out int width)) size.x = Mathf.Clamp(width, DuelSettings.MinSize, DuelSettings.MaxSize);
         if (int.TryParse(heightField.text, out int height)) size.y = Mathf.Clamp(height, DuelSettings.MinSize, DuelSettings.MaxSize);
@@ -115,23 +132,24 @@ public class MapSettingsPanel : MonoBehaviour
         map.Symmetry = (MapSymmetry)symmetry.Value;
         map.NoiseStrength = noiseStrength.value / NoiseSteps;
         ShowSettings();
-        Changed?.Invoke(settings);
+        Changed?.Invoke(settings, seedEdited);
     }
 
     void ShowSettings()
     {
         MapGenerationSettings map = settings.Map;
         seedFixed.SetIsOnWithoutNotify(settings.SeedFixed);
+        automaticSeed.text = $"자동 · {map.Seed}";
         seedRandomNote.SetActive(!settings.SeedFixed);
         seedBox.SetActive(settings.SeedFixed);
-        seedField.SetTextWithoutNotify(map.Seed.ToString());
+        if (!seedField.isFocused) seedField.SetTextWithoutNotify(map.Seed.ToString());
         sizeMode.SetValueWithoutNotify(map.Size.HasValue ? 1 : 0);
         sizeBox.SetActive(map.Size.HasValue);
         // 자동일 때도 마지막으로 넣은 크기를 칸에 남겨 둔다.
         if (map.Size.HasValue)
         {
-            widthField.SetTextWithoutNotify(map.Size.Value.x.ToString());
-            heightField.SetTextWithoutNotify(map.Size.Value.y.ToString());
+            if (!widthField.isFocused) widthField.SetTextWithoutNotify(map.Size.Value.x.ToString());
+            if (!heightField.isFocused) heightField.SetTextWithoutNotify(map.Size.Value.y.ToString());
         }
         shape.SetValueWithoutNotify((int)map.Shape);
         density.SetValueWithoutNotify(Mathf.Round(map.ObstacleDensity * DensitySteps));

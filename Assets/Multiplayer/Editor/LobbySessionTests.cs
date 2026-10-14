@@ -102,5 +102,48 @@ public class LobbySessionTests
         Assert.That(session.HasReservation(2), Is.True);
         Assert.That(session.HasReservation(3), Is.False);
     }
+
+    [Test]
+    public void GuestCannotUpdateSettings_AndInvalidHostUpdatesLeaveSnapshotUnchanged()
+    {
+        var session = CreateSession();
+        CreateAndConfirmHost(session);
+        Assert.That(session.TryJoin(2, session.RoomCode, out _), Is.True);
+        Assert.That(session.Confirm(2), Is.True);
+        DuelSettings beforeGuestUpdate = session.Snapshot.Settings.ToSettings();
+
+        Assert.That(session.TryUpdateSettings(2, new DuelSettings
+        {
+            SeedFixed = false,
+            Map = new MapGenerationSettings { Seed = -99, Shape = MapShape.Donut }
+        }, out string guestReason), Is.False);
+        Assert.That(guestReason, Is.Not.Empty);
+        AssertSettingsEqual(beforeGuestUpdate, session.Snapshot.Settings.ToSettings());
+
+        DuelSettings beforeInvalidUpdates = session.Snapshot.Settings.ToSettings();
+        var invalidSettings = new[]
+        {
+            new DuelSettings { SeedFixed = false, Map = new MapGenerationSettings { ObstacleDensity = 0.36f } },
+            new DuelSettings { SeedFixed = true, Map = new MapGenerationSettings { NoiseStrength = float.NaN } }
+        };
+        foreach (DuelSettings invalid in invalidSettings)
+        {
+            Assert.That(session.TryUpdateSettings(1, invalid, out string reason), Is.False);
+            Assert.That(reason, Is.Not.Empty);
+            AssertSettingsEqual(beforeInvalidUpdates, session.Snapshot.Settings.ToSettings());
+        }
+    }
+
+    static void AssertSettingsEqual(DuelSettings expected, DuelSettings actual)
+    {
+        Assert.That(actual.SeedFixed, Is.EqualTo(expected.SeedFixed));
+        Assert.That(actual.Map.Seed, Is.EqualTo(expected.Map.Seed));
+        Assert.That(actual.Map.Size, Is.EqualTo(expected.Map.Size));
+        Assert.That(actual.Map.Shape, Is.EqualTo(expected.Map.Shape));
+        Assert.That(actual.Map.ObstacleDensity, Is.EqualTo(expected.Map.ObstacleDensity));
+        Assert.That(actual.Map.Symmetry, Is.EqualTo(expected.Map.Symmetry));
+        Assert.That(actual.Map.NoiseStrength, Is.EqualTo(expected.Map.NoiseStrength));
+        Assert.That(actual.Map.NoiseScale, Is.EqualTo(expected.Map.NoiseScale));
+    }
 }
 #endif
