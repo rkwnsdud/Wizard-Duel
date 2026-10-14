@@ -53,6 +53,8 @@ public class MainFlow : MonoBehaviour
     {
         if (transition != null || network.IsBusy) return;
         creating = true;
+        settings = new DuelSettings { Map = backdrop.Current }.Clone();
+        backdrop.HoldTitle();
         startScreen.BeginCreate();
         network.Create(settings);
     }
@@ -68,7 +70,12 @@ public class MainFlow : MonoBehaviour
         network.Join(code);
     }
 
-    void Cancel() => network.Cancel();
+    void Cancel()
+    {
+        bool restoreTitle = creating && !wantsLobby;
+        network.Cancel();
+        if (restoreTitle) backdrop.ShowTitle(settings, true);
+    }
     void Leave() => network.Leave();
 
     void OnSnapshot(NetworkLobbySnapshot snapshot)
@@ -97,7 +104,11 @@ public class MainFlow : MonoBehaviour
     void OnConnectionFailed(string reason)
     {
         reason = ConnectionNotice(reason);
-        if (creating) startScreen.ShowCreateError(reason);
+        if (creating)
+        {
+            backdrop.ShowTitle(settings, true);
+            startScreen.ShowCreateError(reason);
+        }
         else startScreen.ShowJoinError(reason);
     }
 
@@ -153,9 +164,9 @@ public class MainFlow : MonoBehaviour
     }
 
     // 미리보기는 서버가 확정한 스냅샷으로만 바꾼다.
-    void OnSettingsChanged(DuelSettings changed, bool seedEdited)
+    void OnSettingsChanged(DuelSettings changed)
     {
-        network.UpdateSettings(changed, seedEdited);
+        network.UpdateSettings(changed);
     }
 
     void OnSettingsRejected(string reason)

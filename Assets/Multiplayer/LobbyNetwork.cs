@@ -125,7 +125,7 @@ public sealed class LobbyNetwork : MonoBehaviour
         StartRequest(new LobbyJoinRequest(false, code, null));
     }
 
-    public void UpdateSettings(DuelSettings settings, bool seedEdited = false)
+    public void UpdateSettings(DuelSettings settings)
     {
         if (!IsInLobby || closing) return;
         if (!LobbySession.ValidateSettings(settings, out string reason))
@@ -136,7 +136,6 @@ public sealed class LobbyNetwork : MonoBehaviour
         }
         using var writer = new FastBufferWriter(BufferSize, Allocator.Temp);
         writer.WriteValueSafe(++requestedSettingsRevision);
-        writer.WriteValueSafe(seedEdited);
         writer.WriteNetworkSerializable(new NetworkLobbySettings(settings));
         manager.CustomMessagingManager.SendNamedMessage(SettingsMessage, NetworkManager.ServerClientId,
             writer, NetworkDelivery.ReliableSequenced);
@@ -302,12 +301,11 @@ public sealed class LobbyNetwork : MonoBehaviour
         {
             if (reader.Length - reader.Position > BufferSize) throw new InvalidOperationException(InvalidRequest);
             reader.ReadValueSafe(out revision);
-            reader.ReadValueSafe(out bool seedEdited);
             reader.ReadNetworkSerializable(out NetworkLobbySettings settings);
             if (reader.Position != reader.Length) throw new InvalidOperationException(InvalidRequest);
             if (revision == 0 || revision <= serverSettingsRevision)
                 reason = "The settings update is out of date.";
-            else if (session.TryUpdateSettings(senderId, settings.ToSettings(), out reason, seedEdited))
+            else if (session.TryUpdateSettings(senderId, settings.ToSettings(), out reason))
             {
                 serverSettingsRevision = revision;
                 BroadcastSnapshot();

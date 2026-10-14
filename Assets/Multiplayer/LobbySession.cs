@@ -4,7 +4,6 @@ using System.Globalization;
 // 네트워크 콜백과 맵 생성에 의존하지 않는 서버의 1대1 대기실 상태.
 public sealed class LobbySession
 {
-    readonly Func<int> seedGenerator;
     readonly Func<int> codeGenerator;
     ulong? hostOwner;
     ulong? guestOwner;
@@ -13,11 +12,9 @@ public sealed class LobbySession
     int lastInvalidatedCode = -1;
     NetworkLobbySettings settings;
 
-    public LobbySession(Func<int> seedGenerator = null, Func<int> codeGenerator = null)
+    public LobbySession(Func<int> codeGenerator = null)
     {
-        var seedRandom = new Random(Guid.NewGuid().GetHashCode());
         var codeRandom = new Random(Guid.NewGuid().GetHashCode());
-        this.seedGenerator = seedGenerator ?? (() => seedRandom.Next(int.MinValue, int.MaxValue));
         this.codeGenerator = codeGenerator ?? (() => codeRandom.Next(1000000));
     }
 
@@ -49,7 +46,6 @@ public sealed class LobbySession
         if (!ValidateSettings(requested, out reason)) return false;
 
         settings = new NetworkLobbySettings(requested);
-        if (!settings.SeedFixed) settings.Map.Seed = seedGenerator();
         int code = (int)((uint)codeGenerator() % 1000000);
         // 방 코드와 시드는 별개이며, 방금 닫힌 코드도 바로 다시 쓰지 않는다.
         while (code == lastInvalidatedCode || code == settings.Map.Seed)
@@ -113,19 +109,13 @@ public sealed class LobbySession
         return true;
     }
 
-    public bool TryUpdateSettings(ulong sender, DuelSettings requested, out string reason, bool seedEdited = true)
+    public bool TryUpdateSettings(ulong sender, DuelSettings requested, out string reason)
     {
         reason = "Only the connected host can change room settings.";
         if (!hostConfirmed || hostOwner != sender) return false;
         if (!ValidateSettings(requested, out reason)) return false;
 
-        var updated = new NetworkLobbySettings(requested);
-        // 자동 모드의 일반 수정과 고정 전환은 현재 시드를 유지한다.
-        if (!settings.SeedFixed) updated.Map.Seed = settings.Map.Seed;
-        else if (!updated.SeedFixed) updated.Map.Seed = seedGenerator();
-        // 일반 설정 변경에 남아 있는 오래된 입력 시드는 확정한 서버 시드를 덮어쓰지 않는다.
-        else if (!seedEdited) updated.Map.Seed = settings.Map.Seed;
-        settings = updated;
+        settings = new NetworkLobbySettings(requested);
         reason = string.Empty;
         return true;
     }

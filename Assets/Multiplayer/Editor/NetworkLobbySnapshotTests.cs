@@ -6,9 +6,8 @@ using UnityEngine;
 
 public class NetworkLobbySnapshotTests
 {
-    static DuelSettings Settings(int seed = 7301, bool fixedSeed = true, Vector2Int? size = null) => new DuelSettings
+    static DuelSettings Settings(int seed = 7301, Vector2Int? size = null) => new DuelSettings
     {
-        SeedFixed = fixedSeed,
         Map = new MapGenerationSettings
         {
             Seed = seed,
@@ -21,15 +20,14 @@ public class NetworkLobbySnapshotTests
         }
     };
 
-    static LobbySession Session(FuncCounter seeds, int code = 234567) =>
-        new LobbySession(seeds.Next, () => code);
+    static LobbySession Session(int code = 234567) => new LobbySession(() => code);
 
-    [TestCase(7301, false, false)]
-    [TestCase(0, true, true)]
-    [TestCase(-11, false, true)]
-    public void WireRoundTrip_PreservesLobbySettingsAndRandomLayout(int seed, bool fixedSize, bool fixedSeed)
+    [TestCase(7301, false)]
+    [TestCase(0, true)]
+    [TestCase(-11, false)]
+    public void WireRoundTrip_PreservesLobbySettingsAndRandomLayout(int seed, bool fixedSize)
     {
-        var settings = Settings(seed, fixedSeed, fixedSize ? new Vector2Int(35, 29) : null);
+        var settings = Settings(seed, fixedSize ? new Vector2Int(35, 29) : null);
         var snapshot = new NetworkLobbySnapshot
         {
             Code = "234567",
@@ -51,7 +49,6 @@ public class NetworkLobbySnapshotTests
         Assert.That(received.GuestClientId, Is.EqualTo(snapshot.GuestClientId));
         Assert.That(received.SettingsRevision, Is.EqualTo(37u));
         DuelSettings restored = received.Settings.ToSettings();
-        Assert.That(restored.SeedFixed, Is.EqualTo(settings.SeedFixed));
         Assert.That(restored.Map.Seed, Is.EqualTo(seed));
         Assert.That(restored.Map.Size, Is.EqualTo(settings.Map.Size));
         Assert.That(restored.Map.Shape, Is.EqualTo(settings.Map.Shape));
@@ -67,107 +64,51 @@ public class NetworkLobbySnapshotTests
         Assert.That(receivedLayout.SpawnB, Is.EqualTo(sourceLayout.SpawnB));
     }
 
-    [Test]
-    public void AutomaticSeed_IsChosenOnceAtCreationAndKeptAcrossUpdatesAndJoin()
+    [TestCase(0)]
+    [TestCase(-37)]
+    [TestCase(6100)]
+    public void SuppliedSeed_IsStoredAtCreationAcrossUpdatesAndJoin_AndCopiesAreIsolated(int seed)
     {
-        var seeds = new FuncCounter(4100, 4200, 4300);
-        var session = Session(seeds);
-        Assert.That(session.TryCreate(1, Settings(8, false), out _), Is.True);
-        Assert.That(session.Snapshot.Settings.ToSettings().Map.Seed, Is.EqualTo(4100));
-        Assert.That(seeds.Calls, Is.EqualTo(1));
-        Assert.That(session.Confirm(1), Is.True);
-
-        Assert.That(session.TryUpdateSettings(1, Settings(-99, false), out _), Is.True);
-        Assert.That(session.Snapshot.Settings.ToSettings().Map.Seed, Is.EqualTo(4100));
-        Assert.That(seeds.Calls, Is.EqualTo(1));
-        Assert.That(session.TryJoin(2, session.RoomCode, out _), Is.True);
-        Assert.That(session.Snapshot.Settings.ToSettings().Map.Seed, Is.EqualTo(4100));
-        Assert.That(seeds.Calls, Is.EqualTo(1));
-    }
-
-    [Test]
-    public void SeedModeTransitions_KeepOrDrawExactlyWhenRequired()
-    {
-        var seeds = new FuncCounter(5100, 5200, 5300);
-        var session = Session(seeds);
-        Assert.That(session.TryCreate(1, Settings(77, false), out _), Is.True);
-        Assert.That(session.Confirm(1), Is.True);
-
-        Assert.That(session.TryUpdateSettings(1, Settings(-5, true), out _), Is.True);
-        Assert.That(session.Snapshot.Settings.ToSettings().Map.Seed, Is.EqualTo(5100));
-        Assert.That(seeds.Calls, Is.EqualTo(1));
-        Assert.That(session.TryUpdateSettings(1, Settings(880, true), out _), Is.True);
-        Assert.That(session.Snapshot.Settings.ToSettings().Map.Seed, Is.EqualTo(880));
-        Assert.That(session.TryUpdateSettings(1, Settings(-10, false), out _), Is.True);
-        Assert.That(session.Snapshot.Settings.ToSettings().Map.Seed, Is.EqualTo(5200));
-        Assert.That(session.TryUpdateSettings(1, Settings(999, false), out _), Is.True);
-        Assert.That(session.Snapshot.Settings.ToSettings().Map.Seed, Is.EqualTo(5200));
-        Assert.That(seeds.Calls, Is.EqualTo(2));
-    }
-
-    [Test]
-    public void StaleSeedDraftDoesNotUndoAutomaticSeedAfterRapidModeChanges()
-    {
-        var seeds = new FuncCounter(5100, 5200);
-        var session = Session(seeds);
-        Assert.That(session.TryCreate(1, Settings(100), out _), Is.True);
-        Assert.That(session.Confirm(1), Is.True);
-
-        Assert.That(session.TryUpdateSettings(1, Settings(100, fixedSeed: false), out _, seedEdited: false), Is.True);
-        Assert.That(session.Snapshot.Settings.ToSettings().Map.Seed, Is.EqualTo(5100));
-
-        Assert.That(session.TryUpdateSettings(1, Settings(100, fixedSeed: true), out _, seedEdited: false), Is.True);
-        Assert.That(session.Snapshot.Settings.ToSettings().Map.Seed, Is.EqualTo(5100));
-
-        DuelSettings staleDraft = Settings(100);
-        staleDraft.Map.Shape = MapShape.Donut;
-        staleDraft.Map.ObstacleDensity = 0.31f;
-        Assert.That(session.TryUpdateSettings(1, staleDraft, out _, seedEdited: false), Is.True);
-        DuelSettings afterStaleDraft = session.Snapshot.Settings.ToSettings();
-        Assert.That(afterStaleDraft.Map.Seed, Is.EqualTo(5100));
-        Assert.That(afterStaleDraft.Map.Shape, Is.EqualTo(MapShape.Donut));
-        Assert.That(afterStaleDraft.Map.ObstacleDensity, Is.EqualTo(0.31f));
-
-        DuelSettings explicitSeedEdit = Settings(880);
-        explicitSeedEdit.Map.Shape = MapShape.Donut;
-        explicitSeedEdit.Map.ObstacleDensity = 0.31f;
-        Assert.That(session.TryUpdateSettings(1, explicitSeedEdit, out _, seedEdited: true), Is.True);
-        Assert.That(session.Snapshot.Settings.ToSettings().Map.Seed, Is.EqualTo(880));
-        Assert.That(seeds.Calls, Is.EqualTo(1));
-    }
-
-    [Test]
-    public void FixedSeedRoomUsesSuppliedSeed_AndSettingsCopiesAreIsolated()
-    {
-        var seeds = new FuncCounter(6100);
-        var session = Session(seeds);
-        Assert.That(session.TryCreate(1, Settings(-37), out _), Is.True);
-        Assert.That(session.Snapshot.Settings.ToSettings().Map.Seed, Is.EqualTo(-37));
-        Assert.That(seeds.Calls, Is.Zero);
+        var session = Session();
+        DuelSettings requested = Settings(seed);
+        Assert.That(session.TryCreate(1, requested, out _), Is.True);
+        requested.Map.Seed = seed + 1;
+        Assert.That(session.Snapshot.Settings.ToSettings().Map.Seed, Is.EqualTo(seed));
 
         DuelSettings returned = session.Snapshot.Settings.ToSettings();
         returned.Map.Seed = 900;
         returned.Map.Shape = MapShape.Donut;
-        Assert.That(session.Snapshot.Settings.ToSettings().Map.Seed, Is.EqualTo(-37));
+        Assert.That(session.Snapshot.Settings.ToSettings().Map.Seed, Is.EqualTo(seed));
         Assert.That(session.Snapshot.Settings.ToSettings().Map.Shape, Is.EqualTo(MapShape.Random));
 
         NetworkLobbySnapshot snapshot = session.Snapshot;
         snapshot.Settings.Map.Seed = 902;
         DuelSettings snapshotSettings = snapshot.Settings.ToSettings();
         snapshotSettings.Map.Seed = 901;
-        Assert.That(session.Snapshot.Settings.ToSettings().Map.Seed, Is.EqualTo(-37));
+        Assert.That(session.Snapshot.Settings.ToSettings().Map.Seed, Is.EqualTo(seed));
+        Assert.That(session.Confirm(1), Is.True);
+        foreach (int updatedSeed in new[] { seed + 2, seed })
+        {
+            DuelSettings changed = Settings(updatedSeed);
+            changed.Map.Shape = MapShape.Donut;
+            Assert.That(session.TryUpdateSettings(1, changed, out _), Is.True);
+            changed.Map.Seed = 903;
+            Assert.That(session.Snapshot.Settings.ToSettings().Map.Seed, Is.EqualTo(updatedSeed));
+        }
+        Assert.That(session.TryJoin(2, session.RoomCode, out _), Is.True);
+        Assert.That(session.Confirm(2), Is.True);
+        Assert.That(session.Snapshot.Settings.ToSettings().Map.Seed, Is.EqualTo(seed));
     }
 
     [Test]
     public void LateJoinSnapshotContainsLatestFullSettings()
     {
-        var session = Session(new FuncCounter(6200));
+        var session = Session();
         Assert.That(session.TryCreate(1, Settings(1), out _), Is.True);
         Assert.That(session.Confirm(1), Is.True);
 
         DuelSettings latest = new DuelSettings
         {
-            SeedFixed = true,
             Map = new MapGenerationSettings
             {
                 Seed = -321,
@@ -192,8 +133,8 @@ public class NetworkLobbySnapshotTests
     [TestCase(true)]
     public void ServerSnapshotCloneGeneratesSameRandomMapAndSpawns(bool fixedSize)
     {
-        var session = Session(new FuncCounter(6300));
-        DuelSettings requested = Settings(999, fixedSeed: false,
+        var session = Session();
+        DuelSettings requested = Settings(999,
             size: fixedSize ? new Vector2Int(35, 29) : null);
         Assert.That(session.TryCreate(1, requested, out _), Is.True);
 
@@ -212,7 +153,7 @@ public class NetworkLobbySnapshotTests
     {
         foreach (int seed in new[] { 0, -13, 42 })
         {
-            DuelSettings source = Settings(seed, fixedSeed: false);
+            DuelSettings source = Settings(seed);
             Assert.That(source.ToMapSettings().Seed, Is.EqualTo(seed));
             Assert.That(source.Clone().Map.Seed, Is.EqualTo(seed));
         }
@@ -250,7 +191,6 @@ public class NetworkLobbySnapshotTests
 
     static void AssertSettingsEqual(DuelSettings expected, DuelSettings actual)
     {
-        Assert.That(actual.SeedFixed, Is.EqualTo(expected.SeedFixed));
         Assert.That(actual.Map.Seed, Is.EqualTo(expected.Map.Seed));
         Assert.That(actual.Map.Size, Is.EqualTo(expected.Map.Size));
         Assert.That(actual.Map.Shape, Is.EqualTo(expected.Map.Shape));
@@ -260,13 +200,5 @@ public class NetworkLobbySnapshotTests
         Assert.That(actual.Map.NoiseScale, Is.EqualTo(expected.Map.NoiseScale));
     }
 
-    sealed class FuncCounter
-    {
-        readonly int[] values;
-        int index;
-        public int Calls => index;
-        public FuncCounter(params int[] values) => this.values = values;
-        public int Next() => values[index++];
-    }
 }
 #endif

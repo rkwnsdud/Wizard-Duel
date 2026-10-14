@@ -6,9 +6,11 @@
 
 **Tools > Wizard Duel > Network Test** 창의 **Mode**를 `Main`으로 두고 **Build**를 누르면 `Assets/Scenes/Main.unity`만 Development 빌드해 `Build/LobbyTest/WizardDuel.exe`에 만든다. **Server**는 창 없는 전용 서버로 UDP 7777을 열고, **Client**는 보이는 창에서 `-join 127.0.0.1` 주소를 설정해 시작 화면을 띄운다. `-join`은 방을 만들거나 참가하지 않으므로, 클라이언트 화면에서 **Create**를 누르거나 방장이 보여 준 6자리 코드로 **Join**한다.
 
-서버는 한 번에 방 하나와 확정 참가자 두 명만 받는다. 자동 시드는 방을 만들 때 서버가 한 번 정해 설정 변경과 늦은 참가에도 유지한다. 고정에서 자동으로 바꾸면 새 시드를 한 번 정하고, 자동 시드에서 고정으로 바꿔도 현재 시드를 유지한다. 고정 모드의 명시적 시드 편집은 적용된다. 확정 참가자 중 한 명이라도 나가면 방 전체를 닫는다. Main 빌드는 대기실·설정 동기화·맵 미리보기 검증 범위이며 전투는 시작하지 않는다. 빌드와 로그는 NetworkDemo와 분리해 `Build/LobbyTest/`, `Logs/LobbyTest/server.log`, `client1.log`, `client2.log`에 둔다. `Open Logs`에서 같은 로그 폴더를 열 수 있고, `[LobbyPreview]` 로그의 시드·형태·크기·스폰 셀·hash를 비교한다. 상세 비교 기록은 `Logs/LobbyTest/stage3-preview-comparison.json`에 있다.
+서버는 한 번에 방 하나와 확정 참가자 두 명만 받는다. Main 대기실에서 방을 만들면 현재 `TitleBackdrop.Current`의 전체 설정을 복사하고, 서버는 전달받은 시드를 그대로 저장해 두 참가자에게 동기화한다. 시드는 입력란에서 편집하거나 **새로 뽑기**로 바꿀 수 있으며, 다른 설정을 변경해도 시드는 유지된다. 접속한 두 참가자와 서버는 프로토콜 버전 2를 사용하므로 같은 빌드로 실행해야 한다. 확정 참가자 중 한 명이라도 나가면 방 전체를 닫는다. Main 빌드는 대기실·설정 동기화·맵 미리보기 검증 범위이며 전투는 시작하지 않는다. 빌드와 로그는 NetworkDemo와 분리해 `Build/LobbyTest/`, `Logs/LobbyTest/server.log`, `client1.log`, `client2.log`에 둔다. `Open Logs`에서 같은 로그 폴더를 열 수 있고, `[LobbyPreview]` 로그의 시드·형태·크기·스폰 셀·hash를 비교한다. 상세 비교 기록은 `Logs/LobbyTest/stage3-preview-comparison.json`에 있다.
 
 검사와 인계:
+
+> 아래 Stage 3/4 결과와 최종 상태는 자동 시드 정책을 사용하던 당시의 역사 기록이다. 현재 seed pass-through 동작의 검증 결과로 해석하지 않는다.
 
 - Unity Test Runner의 EditMode에서 `LobbySessionTests`, `NetworkLobbySnapshotTests`, `LobbyNetworkSettingsTests`, `NetworkMapSettingsTests`, `LobbyInputTests`를 실행한다.
 - `Logs/LobbyTest/stage3-validation.txt`에는 412/412 통과, Main Development 빌드 성공, 실제 UI 미리보기 hash 일치가 기록되어 있다. 이는 Stage 3의 이전 검증 결과이며, Stage 4 전체 EditMode 결과는 아래에 기록한다.

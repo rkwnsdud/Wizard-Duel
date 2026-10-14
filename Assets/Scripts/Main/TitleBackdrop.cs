@@ -94,6 +94,13 @@ public class TitleBackdrop : MonoBehaviour
         StartCoroutine(Cycle(keepMap));
     }
 
+    // 접속을 기다리는 동안 시작 화면 카메라를 유지하고 현재 맵의 순환만 멈춘다.
+    public void HoldTitle()
+    {
+        StopAllCoroutines();
+        StartCoroutine(Settle());
+    }
+
     // 순환을 멈추고 지금 맵을 그대로 대기실 미리보기로 쓴다. 카메라만 대기실 자리로 옮긴다.
     public void HoldPreview()
     {
@@ -164,7 +171,7 @@ public class TitleBackdrop : MonoBehaviour
         }
     }
 
-    // 시작 화면 맵 설정. 시드는 시드 고정과 상관없이 늘 새로 뽑고, 형태가 랜덤이면 멀리서도 잘 보이는 형태 중 하나를 쓴다.
+    // 시작 화면 맵 설정. 시드는 늘 새로 뽑고, 형태가 랜덤이면 멀리서도 잘 보이는 형태 중 하나를 쓴다.
     MapGenerationSettings TitleMap(MapShape shape)
     {
         MapGenerationSettings settings = titleSettings.ToMapSettings();

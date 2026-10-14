@@ -153,7 +153,6 @@ public class LobbyNetworkSettingsTests
         SettingsRevision = revision,
         Settings = new NetworkLobbySettings(new DuelSettings
         {
-            SeedFixed = true,
             Map = new MapGenerationSettings { Seed = seed, Shape = shape }
         })
     };

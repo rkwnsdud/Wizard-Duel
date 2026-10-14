@@ -5,12 +5,10 @@ public class LobbySessionTests
 {
     static DuelSettings Settings(int seed = 7301) => new DuelSettings
     {
-        SeedFixed = true,
         Map = new MapGenerationSettings { Seed = seed }
     };
 
-    static LobbySession CreateSession(int seed = 1001, int code = 123456) =>
-        new LobbySession(() => seed, () => code);
+    static LobbySession CreateSession(int code = 123456) => new LobbySession(() => code);
 
     static void CreateAndConfirmHost(LobbySession session, ulong host = 1)
     {
@@ -163,7 +161,6 @@ public class LobbySessionTests
 
         Assert.That(session.TryUpdateSettings(2, new DuelSettings
         {
-            SeedFixed = false,
             Map = new MapGenerationSettings { Seed = -99, Shape = MapShape.Donut }
         }, out string guestReason), Is.False);
         Assert.That(guestReason, Is.Not.Empty);
@@ -172,8 +169,8 @@ public class LobbySessionTests
         DuelSettings beforeInvalidUpdates = session.Snapshot.Settings.ToSettings();
         var invalidSettings = new[]
         {
-            new DuelSettings { SeedFixed = false, Map = new MapGenerationSettings { ObstacleDensity = 0.36f } },
-            new DuelSettings { SeedFixed = true, Map = new MapGenerationSettings { NoiseStrength = float.NaN } }
+            new DuelSettings { Map = new MapGenerationSettings { ObstacleDensity = 0.36f } },
+            new DuelSettings { Map = new MapGenerationSettings { NoiseStrength = float.NaN } }
         };
         foreach (DuelSettings invalid in invalidSettings)
         {
@@ -185,7 +182,6 @@ public class LobbySessionTests
 
     static void AssertSettingsEqual(DuelSettings expected, DuelSettings actual)
     {
-        Assert.That(actual.SeedFixed, Is.EqualTo(expected.SeedFixed));
         Assert.That(actual.Map.Seed, Is.EqualTo(expected.Map.Seed));
         Assert.That(actual.Map.Size, Is.EqualTo(expected.Map.Size));
         Assert.That(actual.Map.Shape, Is.EqualTo(expected.Map.Shape));
