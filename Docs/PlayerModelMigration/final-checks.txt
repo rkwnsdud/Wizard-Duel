@@ -1,0 +1,30 @@
+PASS root/weapon/event object 368348533957044283 retains serialized values
+PASS root/weapon/event object 6186550335457057533 retains serialized values
+PASS root/weapon/event object 3791717283436599051 retains serialized values
+PASS root/weapon/event object 1358605598620480326 retains serialized values
+PASS root/weapon/event object 4389389708427508982 retains serialized values
+PASS root/weapon/event object 5254161001047520911 retains serialized values
+PASS root/weapon/event object 5861356721983838770 retains serialized values
+PASS root/weapon/event object 6880158743967379202 retains serialized values
+PASS root/weapon/event object 4100219137000000001 retains serialized values
+PASS root/weapon/event object 8900000000000000002 retains serialized values
+PASS Wizard/socket/staff/FirePoint object ID retained: 5125883925313081649
+PASS Wizard/socket/staff/FirePoint object ID retained: 5505963807473372043
+PASS Wizard/socket/staff/FirePoint object ID retained: 4738692340069346998
+PASS Wizard/socket/staff/FirePoint object ID retained: 8004607256499747338
+PASS Wizard/socket/staff/FirePoint object ID retained: 280721123358532884
+PASS Wizard/socket/staff/FirePoint object ID retained: 7713191432823955937
+PASS Animator transition/parameters/state-machine retained: 9100000
+PASS Animator transition/parameters/state-machine retained: 6110509056589229708
+PASS Animator transition/parameters/state-machine retained: 3195436493900472915
+PASS Animator transition/parameters/state-machine retained: 3324243515814495023
+PASS Animator transition/parameters/state-machine retained: 8190000000000000001
+PASS Animator transition/parameters/state-machine retained: -6422587640202461691
+PASS Animator transition/parameters/state-machine retained: -2674912113980667319
+PASS Player.prefab.meta byte-identical to original
+PASS FBX byte-identical to supplied source
+PASS original texture bytes: Meshy_AI_Wizard_Navy_Rigged_biped_texture_0.png
+PASS original texture bytes: Meshy_AI_Wizard_Navy_Rigged_biped_texture_0_metallic.png
+PASS original texture bytes: Meshy_AI_Wizard_Navy_Rigged_biped_texture_0_roughness.png
+PASS final Unity import/compile after temporary asset removal: exit code 0, no C# compile errors
+PASS temporary migration assets removed; helper source retained outside Assets

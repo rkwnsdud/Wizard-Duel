@@ -1,0 +1,11 @@
+EVENT FireMagic time=0.2 string='' float=0 int=0 object= options=RequireReceiver
+EVENT EndAttack time=0.65 string='' float=0 int=0 object= options=RequireReceiver
+PREFAB Player: components/references/one Animator/one body/variant OK; avatar=WizardPlayerAvatar, human=False; material=Wizard_Navy; modelScale=1.228572
+WALK WizardWalkForward: duration=1.066667s, rate=1.35, contact samples=160, estimated contact sliding at root 5m/s mean=3.772m/s; nominal planted-foot speed at 1x=0.909m/s; min sampled bodyY=0.0054m; toe loop error L=0.000000, R=0.000000
+WALK WizardWalkBackward: duration=1.066667s, rate=1.35, contact samples=160, estimated contact sliding at root 5m/s mean=3.772m/s; nominal planted-foot speed at 1x=0.909m/s; min sampled bodyY=0.0054m; toe loop error L=0.000000, R=0.000000
+WALK WizardWalkLeft: duration=0.800000s, rate=1.35, contact samples=91, estimated contact sliding at root 5m/s mean=3.462m/s; nominal planted-foot speed at 1x=1.141m/s; min sampled bodyY=0.0050m; toe loop error L=0.000000, R=0.000000
+WALK WizardWalkRight: duration=0.800000s, rate=1.35, contact samples=91, estimated contact sliding at root 5m/s mean=3.462m/s; nominal planted-foot speed at 1x=1.140m/s; min sampled bodyY=0.0050m; toe loop error L=0.000000, R=0.000000
+CAST at 0.2s: FirePoint=(0.27943, 1.40407, 1.47020); staff axis dot aim=1.000000
+PREFAB Player-1: components/references/one Animator/one body/variant OK; avatar=WizardPlayerAvatar, human=False; material=Wizard_Navy; modelScale=1.228572
+PREFAB Player-2: components/references/one Animator/one body/variant OK; avatar=WizardPlayerAvatar, human=False; material=Wizard_Red; modelScale=1.228572
+EDIT_VALIDATION_OK
