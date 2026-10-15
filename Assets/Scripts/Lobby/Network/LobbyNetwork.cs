@@ -33,8 +33,7 @@ public sealed class LobbyNetwork : MonoBehaviour
     bool createdRoom;
     bool notifyClosed;
     string requestedCode;
-    string closeReason;
-    string failureReason;
+    string disconnectReason;
     float snapshotDeadline;
     NetworkLobbySnapshot currentSnapshot;
     uint requestedSettingsRevision;
@@ -55,8 +54,10 @@ public sealed class LobbyNetwork : MonoBehaviour
         serverMode = Array.IndexOf(Environment.GetCommandLineArgs(), "-server") >= 0;
         Application.targetFrameRate = serverMode ? 30 : 60;
         if (serverMode && clientPresentation != null)
+        {
             foreach (GameObject presentation in clientPresentation)
                 if (presentation != null) presentation.SetActive(false);
+        }
         if (manager == null || transport == null) return;
         manager.NetworkConfig.ConnectionApproval = true;
         manager.NetworkConfig.EnableSceneManagement = false;
@@ -71,8 +72,8 @@ public sealed class LobbyNetwork : MonoBehaviour
     {
         // -join은 주소만 정한다. 코드 없는 자동 접속은 하지 않는다.
         string[] args = Environment.GetCommandLineArgs();
-        int join = Array.IndexOf(args, "-join") + 1;
-        if (join > 0 && join < args.Length) serverAddress = args[join].Trim();
+        int joinIndex = Array.IndexOf(args, "-join");
+        if (joinIndex >= 0 && joinIndex + 1 < args.Length) serverAddress = args[joinIndex + 1].Trim();
         if (serverMode) StartServer();
     }
 
@@ -83,6 +84,7 @@ public sealed class LobbyNetwork : MonoBehaviour
         if (connecting && !closing && Time.realtimeSinceStartup >= snapshotDeadline)
             StopClient("The connection timed out.", false);
         if (!closing || manager.IsListening || manager.ShutdownInProgress) return;
+
         closing = false;
         if (serverMode)
         {
@@ -93,37 +95,16 @@ public sealed class LobbyNetwork : MonoBehaviour
             }
             return;
         }
-        string failed = failureReason;
-        string closed = closeReason;
+        string reason = disconnectReason;
         bool wasInLobby = notifyClosed;
-        failureReason = null;
-        closeReason = null;
+        disconnectReason = null;
         notifyClosed = false;
-        if (wasInLobby) Closed?.Invoke(closed ?? string.Empty);
-        else if (!string.IsNullOrEmpty(failed)) Failed?.Invoke(failed);
+        if (wasInLobby) Closed?.Invoke(reason ?? string.Empty);
+        else if (!string.IsNullOrEmpty(reason)) Failed?.Invoke(reason);
     }
 
-    public void Create(DuelSettings settings)
-    {
-        if (serverMode || IsBusy) return;
-        if (!DuelSettings.ValidateSettings(settings, out string reason))
-        {
-            Failed?.Invoke(reason);
-            return;
-        }
-        StartRequest(new LobbyJoinRequest(true, string.Empty, settings));
-    }
-
-    public void Join(string code)
-    {
-        if (serverMode || IsBusy) return;
-        if (!LobbySession.IsValidCode(code))
-        {
-            Failed?.Invoke("Enter a six-digit room code.");
-            return;
-        }
-        StartRequest(new LobbyJoinRequest(false, code, null));
-    }
+    public void Create(DuelSettings settings) => StartRequest(true, string.Empty, settings);
+    public void Join(string code) => StartRequest(false, code, null);
 
     public void UpdateSettings(DuelSettings settings)
     {
@@ -135,8 +116,9 @@ public sealed class LobbyNetwork : MonoBehaviour
             return;
         }
         using var writer = new FastBufferWriter(BufferSize, Allocator.Temp);
-        writer.WriteValueSafe(++requestedSettingsRevision);
-        writer.WriteNetworkSerializable(new NetworkLobbySettings(settings));
+        requestedSettingsRevision++;
+        writer.WriteValueSafe(requestedSettingsRevision);
+        writer.WriteNetworkSerializable(new NetworkMapSettings(settings.Map));
         manager.CustomMessagingManager.SendNamedMessage(SettingsMessage, NetworkManager.ServerClientId,
             writer, NetworkDelivery.ReliableSequenced);
     }
@@ -147,25 +129,31 @@ public sealed class LobbyNetwork : MonoBehaviour
         StopClient(string.Empty, true);
     }
 
-    public void Leave() => Cancel();
-
-    void StartRequest(LobbyJoinRequest request)
+    void StartRequest(bool createRoom, string code, DuelSettings settings)
     {
+        if (serverMode || IsBusy) return;
+        string reason = "Enter a six-digit room code.";
+        bool isValid = createRoom ? DuelSettings.ValidateSettings(settings, out reason) : LobbySession.IsValidCode(code);
+        if (!isValid)
+        {
+            Failed?.Invoke(reason);
+            return;
+        }
         if (manager == null || transport == null)
         {
             Failed?.Invoke("The lobby network is not configured.");
             return;
         }
         if (manager.IsListening || manager.ShutdownInProgress) return;
-        createdRoom = request.CreateRoom;
-        requestedCode = request.Code;
+        createdRoom = createRoom;
+        requestedCode = code;
         requestedSettingsRevision = 0;
         settledSettingsRevision = 0;
         currentSnapshot = default;
         connecting = true;
         snapshotDeadline = Time.realtimeSinceStartup + manager.NetworkConfig.ClientConnectionBufferTimeout + 5;
         using var writer = new FastBufferWriter(BufferSize, Allocator.Temp);
-        writer.WriteNetworkSerializable(request);
+        writer.WriteNetworkSerializable(new LobbyJoinRequest(createRoom, code, settings));
         manager.NetworkConfig.ConnectionData = writer.ToArray();
         transport.SetConnectionData(serverAddress, port);
         Debug.Log($"[Lobby] Connecting address={serverAddress}:{port} create={createdRoom} code={requestedCode}");
@@ -218,8 +206,9 @@ public sealed class LobbyNetwork : MonoBehaviour
             using var reader = new FastBufferReader(request.Payload, Allocator.Temp);
             reader.ReadNetworkSerializable(out LobbyJoinRequest payload);
             if (reader.Position != reader.Length || payload.Version != LobbyJoinRequest.CurrentVersion) return;
+            string reason;
             bool approved = payload.CreateRoom
-                ? session.TryCreate(request.ClientNetworkId, payload.Settings.ToSettings(), out string reason)
+                ? session.TryCreate(request.ClientNetworkId, new DuelSettings { Map = payload.Settings.ToSettings() }, out reason)
                 : session.TryJoin(request.ClientNetworkId, payload.Code, out reason);
             response.Approved = approved;
             response.Reason = approved ? string.Empty : reason;
@@ -252,10 +241,15 @@ public sealed class LobbyNetwork : MonoBehaviour
         using var writer = new FastBufferWriter(BufferSize, Allocator.Temp);
         writer.WriteNetworkSerializable(snapshot);
         foreach (ulong clientId in manager.ConnectedClientsIds)
-            if (session.Contains(clientId))
-                manager.CustomMessagingManager.SendNamedMessage(SnapshotMessage, clientId, writer,
-                    NetworkDelivery.ReliableSequenced);
-        Debug.Log($"[Lobby] Snapshot code={snapshot.Code} host={snapshot.HostClientId} members={(snapshot.OpponentPresent ? 2 : 1)} revision={snapshot.SettingsRevision} seed={snapshot.Settings.Map.Seed} settings={JsonUtility.ToJson(snapshot.Settings)} playerobjects={manager.SpawnManager.PlayerObjects.Count} mapgenerated=false");
+        {
+            if (!session.Contains(clientId)) continue;
+            manager.CustomMessagingManager.SendNamedMessage(SnapshotMessage, clientId, writer,
+                NetworkDelivery.ReliableSequenced);
+        }
+        Debug.Log($"[Lobby] Snapshot code={snapshot.Code} host={snapshot.HostClientId} " +
+            $"members={(snapshot.OpponentPresent ? 2 : 1)} revision={snapshot.SettingsRevision} " +
+            $"seed={snapshot.Settings.Seed} settings={JsonUtility.ToJson(snapshot.Settings)} " +
+            $"playerobjects={manager.SpawnManager.PlayerObjects.Count} mapgenerated=false");
     }
 
     void OnSnapshot(ulong senderId, FastBufferReader reader)
@@ -266,22 +260,20 @@ public sealed class LobbyNetwork : MonoBehaviour
         {
             if (reader.Length - reader.Position > BufferSize) throw new InvalidOperationException(InvalidRequest);
             reader.ReadNetworkSerializable(out snapshot);
-            ulong localId = manager.LocalClientId;
-            bool isHost = snapshot.HostClientId == localId;
-            bool isGuest = snapshot.OpponentPresent && snapshot.GuestClientId == localId;
-            if (reader.Position != reader.Length || !LobbySession.IsValidCode(snapshot.Code) ||
-                !DuelSettings.ValidateSettings(snapshot.Settings.ToSettings(), out _) ||
-                (!isHost && !isGuest) || (snapshot.OpponentPresent && snapshot.GuestClientId == snapshot.HostClientId) ||
-                (!inLobby && (createdRoom != isHost || (!createdRoom && snapshot.Code != requestedCode))) ||
-                (isHost && snapshot.SettingsRevision > requestedSettingsRevision) ||
-                (inLobby && (snapshot.Code != currentSnapshot.Code || snapshot.HostClientId != currentSnapshot.HostClientId ||
-                    snapshot.SettingsRevision < currentSnapshot.SettingsRevision)))
+            bool isHost = snapshot.HostClientId == manager.LocalClientId;
+            bool matchesRequest = createdRoom == isHost && (createdRoom || snapshot.Code == requestedCode);
+            bool matchesCurrentRoom = snapshot.Code == currentSnapshot.Code &&
+                snapshot.HostClientId == currentSnapshot.HostClientId && snapshot.SettingsRevision >= currentSnapshot.SettingsRevision;
+            if (reader.Position != reader.Length || !snapshot.IsValidFor(manager.LocalClientId) ||
+                !(inLobby ? matchesCurrentRoom : matchesRequest) || (isHost && snapshot.SettingsRevision > requestedSettingsRevision))
                 throw new InvalidOperationException(InvalidRequest);
             connecting = false;
             inLobby = true;
             currentSnapshot = snapshot;
             settledSettingsRevision = Math.Max(settledSettingsRevision, snapshot.SettingsRevision);
-            Debug.Log($"[Lobby] Joined code={snapshot.Code} host={isHost} members={(snapshot.OpponentPresent ? 2 : 1)} revision={snapshot.SettingsRevision} seed={snapshot.Settings.Map.Seed} playerobjects=0 mapgenerated=false");
+            Debug.Log($"[Lobby] Joined code={snapshot.Code} host={IsHost} " +
+                $"members={(snapshot.OpponentPresent ? 2 : 1)} revision={snapshot.SettingsRevision} " +
+                $"seed={snapshot.Settings.Seed} playerobjects=0 mapgenerated=false");
         }
         catch (Exception exception)
         {
@@ -301,11 +293,11 @@ public sealed class LobbyNetwork : MonoBehaviour
         {
             if (reader.Length - reader.Position > BufferSize) throw new InvalidOperationException(InvalidRequest);
             reader.ReadValueSafe(out revision);
-            reader.ReadNetworkSerializable(out NetworkLobbySettings settings);
+            reader.ReadNetworkSerializable(out NetworkMapSettings mapSettings);
             if (reader.Position != reader.Length) throw new InvalidOperationException(InvalidRequest);
             if (revision == 0 || revision <= serverSettingsRevision)
                 reason = "The settings update is out of date.";
-            else if (session.TryUpdateSettings(senderId, settings.ToSettings(), out reason))
+            else if (session.TryUpdateSettings(senderId, new DuelSettings { Map = mapSettings.ToSettings() }, out reason))
             {
                 serverSettingsRevision = revision;
                 BroadcastSnapshot();
@@ -365,25 +357,33 @@ public sealed class LobbyNetwork : MonoBehaviour
 
     void CloseServerRoom(ulong departingClient)
     {
-        NetworkLobbySnapshot snapshot = session.Snapshot;
+        string code = session.RoomCode;
         session.Disconnect(departingClient);
-        serverSettingsRevision = 0;
-        reservations.Clear();
-        closing = true;
-        restartServer = true;
+        PrepareServerShutdown(true);
         // 종료 중 콜백의 IsServer 값이 바뀌어도 클라이언트 이벤트로 오인하지 않는다.
         foreach (ulong clientId in new List<ulong>(manager.ConnectedClientsIds))
             if (clientId != departingClient) manager.DisconnectClient(clientId, RoomClosed);
-        Debug.Log($"[Lobby] Closed code={snapshot.Code} departing={departingClient} reason={RoomClosed} playerobjects=0");
-        UnregisterMessages();
+        Debug.Log($"[Lobby] Closed code={code} departing={departingClient} reason={RoomClosed} playerobjects=0");
         manager.Shutdown();
+    }
+
+    void PrepareServerShutdown(bool shouldRestart)
+    {
+        serverSettingsRevision = 0;
+        reservations.Clear();
+        closing = true;
+        restartServer = shouldRestart;
+        UnregisterMessages();
     }
 
     void ExpireReservations()
     {
+        float now = Time.realtimeSinceStartup;
         expiredReservations.Clear();
         foreach (var reservation in reservations)
-            if (Time.realtimeSinceStartup >= reservation.Value) expiredReservations.Add(reservation.Key);
+        {
+            if (now >= reservation.Value) expiredReservations.Add(reservation.Key);
+        }
         foreach (ulong clientId in expiredReservations)
         {
             reservations.Remove(clientId);
@@ -397,8 +397,7 @@ public sealed class LobbyNetwork : MonoBehaviour
     {
         if (closing) return;
         notifyClosed = inLobby;
-        closeReason = explicitlyCancelled ? string.Empty : reason;
-        failureReason = explicitlyCancelled || inLobby ? null : reason;
+        disconnectReason = explicitlyCancelled ? string.Empty : reason;
         connecting = false;
         inLobby = false;
         closing = true;
@@ -413,11 +412,7 @@ public sealed class LobbyNetwork : MonoBehaviour
         if (serverMode)
         {
             if (session.HasRoom) session.Disconnect(session.HostClientId);
-            serverSettingsRevision = 0;
-            reservations.Clear();
-            UnregisterMessages();
-            closing = true;
-            restartServer = manager.IsListening;
+            PrepareServerShutdown(manager.IsListening);
             Debug.LogError($"[Lobby] Server transport failed; restart={restartServer}.");
         }
         else if (connecting || inLobby) StopClient(ConnectionFailed, false);

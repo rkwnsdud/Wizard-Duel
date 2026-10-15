@@ -35,7 +35,7 @@ public class NetworkLobbySnapshotTests
             OpponentPresent = true,
             GuestClientId = 29,
             SettingsRevision = 37,
-            Settings = new NetworkLobbySettings(settings)
+            Settings = new NetworkMapSettings(settings.Map)
         };
 
         using var writer = new FastBufferWriter(256, Allocator.Temp);
@@ -48,7 +48,7 @@ public class NetworkLobbySnapshotTests
         Assert.That(received.OpponentPresent, Is.EqualTo(snapshot.OpponentPresent));
         Assert.That(received.GuestClientId, Is.EqualTo(snapshot.GuestClientId));
         Assert.That(received.SettingsRevision, Is.EqualTo(37u));
-        DuelSettings restored = received.Settings.ToSettings();
+        DuelSettings restored = new DuelSettings { Map = received.Settings.ToSettings() };
         Assert.That(restored.Map.Seed, Is.EqualTo(seed));
         Assert.That(restored.Map.Size, Is.EqualTo(settings.Map.Size));
         Assert.That(restored.Map.Shape, Is.EqualTo(settings.Map.Shape));
@@ -73,19 +73,19 @@ public class NetworkLobbySnapshotTests
         DuelSettings requested = Settings(seed);
         Assert.That(session.TryCreate(1, requested, out _), Is.True);
         requested.Map.Seed = seed + 1;
-        Assert.That(session.Snapshot.Settings.ToSettings().Map.Seed, Is.EqualTo(seed));
+        Assert.That(session.Snapshot.Settings.ToSettings().Seed, Is.EqualTo(seed));
 
-        DuelSettings returned = session.Snapshot.Settings.ToSettings();
+        DuelSettings returned = new DuelSettings { Map = session.Snapshot.Settings.ToSettings() };
         returned.Map.Seed = 900;
         returned.Map.Shape = MapShape.Donut;
-        Assert.That(session.Snapshot.Settings.ToSettings().Map.Seed, Is.EqualTo(seed));
-        Assert.That(session.Snapshot.Settings.ToSettings().Map.Shape, Is.EqualTo(MapShape.Random));
+        Assert.That(session.Snapshot.Settings.ToSettings().Seed, Is.EqualTo(seed));
+        Assert.That(session.Snapshot.Settings.ToSettings().Shape, Is.EqualTo(MapShape.Random));
 
         NetworkLobbySnapshot snapshot = session.Snapshot;
-        snapshot.Settings.Map.Seed = 902;
-        DuelSettings snapshotSettings = snapshot.Settings.ToSettings();
+        snapshot.Settings.Seed = 902;
+        DuelSettings snapshotSettings = new DuelSettings { Map = snapshot.Settings.ToSettings() };
         snapshotSettings.Map.Seed = 901;
-        Assert.That(session.Snapshot.Settings.ToSettings().Map.Seed, Is.EqualTo(seed));
+        Assert.That(session.Snapshot.Settings.ToSettings().Seed, Is.EqualTo(seed));
         Assert.That(session.Confirm(1), Is.True);
         foreach (int updatedSeed in new[] { seed + 2, seed })
         {
@@ -93,11 +93,11 @@ public class NetworkLobbySnapshotTests
             changed.Map.Shape = MapShape.Donut;
             Assert.That(session.TryUpdateSettings(1, changed, out _), Is.True);
             changed.Map.Seed = 903;
-            Assert.That(session.Snapshot.Settings.ToSettings().Map.Seed, Is.EqualTo(updatedSeed));
+            Assert.That(session.Snapshot.Settings.ToSettings().Seed, Is.EqualTo(updatedSeed));
         }
         Assert.That(session.TryJoin(2, session.RoomCode, out _), Is.True);
         Assert.That(session.Confirm(2), Is.True);
-        Assert.That(session.Snapshot.Settings.ToSettings().Map.Seed, Is.EqualTo(seed));
+        Assert.That(session.Snapshot.Settings.ToSettings().Seed, Is.EqualTo(seed));
     }
 
     [Test]
@@ -126,7 +126,7 @@ public class NetworkLobbySnapshotTests
 
         NetworkLobbySnapshot lateJoinSnapshot = session.Snapshot;
         Assert.That(lateJoinSnapshot.OpponentPresent, Is.True);
-        AssertSettingsEqual(latest, lateJoinSnapshot.Settings.ToSettings());
+        AssertSettingsEqual(latest, new DuelSettings { Map = lateJoinSnapshot.Settings.ToSettings() });
     }
 
     [TestCase(false)]
@@ -139,8 +139,8 @@ public class NetworkLobbySnapshotTests
         Assert.That(session.TryCreate(1, requested, out _), Is.True);
 
         NetworkLobbySnapshot serverSnapshot = session.Snapshot;
-        DuelSettings clonedSettings = serverSnapshot.Settings.ToSettings();
-        MapLayout serverLayout = MapLayoutGenerator.Generate(serverSnapshot.Settings.ToSettings().ToMapSettings());
+        DuelSettings clonedSettings = new DuelSettings { Map = serverSnapshot.Settings.ToSettings() };
+        MapLayout serverLayout = MapLayoutGenerator.Generate(serverSnapshot.Settings.ToSettings());
         MapLayout cloneLayout = MapLayoutGenerator.Generate(clonedSettings.ToMapSettings());
 
         Assert.That(cloneLayout.ToLayout(), Is.EqualTo(serverLayout.ToLayout()));

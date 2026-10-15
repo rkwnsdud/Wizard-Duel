@@ -76,12 +76,12 @@ public class MainFlow : MonoBehaviour
         network.Cancel();
         if (restoreTitle) backdrop.ShowTitle(settings, true);
     }
-    void Leave() => network.Leave();
+    void Leave() => network.Cancel();
 
     void OnSnapshot(NetworkLobbySnapshot snapshot)
     {
         latest = snapshot;
-        settings = snapshot.Settings.ToSettings();
+        settings = new DuelSettings { Map = snapshot.Settings.ToSettings() };
         wantsLobby = true;
         exitNotice = null;
         startScreen.FinishConnection();

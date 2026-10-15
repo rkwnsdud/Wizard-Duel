@@ -283,10 +283,7 @@ public class LobbyInputTests
         {
             Code = "123456",
             HostClientId = 0,
-            Settings = new NetworkLobbySettings(new DuelSettings
-            {
-                Map = new MapGenerationSettings { Seed = 7301 }
-            })
+            Settings = new NetworkMapSettings(new MapGenerationSettings { Seed = 7301 })
         };
         // 서버 이벤트를 흉내 내되, 실제 MainFlow의 화면 전환 코루틴을 끝까지 실행한다.
         InvokeFlow("OnSnapshot", snapshot);
@@ -317,7 +314,7 @@ public class LobbyInputTests
         {
             reader.ReadNetworkSerializable(out LobbyJoinRequest request);
             Assert.That(request.CreateRoom, Is.True);
-            AssertMapEqual(expected.Map, request.Settings.ToSettings().Map);
+            AssertMapEqual(expected.Map, request.Settings.ToSettings());
         }
         Assert.That(Field<DuelSettings>(flow, "settings").Map, Is.Not.SameAs(current));
         current.Seed++;
@@ -336,7 +333,7 @@ public class LobbyInputTests
             Assert.That(Vector3.Distance(blocks[b].Transform.localPosition, homes[b]), Is.LessThan(0.001f));
 
         NetworkLobbySnapshot approved = Snapshot(0, expected.Map.Seed);
-        approved.Settings = new NetworkLobbySettings(expected);
+        approved.Settings = new NetworkMapSettings(expected.Map);
         InvokeFlow("OnSnapshot", approved);
         Assert.That(Field<bool>(backdrop, "preview"), Is.True);
         Assert.That(Field<MapGenerationSettings>(Field<LobbyStage>(flow, "stage"), "revealMap"), Is.Null);
@@ -402,10 +399,7 @@ public class LobbyInputTests
     NetworkLobbySnapshot Snapshot(uint revision, int seed) => new NetworkLobbySnapshot
     {
         Code = "123456", HostClientId = manager.LocalClientId, SettingsRevision = revision,
-        Settings = new NetworkLobbySettings(new DuelSettings
-        {
-            Map = new MapGenerationSettings { Seed = seed, ObstacleDensity = 0.3f }
-        })
+        Settings = new NetworkMapSettings(new MapGenerationSettings { Seed = seed, ObstacleDensity = 0.3f })
     };
 
     static void AssertMapEqual(MapGenerationSettings expected, MapGenerationSettings actual)

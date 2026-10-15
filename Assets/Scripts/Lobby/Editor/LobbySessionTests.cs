@@ -155,25 +155,25 @@ public class LobbySessionTests
     {
         var unconfirmedSession = CreateSession();
         Assert.That(unconfirmedSession.TryCreate(9, Settings(), out _), Is.True);
-        DuelSettings beforeUnconfirmedUpdate = unconfirmedSession.Snapshot.Settings.ToSettings();
+        DuelSettings beforeUnconfirmedUpdate = new DuelSettings { Map = unconfirmedSession.Snapshot.Settings.ToSettings() };
         foreach (ulong sender in new ulong[] { 9, 10 })
         {
             Assert.That(unconfirmedSession.TryUpdateSettings(sender, null, out string reason), Is.False);
             Assert.That(reason, Is.EqualTo("Only the connected host can change room settings."));
-            AssertSettingsEqual(beforeUnconfirmedUpdate, unconfirmedSession.Snapshot.Settings.ToSettings());
+            AssertSettingsEqual(beforeUnconfirmedUpdate, new DuelSettings { Map = unconfirmedSession.Snapshot.Settings.ToSettings() });
         }
 
         var session = CreateSession();
         CreateAndConfirmHost(session);
         Assert.That(session.TryJoin(2, session.RoomCode, out _), Is.True);
         Assert.That(session.Confirm(2), Is.True);
-        DuelSettings beforeGuestUpdate = session.Snapshot.Settings.ToSettings();
+        DuelSettings beforeGuestUpdate = new DuelSettings { Map = session.Snapshot.Settings.ToSettings() };
 
         Assert.That(session.TryUpdateSettings(2, new DuelSettings { Map = null }, out string guestReason), Is.False);
         Assert.That(guestReason, Is.EqualTo("Only the connected host can change room settings."));
-        AssertSettingsEqual(beforeGuestUpdate, session.Snapshot.Settings.ToSettings());
+        AssertSettingsEqual(beforeGuestUpdate, new DuelSettings { Map = session.Snapshot.Settings.ToSettings() });
 
-        DuelSettings beforeInvalidUpdates = session.Snapshot.Settings.ToSettings();
+        DuelSettings beforeInvalidUpdates = new DuelSettings { Map = session.Snapshot.Settings.ToSettings() };
         var invalidSettings = new[]
         {
             new DuelSettings { Map = new MapGenerationSettings { ObstacleDensity = 0.36f } },
@@ -183,7 +183,7 @@ public class LobbySessionTests
         {
             Assert.That(session.TryUpdateSettings(1, invalid, out string reason), Is.False);
             Assert.That(reason, Is.EqualTo("Room settings are invalid."));
-            AssertSettingsEqual(beforeInvalidUpdates, session.Snapshot.Settings.ToSettings());
+            AssertSettingsEqual(beforeInvalidUpdates, new DuelSettings { Map = session.Snapshot.Settings.ToSettings() });
         }
     }
 

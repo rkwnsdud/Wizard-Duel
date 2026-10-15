@@ -10,7 +10,7 @@ public sealed class LobbySession
     bool hostConfirmed;
     bool guestConfirmed;
     int lastInvalidatedCode = -1;
-    NetworkLobbySettings settings;
+    NetworkMapSettings settings;
 
     public LobbySession(Func<int> codeGenerator = null)
     {
@@ -45,10 +45,10 @@ public sealed class LobbySession
         if (HasRoom) return false;
         if (!DuelSettings.ValidateSettings(requested, out reason)) return false;
 
-        settings = new NetworkLobbySettings(requested);
+        settings = new NetworkMapSettings(requested.Map);
         int code = (int)((uint)codeGenerator() % 1000000);
         // 방 코드와 시드는 별개이며, 방금 닫힌 코드도 바로 다시 쓰지 않는다.
-        while (code == lastInvalidatedCode || code == settings.Map.Seed)
+        while (code == lastInvalidatedCode || code == settings.Seed)
             code = (code + 1) % 1000000;
         RoomCode = code.ToString("D6", CultureInfo.InvariantCulture);
         hostOwner = clientId;
@@ -115,7 +115,7 @@ public sealed class LobbySession
         if (!hostConfirmed || hostOwner != sender) return false;
         if (!DuelSettings.ValidateSettings(requested, out reason)) return false;
 
-        settings = new NetworkLobbySettings(requested);
+        settings = new NetworkMapSettings(requested.Map);
         reason = string.Empty;
         return true;
     }

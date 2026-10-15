@@ -9,14 +9,14 @@ public struct LobbyJoinRequest : INetworkSerializable
     public int Version;
     public bool CreateRoom;
     public string Code;
-    public NetworkLobbySettings Settings;
+    public NetworkMapSettings Settings;
 
     public LobbyJoinRequest(bool createRoom, string code, DuelSettings settings)
     {
         Version = CurrentVersion;
         CreateRoom = createRoom;
         Code = code ?? string.Empty;
-        Settings = settings == null ? default : new NetworkLobbySettings(settings);
+        Settings = settings == null ? default : new NetworkMapSettings(settings.Map);
     }
 
     public void NetworkSerialize<T>(BufferSerializer<T> serializer) where T : IReaderWriter
