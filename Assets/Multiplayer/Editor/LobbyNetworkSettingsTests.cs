@@ -42,8 +42,8 @@ public class LobbyNetworkSettingsTests
         SendSnapshot(Snapshot(2, 222, MapShape.Circle));
         Assert.That(network.HasPendingSettings, Is.False);
         Assert.That(pendingAtSnapshot, Is.EqualTo(new[] { true, false }));
-        Assert.That(received[1].Settings.ToSettings().Map.Seed, Is.EqualTo(222));
-        Assert.That(received[1].Settings.ToSettings().Map.Shape, Is.EqualTo(MapShape.Circle));
+        Assert.That(received[1].Settings.ToSettings().Seed, Is.EqualTo(222));
+        Assert.That(received[1].Settings.ToSettings().Shape, Is.EqualTo(MapShape.Circle));
     }
 
     [Test]
@@ -58,12 +58,12 @@ public class LobbyNetworkSettingsTests
         SendSnapshot(Snapshot(1, 111, MapShape.Donut));
 
         Assert.That(received.Count, Is.EqualTo(1));
-        Assert.That(received[0].Settings.ToSettings().Map.Seed, Is.EqualTo(222));
-        Assert.That(received[0].Settings.ToSettings().Map.Shape, Is.EqualTo(MapShape.Circle));
+        Assert.That(received[0].Settings.ToSettings().Seed, Is.EqualTo(222));
+        Assert.That(received[0].Settings.ToSettings().Shape, Is.EqualTo(MapShape.Circle));
         NetworkLobbySnapshot current = (NetworkLobbySnapshot)typeof(LobbyNetwork)
             .GetField("currentSnapshot", PrivateInstance).GetValue(network);
         Assert.That(current.SettingsRevision, Is.EqualTo(2));
-        Assert.That(current.Settings.ToSettings().Map.Seed, Is.EqualTo(222));
+        Assert.That(current.Settings.ToSettings().Seed, Is.EqualTo(222));
     }
 
     [Test]
@@ -151,10 +151,7 @@ public class LobbyNetworkSettingsTests
         OpponentPresent = false,
         GuestClientId = 0,
         SettingsRevision = revision,
-        Settings = new NetworkLobbySettings(new DuelSettings
-        {
-            Map = new MapGenerationSettings { Seed = seed, Shape = shape }
-        })
+        Settings = new NetworkMapSettings(new MapGenerationSettings { Seed = seed, Shape = shape })
     };
 
     void SendSnapshot(NetworkLobbySnapshot snapshot)

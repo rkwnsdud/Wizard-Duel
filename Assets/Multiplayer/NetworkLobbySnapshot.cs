@@ -9,7 +9,15 @@ public struct NetworkLobbySnapshot : INetworkSerializable
     public bool OpponentPresent;
     public ulong GuestClientId;
     public uint SettingsRevision;
-    public NetworkLobbySettings Settings;
+    public NetworkMapSettings Settings;
+
+    public bool IsValidFor(ulong clientId)
+    {
+        bool isMember = HostClientId == clientId || (OpponentPresent && GuestClientId == clientId);
+        if (!isMember || (OpponentPresent && GuestClientId == HostClientId)) return false;
+        if (!LobbySession.IsValidCode(Code)) return false;
+        return DuelSettings.ValidateSettings(new DuelSettings { Map = Settings.ToSettings() }, out _);
+    }
 
     public void NetworkSerialize<T>(BufferSerializer<T> serializer) where T : IReaderWriter
     {
