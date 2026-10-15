@@ -94,6 +94,13 @@ public class TitleBackdrop : MonoBehaviour
         StartCoroutine(Cycle(keepMap));
     }
 
+    // 접속을 기다리는 동안 시작 화면 카메라를 유지하고 현재 맵의 순환만 멈춘다.
+    public void HoldTitle()
+    {
+        StopAllCoroutines();
+        StartCoroutine(Settle());
+    }
+
     // 순환을 멈추고 지금 맵을 그대로 대기실 미리보기로 쓴다. 카메라만 대기실 자리로 옮긴다.
     public void HoldPreview()
     {
@@ -122,6 +129,13 @@ public class TitleBackdrop : MonoBehaviour
         }
 
         StartCoroutine(Wave(true));
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        MapLayout layout = map.GeneratedLayout;
+        uint signature = 2166136261;
+        foreach (string row in layout.ToLayout())
+            foreach (char cell in row) signature = unchecked((signature ^ cell) * 16777619);
+        Debug.Log($"[LobbyPreview] seed={settings.Seed} shape={layout.Shape} size={layout.Size} spawnA={layout.SpawnA} spawnB={layout.SpawnB} hash={signature:X8}");
+#endif
         return true;
     }
 
@@ -157,10 +171,10 @@ public class TitleBackdrop : MonoBehaviour
         }
     }
 
-    // 시작 화면 맵 설정. 시드는 시드 고정과 상관없이 늘 새로 뽑고, 형태가 랜덤이면 멀리서도 잘 보이는 형태 중 하나를 쓴다.
+    // 시작 화면 맵 설정. 시드는 늘 새로 뽑고, 형태가 랜덤이면 멀리서도 잘 보이는 형태 중 하나를 쓴다.
     MapGenerationSettings TitleMap(MapShape shape)
     {
-        MapGenerationSettings settings = titleSettings.ToMapSettings(0);
+        MapGenerationSettings settings = titleSettings.ToMapSettings();
         settings.Seed = Random.Range(1, int.MaxValue);
         if (settings.Shape == MapShape.Random) settings.Shape = shape;
         return settings;

@@ -25,6 +25,7 @@ public class StartScreen : MonoBehaviour
     [SerializeField] TMP_Text noticeText;
 
     bool connecting;
+    bool creating;
 
     // 대기실에서 돌아오면 메뉴를 처음 상태로 되돌린다.
     void OnEnable()
@@ -49,6 +50,7 @@ public class StartScreen : MonoBehaviour
 
     public void OpenJoin()
     {
+        if (creating) return;
         if (!connecting) joinMessage.text = JoinHint;
         joinBox.SetActive(true);
         codeField.ActivateInputField();
@@ -78,6 +80,7 @@ public class StartScreen : MonoBehaviour
 
     public void ShowJoinError(string reason)
     {
+        creating = false;
         SetConnecting(false);
         joinBox.SetActive(true);
         joinMessage.text = $"<color=#FF9D9D>{reason}</color>";
@@ -87,7 +90,15 @@ public class StartScreen : MonoBehaviour
     public void CancelJoin()
     {
         if (!connecting) return;
+        bool wasCreating = creating;
+        creating = false;
         SetConnecting(false);
+        if (wasCreating)
+        {
+            notice.SetActive(false);
+            JoinCanceled?.Invoke();
+            return;
+        }
         joinMessage.text = JoinHint;
         codeField.ActivateInputField();
         JoinCanceled?.Invoke();
@@ -98,6 +109,26 @@ public class StartScreen : MonoBehaviour
     {
         noticeText.text = reason;
         notice.SetActive(true);
+    }
+
+    public void BeginCreate()
+    {
+        creating = true;
+        SetConnecting(true);
+        ShowNotice("대기실을 여는 중이에요. Esc로 취소할 수 있어요.");
+    }
+
+    public void FinishConnection()
+    {
+        creating = false;
+        SetConnecting(false);
+        notice.SetActive(false);
+    }
+
+    public void ShowCreateError(string reason)
+    {
+        FinishConnection();
+        ShowNotice(reason);
     }
 
     public void Quit()

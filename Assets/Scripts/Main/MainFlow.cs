@@ -1,9 +1,7 @@
 using System.Collections;
 using UnityEngine;
 
-// Main 씬에서 어느 화면을 보여 줄지 정한다. 지금은 시작 화면과 대기실만 오간다.
-// 네트워크가 붙기 전이라 대기실은 내 화면에서만 열리고, 맵 코드도 여기서 임시로 만든다.
-// 두 화면 사이에서는 배경 맵을 그대로 두고 카메라만 옆으로 옮기며, 앞 화면이 내려가 사라진 뒤 다음 화면이 올라온다.
+// 서버의 대기실 상태를 화면에 반영한다. 전환 중에 받은 최신 상태도 전환이 끝난 뒤 적용한다.
 public class MainFlow : MonoBehaviour
 {
     [SerializeField] StartScreen startScreen;
@@ -13,108 +11,185 @@ public class MainFlow : MonoBehaviour
     [SerializeField] LobbyStage stage;
     [SerializeField] TitleBackdrop backdrop;
     [SerializeField] Toast toast;
+    [SerializeField] LobbyNetwork network;
 
-    // 대기실을 나갔다가 다시 열어도 마지막으로 정한 설정을 이어서 쓴다.
     DuelSettings settings = new DuelSettings();
-    // 화면이 넘어가는 동안에는 새 요청을 받지 않는다. 버튼은 CanvasGroup이 막지만 Esc는 화면이 직접 받는다.
+    NetworkLobbySnapshot latest;
     Coroutine transition;
+    bool wantsLobby;
+    bool lobbyVisible;
+    bool creating;
+    string exitNotice;
 
     void OnEnable()
     {
-        startScreen.CreateRequested += OpenAsHost;
+        startScreen.CreateRequested += Create;
+        startScreen.JoinRequested += Join;
+        startScreen.JoinCanceled += Cancel;
         lobby.SettingsChanged += OnSettingsChanged;
         lobby.LeaveRequested += Leave;
         stage.PreviewFailed += OnPreviewFailed;
+        network.SnapshotChanged += OnSnapshot;
+        network.Failed += OnConnectionFailed;
+        network.Closed += OnClosed;
+        network.SettingsRejected += OnSettingsRejected;
     }
 
     void OnDisable()
     {
-        startScreen.CreateRequested -= OpenAsHost;
+        startScreen.CreateRequested -= Create;
+        startScreen.JoinRequested -= Join;
+        startScreen.JoinCanceled -= Cancel;
         lobby.SettingsChanged -= OnSettingsChanged;
         lobby.LeaveRequested -= Leave;
         stage.PreviewFailed -= OnPreviewFailed;
+        network.SnapshotChanged -= OnSnapshot;
+        network.Failed -= OnConnectionFailed;
+        network.Closed -= OnClosed;
+        network.SettingsRejected -= OnSettingsRejected;
     }
 
-    void OpenAsHost() => OpenLobby(true, Random.Range(0, 1000000).ToString("D" + StartScreen.CodeLength), false);
-
-    void OpenLobby(bool isHost, string code, bool opponentPresent)
+    void Create()
     {
-        if (transition == null) transition = StartCoroutine(EnterLobby(isHost, code, opponentPresent));
+        if (transition != null || network.IsBusy) return;
+        creating = true;
+        settings = new DuelSettings { Map = backdrop.Current }.Clone();
+        backdrop.HoldTitle();
+        startScreen.BeginCreate();
+        network.Create(settings);
     }
 
-    IEnumerator EnterLobby(bool isHost, string code, bool opponentPresent)
+    void Join(string code)
     {
-        stage.gameObject.SetActive(true);
-        stage.Show(settings, opponentPresent);
-        yield return startTransition.Hide();
-        lobby.gameObject.SetActive(true);
-        lobby.Open(isHost, code, settings, opponentPresent);
-        stage.Reveal();
-        yield return lobbyTransition.Show();
+        if (transition != null || network.IsBusy)
+        {
+            startScreen.ShowJoinError("연결을 정리하고 있어요. 잠시 후 다시 시도해 주세요.");
+            return;
+        }
+        creating = false;
+        network.Join(code);
+    }
+
+    void Cancel()
+    {
+        bool restoreTitle = creating && !wantsLobby;
+        network.Cancel();
+        if (restoreTitle) backdrop.ShowTitle(settings, true);
+    }
+    void Leave() => network.Leave();
+
+    void OnSnapshot(NetworkLobbySnapshot snapshot)
+    {
+        latest = snapshot;
+        settings = snapshot.Settings.ToSettings();
+        wantsLobby = true;
+        exitNotice = null;
+        startScreen.FinishConnection();
+        if (transition == null)
+        {
+            if (lobbyVisible) ApplySnapshot();
+            else transition = StartCoroutine(ReconcileScreens());
+        }
+    }
+
+    void ApplySnapshot()
+    {
+        lobby.SetOpponentPresent(latest.OpponentPresent);
+        // 이전 요청의 응답이 더 최신인 방장 입력을 되돌리지 않게 한다.
+        if (!network.IsHost || !network.HasPendingSettings) lobby.ApplySettings(settings);
+        stage.SetOpponentPresent(latest.OpponentPresent);
+        stage.Preview(settings);
+    }
+
+    void OnConnectionFailed(string reason)
+    {
+        reason = ConnectionNotice(reason);
+        if (creating)
+        {
+            backdrop.ShowTitle(settings, true);
+            startScreen.ShowCreateError(reason);
+        }
+        else startScreen.ShowJoinError(reason);
+    }
+
+    void OnClosed(string reason)
+    {
+        wantsLobby = false;
+        exitNotice = string.IsNullOrEmpty(reason) ? reason : ConnectionNotice(reason);
+        startScreen.FinishConnection();
+        if (transition == null && lobbyVisible) transition = StartCoroutine(ReconcileScreens());
+    }
+
+    IEnumerator ReconcileScreens()
+    {
+        while (wantsLobby != lobbyVisible)
+        {
+            if (wantsLobby)
+            {
+                stage.gameObject.SetActive(true);
+                stage.Show(settings, latest.OpponentPresent);
+                yield return startTransition.Hide();
+                // 승인 직후 취소·이탈했다면 감춘 시작 화면으로 바로 돌아간다.
+                if (wantsLobby)
+                {
+                    lobby.gameObject.SetActive(true);
+                    lobby.Open(network.IsHost, latest.Code, settings, latest.OpponentPresent);
+                    stage.Reveal();
+                    yield return lobbyTransition.Show();
+                    lobbyVisible = true;
+                    if (wantsLobby) ApplySnapshot();
+                }
+                else
+                {
+                    stage.Hide();
+                    stage.gameObject.SetActive(false);
+                    backdrop.ShowTitle(settings, true);
+                    yield return startTransition.Show();
+                    if (!string.IsNullOrEmpty(exitNotice)) startScreen.ShowNotice(exitNotice);
+                }
+            }
+            else
+            {
+                stage.Hide();
+                backdrop.ShowTitle(settings, true);
+                yield return lobbyTransition.Hide();
+                stage.gameObject.SetActive(false);
+                yield return startTransition.Show();
+                lobbyVisible = false;
+                if (!string.IsNullOrEmpty(exitNotice)) startScreen.ShowNotice(exitNotice);
+                else toast.Show("대기실에서 나왔어요");
+            }
+        }
         transition = null;
     }
 
-    // notice가 있으면 시작 화면 메뉴 위에 돌아온 사유를 띄운다.
-    IEnumerator ExitLobby(string notice)
-    {
-        stage.Hide();
-        backdrop.ShowTitle(settings, true);
-        yield return lobbyTransition.Hide();
-        stage.gameObject.SetActive(false);
-        startScreen.gameObject.SetActive(true);
-        if (notice != null) startScreen.ShowNotice(notice);
-        yield return startTransition.Show();
-        transition = null;
-    }
-
-    void Leave()
-    {
-        if (transition != null) return;
-        transition = StartCoroutine(ExitLobby(null));
-        toast.Show("대기실에서 나왔어요");
-    }
-
+    // 미리보기는 서버가 확정한 스냅샷으로만 바꾼다.
     void OnSettingsChanged(DuelSettings changed)
     {
-        settings = changed.Clone();
-        stage.Preview(settings);
+        network.UpdateSettings(changed);
+    }
+
+    void OnSettingsRejected(string reason)
+    {
+        if (!network.IsInLobby) return;
+        if (lobbyVisible && transition == null) ApplySnapshot();
+        toast.Show(reason switch
+        {
+            "Only the connected host can change room settings." => "방장만 대기실 설정을 바꿀 수 있어요.",
+            "Room settings are invalid." => "맵 설정이 올바르지 않아 변경하지 않았어요.",
+            _ => "맵 설정을 적용할 수 없어요. 다시 시도해 주세요."
+        });
     }
 
     void OnPreviewFailed() => toast.Show("이 설정으로는 맵을 만들 수 없어요");
 
-#if UNITY_EDITOR
-    // 네트워크가 붙기 전까지 참가자 화면과 상대 쪽 변화를 에디터에서 흉내 낸다.
-    // 플레이 중에 이 컴포넌트의 메뉴(⋮)에서 고른다.
-    [ContextMenu("참가자로 대기실 열기")]
-    void DebugOpenAsGuest()
+    static string ConnectionNotice(string reason) => reason switch
     {
-        if (Application.isPlaying && !lobby.gameObject.activeSelf) OpenLobby(false, "123456", true);
-    }
-
-    [ContextMenu("상대 들어오기")]
-    void DebugOpponentJoin()
-    {
-        if (!Application.isPlaying || transition != null || !lobby.gameObject.activeSelf) return;
-        lobby.SetOpponentPresent(true);
-        stage.SetOpponentPresent(true);
-        toast.Show("상대가 맵 코드로 들어왔어요");
-    }
-
-    [ContextMenu("방장이 설정 바꾸기")]
-    void DebugHostChange()
-    {
-        if (!Application.isPlaying || transition != null || !lobby.gameObject.activeSelf) return;
-        settings.Map.Shape = settings.Map.Shape == MapShape.Donut ? MapShape.Random : settings.Map.Shape + 1;
-        lobby.ApplySettings(settings);
-        stage.Preview(settings);
-        toast.Show("방장이 맵 형태를 바꿨어요");
-    }
-
-    [ContextMenu("상대 이탈")]
-    void DebugOpponentLeave()
-    {
-        if (!Application.isPlaying || transition != null || !lobby.gameObject.activeSelf) return;
-        transition = StartCoroutine(ExitLobby("상대가 나가서 대기실이 닫혔어요."));
-    }
-#endif
+        "The room code is invalid." => "유효하지 않은 맵 코드예요. 코드를 다시 확인해 주세요.",
+        "This room already has two players." => "이미 두 명이 참가한 대기실이에요.",
+        "A room already exists." => "서버에 이미 대기실이 있어요. 맵 코드로 참가해 주세요.",
+        "Enter a six-digit room code." => "숫자 6자리 맵 코드를 입력해 주세요.",
+        "A player left, so the room was closed." => "상대가 나가서 대기실이 닫혔어요.",
+        _ => "서버 연결이 끊겼거나 접속할 수 없어요. 잠시 후 다시 시도해 주세요."
+    };
 }

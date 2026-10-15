@@ -11,15 +11,22 @@ using Debug = UnityEngine.Debug;
 // Tools > Wizard Duel > Network Test: 테스트 빌드를 만들고 전용 서버와 클라이언트를 띄우거나 강제 종료한다.
 public class NetworkTestWindow : EditorWindow
 {
-    const string ScenePath = "Assets/Scenes/NetworkDemo.unity";
-    const string ExePath = "Build/NetworkTest/WizardDuel.exe";
-    const string LogDir = "Logs/NetworkTest";
+    const string NetworkDemoScenePath = "Assets/Scenes/NetworkDemo.unity";
+    const string NetworkDemoExePath = "Build/NetworkTest/WizardDuel.exe";
+    const string NetworkDemoLogDir = "Logs/NetworkTest";
+    const string MainScenePath = "Assets/Scenes/Main.unity";
+    const string MainExePath = "Build/LobbyTest/WizardDuel.exe";
+    const string MainLogDir = "Logs/LobbyTest";
     const string ServerArgs = "-batchmode -nographics -server";
     const string ClientArgs = "-join 127.0.0.1 -screen-fullscreen 0 -screen-width 1280 -screen-height 720";
     const string RunningKey = "NetworkTestWindow.Running";
+    const string ModeKey = "NetworkTestWindow.Mode";
+
+    enum TestMode { Main, NetworkDemo }
 
     // 플레이 모드 진입(도메인 리로드)으로 비워지면 SessionState에 남긴 "이름:PID"로 다시 찾는다.
     static List<(string name, Process process)> running;
+    TestMode mode;
     bool outdated;
 
     [MenuItem("Tools/Wizard Duel/Network Test")]
@@ -28,7 +35,11 @@ public class NetworkTestWindow : EditorWindow
     [InitializeOnLoadMethod]
     static void CloseOnQuit() => EditorApplication.quitting += () => Running().ForEach(entry => Kill(entry.process));
 
-    void OnEnable() => OnFocus();
+    void OnEnable()
+    {
+        mode = (TestMode)SessionState.GetInt(ModeKey, (int)TestMode.Main);
+        OnFocus();
+    }
 
     // 빌드 뒤에 바뀐 에셋이 있으면 다시 빌드하라고 표시한다.
     void OnFocus() => outdated = File.Exists(ExePath) && Directory.EnumerateFiles("Assets", "*", SearchOption.AllDirectories)
@@ -51,21 +62,31 @@ public class NetworkTestWindow : EditorWindow
 
     void OnGUI()
     {
+        GUI.enabled = Running().Count == 0;
+        TestMode selectedMode = (TestMode)EditorGUILayout.EnumPopup("Mode", mode);
+        if (selectedMode != mode)
+        {
+            mode = selectedMode;
+            SessionState.SetInt(ModeKey, (int)mode);
+            OnFocus();
+        }
+        selectedMode = mode;
+
         bool built = File.Exists(ExePath);
         bool serverRunning = Running().Exists(entry => entry.name == "server");
         GUILayout.Label(!built ? "No test build yet." : $"Build {File.GetLastWriteTime(ExePath):MM-dd HH:mm}" + (outdated ? " (assets changed since)" : ""));
 
         // 실행 중에는 exe가 잠겨 있어 다시 빌드할 수 없다.
         GUI.enabled = Running().Count == 0 && !EditorApplication.isPlayingOrWillChangePlaymode;
-        if (GUILayout.Button("Build")) EditorApplication.delayCall += Build;
+        if (GUILayout.Button("Build")) EditorApplication.delayCall += () => Build(selectedMode);
 
         GUILayout.BeginHorizontal();
         GUI.enabled = built && !serverRunning;
-        if (GUILayout.Button("Server")) EditorApplication.delayCall += () => Launch("server", ServerArgs);
+        if (GUILayout.Button("Server")) EditorApplication.delayCall += () => Launch(selectedMode, "server", ServerArgs);
         GUI.enabled = built;
-        if (GUILayout.Button("Client")) EditorApplication.delayCall += LaunchClient;
+        if (GUILayout.Button("Client")) EditorApplication.delayCall += () => LaunchClient(selectedMode);
         GUI.enabled = built && !serverRunning;
-        if (GUILayout.Button("1v1")) EditorApplication.delayCall += () => { Launch("server", ServerArgs); LaunchClient(); LaunchClient(); };
+        if (GUILayout.Button("1v1")) EditorApplication.delayCall += () => { Launch(selectedMode, "server", ServerArgs); LaunchClient(selectedMode); LaunchClient(selectedMode); };
         GUILayout.EndHorizontal();
 
         GUI.enabled = true;
@@ -86,28 +107,42 @@ public class NetworkTestWindow : EditorWindow
         GUI.enabled = true;
     }
 
-    void Build()
+    void Build(TestMode selectedMode)
     {
         if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo()) return;
-        var report = BuildPipeline.BuildPlayer(new[] { ScenePath }, ExePath, BuildTarget.StandaloneWindows64, BuildOptions.Development);
-        Debug.Log($"[NetworkTest] Build {report.summary.result}: {Path.GetFullPath(ExePath)}");
+        string scenePath = selectedMode == TestMode.Main ? MainScenePath : NetworkDemoScenePath;
+        string exePath = ExePathFor(selectedMode);
+        var report = BuildPipeline.BuildPlayer(new[] { scenePath }, exePath, BuildTarget.StandaloneWindows64, BuildOptions.Development);
+        Debug.Log($"[NetworkTest] Build {report.summary.result}: {Path.GetFullPath(exePath)}");
         OnFocus();
     }
 
-    static void LaunchClient()
+    static void LaunchClient(TestMode selectedMode)
     {
         int number = 1;
         while (Running().Exists(entry => entry.name == $"client{number}")) number++;
-        Launch($"client{number}", ClientArgs);
+        Launch(selectedMode, $"client{number}", ClientArgs);
     }
 
-    static void Launch(string name, string args)
+    static void Launch(TestMode selectedMode, string name, string args)
     {
-        Directory.CreateDirectory(LogDir);
-        string log = Path.GetFullPath($"{LogDir}/{name}.log");
-        Running().Add((name, Process.Start(new ProcessStartInfo(Path.GetFullPath(ExePath), $"{args} -logFile \"{log}\"") { UseShellExecute = false })));
+        string logDir = LogDirFor(selectedMode);
+        Directory.CreateDirectory(logDir);
+        string log = Path.GetFullPath($"{logDir}/{name}.log");
+        var startInfo = new ProcessStartInfo(Path.GetFullPath(ExePathFor(selectedMode)), $"{args} -logFile \"{log}\"")
+        {
+            UseShellExecute = false,
+            WindowStyle = name == "server" ? ProcessWindowStyle.Hidden : ProcessWindowStyle.Normal
+        };
+        Running().Add((name, Process.Start(startInfo)));
         Save();
     }
+
+    string ExePath => ExePathFor(mode);
+    string LogDir => LogDirFor(mode);
+
+    static string ExePathFor(TestMode selectedMode) => selectedMode == TestMode.Main ? MainExePath : NetworkDemoExePath;
+    static string LogDirFor(TestMode selectedMode) => selectedMode == TestMode.Main ? MainLogDir : NetworkDemoLogDir;
 
     static void Kill(Process process)
     {
