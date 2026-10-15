@@ -1,10 +1,13 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
+using Random = UnityEngine.Random;
 
-// 시작 화면 뒤에서 맵을 주기적으로 새로 만들고 카메라를 천천히 돌린다.
+// 화면 뒤에 맵을 띄우고 카메라를 맞춘다. 시작 화면에서는 맵을 주기적으로 새로 만들며 천천히 돌고,
+// 대기실에서는 받은 설정의 맵을 미리보기로 세워 둔다. 두 화면 사이에서는 맵을 그대로 두고 카메라만 옮길 수 있다.
 // 안개와 배경색은 씬의 Lighting 설정에 있고, 여기서는 맵 크기에 맞춰 거리만 바꾼다.
 public class TitleBackdrop : MonoBehaviour
 {
@@ -32,9 +35,32 @@ public class TitleBackdrop : MonoBehaviour
     [Tooltip("카메라 거리는 맵 반지름에 이 값을 곱한 만큼이다.")]
     [SerializeField] float distanceScale = 3.8f;
 
+    [Header("대기실 미리보기")]
+    [Tooltip("대기실에서 맵 중심이 놓일 화면 위치.")]
+    [SerializeField] Vector2 previewAnchor = new Vector2(0.34f, 0.5f);
+    [Tooltip("대기실에서 맵이 차지할 크기. 맵 중심에서 가장자리까지를 화면 절반에 대한 비율로 적는다.")]
+    [SerializeField] Vector2 previewExtent = new Vector2(0.46f, 0.55f);
+    [Tooltip("대기실에서 카메라가 좌우로 천천히 흔들리는 각도.")]
+    [SerializeField] float previewSway = 2.5f;
+    [Tooltip("시작 화면과 대기실 사이에서 카메라가 넘어가는 빠르기.")]
+    [SerializeField] float viewSharpness = 2.2f;
+
+    public Transform[] SpawnPoints => map.SpawnPoints;
+    // 지금 서 있는 맵을 만든 설정.
+    public MapGenerationSettings Current { get; private set; }
+
+    // 시작 화면 맵을 만들 때 쓰는 대기실 설정. 맵을 그대로 대기실로 가져가도 설정 패널과 맞도록 같은 값으로 만든다.
+    DuelSettings titleSettings = new DuelSettings();
     Vector3 center;
     float yaw;
+    float radius;
     float distance;
+    float targetDistance;
+    Vector2 anchor;
+    bool preview;
+    float previewYaw;
+    // 맵이 보이지 않는 동안 바뀐 거리는 미끄러지지 않고 바로 맞춘다.
+    bool snapDistance = true;
     UniversalRenderPipelineAsset pipeline;
     float originalShadowDistance;
     Vector3[] homes;
@@ -44,9 +70,10 @@ public class TitleBackdrop : MonoBehaviour
     {
         center = map.transform.position;
         yaw = Random.Range(0f, 360f);
+        anchor = screenAnchor;
         pipeline = GraphicsSettings.currentRenderPipeline as UniversalRenderPipelineAsset;
         if (pipeline != null) originalShadowDistance = pipeline.shadowDistance;
-        StartCoroutine(Cycle());
+        ShowTitle(titleSettings, false);
     }
 
     void OnDisable()
@@ -57,45 +84,160 @@ public class TitleBackdrop : MonoBehaviour
         if (viewCamera != null) viewCamera.ResetProjectionMatrix();
     }
 
-    IEnumerator Cycle()
+    // 맵을 주기적으로 바꾸며 도는 시작 화면 배경으로 돌아간다. 새 맵은 settings로 만들고 시드와 형태만 랜덤으로 고른다.
+    // keepMap이면 지금 맵을 그대로 두고 카메라만 시작 화면 자리로 옮긴 뒤, 잠시 뒤부터 새 맵으로 바꿔 간다.
+    public void ShowTitle(DuelSettings settings, bool keepMap)
+    {
+        titleSettings = settings.Clone();
+        preview = false;
+        StopAllCoroutines();
+        StartCoroutine(Cycle(keepMap));
+    }
+
+    // 순환을 멈추고 지금 맵을 그대로 대기실 미리보기로 쓴다. 카메라만 대기실 자리로 옮긴다.
+    public void HoldPreview()
+    {
+        preview = true;
+        StopAllCoroutines();
+        Aim();
+        StartCoroutine(Settle());
+    }
+
+    // 순환을 멈추고 이 설정의 맵을 바로 솟게 한다. 만들 수 없는 설정이면 이전 맵을 그대로 두고 false를 돌려준다.
+    public bool ShowPreview(MapGenerationSettings settings)
+    {
+        preview = true;
+        StopAllCoroutines();
+        try
+        {
+            Rebuild(settings);
+        }
+        catch (Exception exception) when (exception is InvalidOperationException || exception is ArgumentException)
+        {
+            Debug.LogWarning($"미리보기 맵을 만들지 못했어요: {exception.Message}", this);
+            // 물결 도중에 멈췄을 수 있으니 이전 맵을 제자리에 세운다.
+            IReadOnlyList<IBlock> blocks = map.Blocks;
+            for (int b = 0; homes != null && b < blocks.Count; b++) blocks[b].Transform.localPosition = homes[b];
+            return false;
+        }
+
+        StartCoroutine(Wave(true));
+        return true;
+    }
+
+    IEnumerator Cycle(bool keepMap)
     {
         for (int i = Random.Range(0, Shapes.Length); ; i++)
         {
-            map.Generate(new MapGenerationSettings
+            if (keepMap)
             {
-                Seed = Random.Range(1, int.MaxValue),
-                Shape = Shapes[i % Shapes.Length],
-                ObstacleDensity = Random.Range(0.1f, 0.22f),
-                Symmetry = MapSymmetry.Rotate180,
-                NoiseStrength = Random.Range(0.3f, 0.7f),
-                NoiseScale = Random.Range(0.5f, 1.25f)
-            });
-
-            // 칸 크기가 2라서 대각선 칸 수가 곧 반지름이다. 카메라가 돌아도 맵이 잘리지 않게 대각선을 쓴다.
-            Vector2Int size = map.GeneratedLayout.Size;
-            float radius = Mathf.Sqrt(size.x * size.x + size.y * size.y);
-            distance = radius * distanceScale;
-            ground.localScale = new Vector3(radius, 1f, radius);
-            RenderSettings.fogStartDistance = distance - 6f;
-            RenderSettings.fogEndDistance = distance + 90f;
-            // 멀리서 내려다보면 기본 그림자 거리로는 그림자가 안 생겨서 잠시 늘린다.
-            if (pipeline != null) pipeline.shadowDistance = Mathf.Max(originalShadowDistance, distance + radius * 1.5f);
-
-            // 맵 중심에서 먼 블록일수록 늦게 출발해 가운데부터 물결이 퍼진다.
-            // 같은 칸의 바닥과 벽은 거리가 같아서 한 기둥처럼 함께 움직인다.
-            IReadOnlyList<IBlock> blocks = map.Blocks;
-            homes = new Vector3[blocks.Count];
-            delays = new float[blocks.Count];
-            for (int b = 0; b < blocks.Count; b++)
+                Aim();
+                yield return Settle();
+                keepMap = false;
+            }
+            else
             {
-                homes[b] = blocks[b].Transform.localPosition;
-                delays[b] = new Vector2(homes[b].x, homes[b].z).magnitude / radius * waveDuration;
+                MapShape shape = Shapes[i % Shapes.Length];
+                try
+                {
+                    Rebuild(TitleMap(shape));
+                }
+                catch (Exception exception) when (exception is InvalidOperationException || exception is ArgumentException)
+                {
+                    // 대기실에서 만들 수 없었던 설정이 남아 있을 수 있다. 그때는 설정과 상관없는 맵으로 배경을 채운다.
+                    Debug.LogWarning($"설정으로 배경 맵을 만들지 못해 임의의 맵을 띄워요: {exception.Message}", this);
+                    Rebuild(FallbackMap(shape));
+                }
+                yield return Wave(true);
             }
 
-            yield return Wave(true);
             yield return new WaitForSeconds(regenerateInterval);
             yield return Wave(false);
+            snapDistance = true;
         }
+    }
+
+    // 시작 화면 맵 설정. 시드는 시드 고정과 상관없이 늘 새로 뽑고, 형태가 랜덤이면 멀리서도 잘 보이는 형태 중 하나를 쓴다.
+    MapGenerationSettings TitleMap(MapShape shape)
+    {
+        MapGenerationSettings settings = titleSettings.ToMapSettings(0);
+        settings.Seed = Random.Range(1, int.MaxValue);
+        if (settings.Shape == MapShape.Random) settings.Shape = shape;
+        return settings;
+    }
+
+    static MapGenerationSettings FallbackMap(MapShape shape) => new MapGenerationSettings
+    {
+        Seed = Random.Range(1, int.MaxValue),
+        Shape = shape,
+        ObstacleDensity = Random.Range(0.1f, 0.22f),
+        Symmetry = MapSymmetry.Rotate180,
+        NoiseStrength = Random.Range(0.3f, 0.7f),
+        NoiseScale = Random.Range(0.5f, 1.25f)
+    };
+
+    // 맵을 새로 만들고 카메라 거리, 바닥, 그림자와 물결 순서를 맵 크기에 맞춘다.
+    void Rebuild(MapGenerationSettings settings)
+    {
+        map.Generate(settings);
+        Current = settings;
+
+        // 칸 크기가 2라서 대각선 칸 수가 곧 반지름이다. 카메라가 돌아도 맵이 잘리지 않게 대각선을 쓴다.
+        Vector2Int size = map.GeneratedLayout.Size;
+        radius = Mathf.Sqrt(size.x * size.x + size.y * size.y);
+
+        // 맵 중심에서 먼 블록일수록 늦게 출발해 가운데부터 물결이 퍼진다.
+        // 같은 칸의 바닥과 벽은 거리가 같아서 한 기둥처럼 함께 움직인다.
+        IReadOnlyList<IBlock> blocks = map.Blocks;
+        homes = new Vector3[blocks.Count];
+        delays = new float[blocks.Count];
+        for (int b = 0; b < blocks.Count; b++)
+        {
+            homes[b] = blocks[b].Transform.localPosition;
+            delays[b] = new Vector2(homes[b].x, homes[b].z).magnitude / radius * waveDuration;
+        }
+
+        ground.localScale = new Vector3(radius, 1f, radius);
+        Aim();
+    }
+
+    // 카메라가 향할 방향과 거리, 그림자 거리를 지금 맵과 화면(시작 화면 또는 대기실)에 맞춘다.
+    void Aim()
+    {
+        if (preview)
+        {
+            // 파랑이 왼쪽, 빨강이 오른쪽에 오도록 두 스폰을 잇는 선을 화면 가로에 맞춘다.
+            Vector3 across = map.SpawnPoints[1].position - map.SpawnPoints[0].position;
+            previewYaw = Mathf.Atan2(-across.z, across.x) * Mathf.Rad2Deg;
+            targetDistance = FitDistance();
+        }
+        else targetDistance = radius * distanceScale;
+        if (snapDistance) distance = targetDistance;
+        snapDistance = false;
+        // 멀리서 내려다보면 기본 그림자 거리로는 그림자가 안 생겨서 잠시 늘린다.
+        if (pipeline != null) pipeline.shadowDistance = Mathf.Max(originalShadowDistance, targetDistance + radius * 1.5f);
+    }
+
+    // previewYaw로 볼 때 모든 블록이 previewExtent 안에 들어오는 가장 가까운 카메라 거리.
+    // 맵 모양에 따라 화면에서 차지하는 크기가 크게 달라서, 대기실에서는 반지름 대신 실제 블록 위치로 맞춘다.
+    float FitDistance()
+    {
+        float tanY = Mathf.Tan(viewCamera.fieldOfView * 0.5f * Mathf.Deg2Rad);
+        float tanX = tanY * viewCamera.aspect;
+        float sin = Mathf.Sin(pitch * Mathf.Deg2Rad);
+        float cos = Mathf.Cos(pitch * Mathf.Deg2Rad);
+        Quaternion toView = Quaternion.Euler(0f, -previewYaw, 0f);
+        float fit = 0f;
+        foreach (Vector3 home in homes)
+        {
+            // x는 화면 가로, z는 카메라에서 멀어지는 쪽이다. 가까운 쪽일수록 화면에서 크게 보인다.
+            Vector3 point = toView * home;
+            float depth = point.z * cos;
+            float wide = Mathf.Abs(point.x) / (previewExtent.x * tanX);
+            float tall = Mathf.Abs(point.z) * sin / (previewExtent.y * tanY);
+            fit = Mathf.Max(fit, Mathf.Max(wide, tall) - depth);
+        }
+        return fit;
     }
 
     // 블록을 하나씩 바닥 아래에서 올리거나 내린다. 첫 프레임에 바로 위치를 정해서 새 맵이 잠깐 보이는 일이 없다.
@@ -115,17 +257,44 @@ public class TitleBackdrop : MonoBehaviour
         }
     }
 
+    // 블록을 지금 높이에서 제자리로 물결처럼 돌려놓는다. 올라오거나 가라앉던 도중이어도 끊기지 않고 이어지고,
+    // 이미 제자리에 있는 블록은 움직이지 않는다.
+    IEnumerator Settle()
+    {
+        IReadOnlyList<IBlock> blocks = map.Blocks;
+        float[] starts = new float[blocks.Count];
+        for (int b = 0; b < blocks.Count; b++) starts[b] = blocks[b].Transform.localPosition.y - homes[b].y;
+        for (float time = 0f; ; time += Time.deltaTime)
+        {
+            for (int b = 0; b < blocks.Count; b++)
+            {
+                float t = Mathf.Clamp01((time - delays[b]) / blockDuration);
+                blocks[b].Transform.localPosition = homes[b] + Vector3.up * (starts[b] * (1f - riseCurve.Evaluate(t)));
+            }
+            if (time >= waveDuration + blockDuration) yield break;
+            yield return null;
+        }
+    }
+
     void LateUpdate()
     {
-        yaw += orbitSpeed * Time.deltaTime;
+        // 시작 화면에서는 계속 돌고, 대기실에서는 정한 방향 근처에서 조금만 흔들린다.
+        float blend = 1f - Mathf.Exp(-viewSharpness * Time.deltaTime);
+        if (preview) yaw = Mathf.LerpAngle(yaw, previewYaw + Mathf.Sin(Time.time * 0.15f) * previewSway, blend);
+        else yaw += orbitSpeed * Time.deltaTime;
+        distance = Mathf.Lerp(distance, targetDistance, blend);
+        anchor = Vector2.Lerp(anchor, preview ? previewAnchor : screenAnchor, blend);
+
+        RenderSettings.fogStartDistance = distance - 6f;
+        RenderSettings.fogEndDistance = distance + 90f;
         Quaternion rotation = Quaternion.Euler(pitch, yaw, 0f);
         viewCamera.transform.SetPositionAndRotation(center - rotation * Vector3.forward * distance, rotation);
 
-        // 렌즈를 옮겨 맵 중심이 화면 가운데가 아닌 screenAnchor에 오게 한다.
+        // 렌즈를 옮겨 맵 중심이 화면 가운데가 아닌 anchor에 오게 한다.
         viewCamera.ResetProjectionMatrix();
         Matrix4x4 projection = viewCamera.projectionMatrix;
-        projection[0, 2] = 1f - 2f * screenAnchor.x;
-        projection[1, 2] = 1f - 2f * screenAnchor.y;
+        projection[0, 2] = 1f - 2f * anchor.x;
+        projection[1, 2] = 1f - 2f * anchor.y;
         viewCamera.projectionMatrix = projection;
     }
 }

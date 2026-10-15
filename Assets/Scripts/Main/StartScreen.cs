@@ -1,6 +1,7 @@
 using System;
 using TMPro;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
@@ -24,6 +25,17 @@ public class StartScreen : MonoBehaviour
     [SerializeField] TMP_Text noticeText;
 
     bool connecting;
+
+    // 대기실에서 돌아오면 메뉴를 처음 상태로 되돌린다.
+    void OnEnable()
+    {
+        joinBox.SetActive(false);
+        SetConnecting(false);
+        codeField.SetTextWithoutNotify("");
+        // 씬을 처음 열 때는 EventSystem이 아직 없을 수 있고, 그때는 EventSystem이 알아서 첫 버튼을 고른다.
+        EventSystem events = EventSystem.current;
+        if (events != null) events.SetSelectedGameObject(events.firstSelectedGameObject);
+    }
 
     void Update()
     {
