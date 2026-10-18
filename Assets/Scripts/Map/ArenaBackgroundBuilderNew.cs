@@ -185,18 +185,13 @@ public class ArenaBackgroundBuilderNew : MonoBehaviour
     void SpawnDecoAt(Vector2Int c, MapLayout layout, GameObject prefab, float yaw, BackgroundRotationSettings settings)
     {
         Vector3 pos = CellToWorld(c, layout);
-        // Yaw * 프리팹원본 * 오프셋. forceUpright=false면 원본 X-90 같은 축 보정을 살린다.
-        // Torch처럼 X-90이 있어야 서는 것은 false, DeadTree처럼 X0이어야 서는 것은 true.
+        // 자동 보정 최우선: 원본 자세(X-90 같은 축 보정 포함)를 살려 배치한 뒤,
+        // 가장 키가 큰 자세를 골라 세운다. 수동 드래그 자세가 기준이다.
         Quaternion rot = ResolveRotation(prefab.transform.rotation, yaw, settings);
         var go = Instantiate(prefab, pos, rot, backgroundRoot);
         go.name = "Deco_" + c.x + "_" + c.y;
         StripColliders(go);
-        if (settings.forceUpright && IsLyingDown(go))
-        {
-            // Yaw는 up을 안 바꾸므로 up 검사는 발동 불가. bounds 축 길이로 눕힘을 감지한다.
-            // 눕은 것은 원본 보정을 버린 탓이므로, 원본을 버린 채 eulerOffset(X -90/90)으로 세운다.
-            go.transform.rotation = ResolveRotation(Quaternion.identity, yaw, settings);
-        }
+        AutoUpright(go, prefab, yaw, settings);
         GroundSnap(go, decoGroundY + settings.yOffset);
     }
     static float RollYaw(System.Random rand, BackgroundYawMode mode)
@@ -208,11 +203,50 @@ public class ArenaBackgroundBuilderNew : MonoBehaviour
             default: return 0f;
         }
     }
+    void AutoUpright(GameObject go, GameObject prefab, float yaw, BackgroundRotationSettings settings)
+    {
+        if (go == null || prefab == null) return;
+        Quaternion prefabRotation = prefab.transform.rotation;
+        Quaternion yawQ = Quaternion.Euler(0f, yaw, 0f);
+        Quaternion best = go.transform.rotation;
+        float bestH = MeasureHeight(go);
+        Quaternion[] cands = new Quaternion[7];
+        cands[0] = yawQ * prefabRotation;
+        cands[1] = yawQ;
+        cands[2] = yawQ * prefabRotation * Quaternion.Euler(-90f, 0f, 0f);
+        cands[3] = yawQ * prefabRotation * Quaternion.Euler(90f, 0f, 0f);
+        cands[4] = yawQ * prefabRotation * Quaternion.Euler(0f, 0f, 90f);
+        cands[5] = yawQ * prefabRotation * Quaternion.Euler(0f, 0f, -90f);
+        cands[6] = ResolveRotation(prefabRotation, yaw, settings);
+        for (int i = 0; i < cands.Length; i++)
+        {
+            go.transform.rotation = cands[i];
+            float h = MeasureHeight(go);
+            if (h > bestH + 0.001f) { bestH = h; best = cands[i]; }
+        }
+        go.transform.rotation = best;
+    }
+    float MeasureHeight(GameObject go)
+    {
+        if (go == null) return 0f;
+        Renderer[] rs = go.GetComponentsInChildren<Renderer>();
+        if (rs == null || rs.Length == 0) return 0f;
+        bool has = false;
+        Bounds b = new Bounds(go.transform.position, Vector3.zero);
+        for (int i = 0; i < rs.Length; i++)
+        {
+            if (rs[i] == null) continue;
+            if (!has) { b = rs[i].bounds; has = true; }
+            else b.Encapsulate(rs[i].bounds);
+        }
+        if (!has) return 0f;
+        return b.size.y;
+    }
     static Quaternion ResolveRotation(Quaternion prefabRotation, float yaw, BackgroundRotationSettings settings)
     {
-        // 기본: Yaw * 프리팹원본 * 오프셋. forceUpright면 프리팹원본(X-90 같은 축 보정)을 무시하고 세운다.
+        // 수동 배치 자세를 최우선으로 살린다: Yaw(월드Y) * 프리팹원본. 원본을 버리지 않는다.
         Quaternion q = Quaternion.Euler(0f, yaw, 0f);
-        if (!settings.forceUpright) q *= prefabRotation;
+        q *= prefabRotation; // auto-correct
         if (settings.eulerOffset != Vector3.zero) q *= Quaternion.Euler(settings.eulerOffset);
         return q;
     }
