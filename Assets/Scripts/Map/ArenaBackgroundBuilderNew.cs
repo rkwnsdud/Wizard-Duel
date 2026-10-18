@@ -23,7 +23,7 @@ public class ArenaBackgroundBuilderNew : MonoBehaviour
     public struct BackgroundRotationSettings
     {
         public BackgroundYawMode yawMode;
-        [Tooltip("ON이면 프리팹 원본 회전(X-90 같은 축 보정)을 버리고 Yaw만 적용한다. OFF면 원본을 살리고 Yaw를 곱한다. Torch처럼 X-90이 있어야 서는 것은 OFF, DeadTree처럼 X0이어야 서는 것은 ON.")]
+        [Tooltip("구버전 호환용. 현재는 무시된다. 원본 보정(수동 배치 자세)을 항상 유지한다.")]
         public bool forceUpright;
         [Tooltip("Yaw*원본 뒤에 곱해지는 미세조정. X에 -90/90을 넣어 눕힘/세움을 조정한다.")]
         public Vector3 eulerOffset;
