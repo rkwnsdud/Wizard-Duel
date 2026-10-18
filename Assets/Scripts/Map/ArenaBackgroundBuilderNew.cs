@@ -23,7 +23,9 @@ public class ArenaBackgroundBuilderNew : MonoBehaviour
     public struct BackgroundRotationSettings
     {
         public BackgroundYawMode yawMode;
+        [Tooltip("ON이면 프리팹 원본 회전(X-90 같은 축 보정)을 버리고 Yaw만 적용한다. OFF면 원본을 살리고 Yaw를 곱한다. Torch처럼 X-90이 있어야 서는 것은 OFF, DeadTree처럼 X0이어야 서는 것은 ON.")]
         public bool forceUpright;
+        [Tooltip("Yaw*원본 뒤에 곱해지는 미세조정. X에 -90/90을 넣어 눕힘/세움을 조정한다.")]
         public Vector3 eulerOffset;
         public float yOffset;
     }
@@ -37,9 +39,9 @@ public class ArenaBackgroundBuilderNew : MonoBehaviour
         public float yOffset;
     }
     [Header("Rotation / Grounding")]
-    [SerializeField] BackgroundRotationSettings floorRotation = new BackgroundRotationSettings { yawMode = BackgroundYawMode.Random90, forceUpright = false, eulerOffset = new Vector3(0f, 0f, 0f), yOffset = 0f };
+    [SerializeField] BackgroundRotationSettings floorRotation = new BackgroundRotationSettings { yawMode = BackgroundYawMode.Random90, forceUpright = true, eulerOffset = new Vector3(0f, 0f, 0f), yOffset = 0f };
     [SerializeField] BackgroundRotationSettings pillarRotation = new BackgroundRotationSettings { yawMode = BackgroundYawMode.Random90, forceUpright = true, eulerOffset = new Vector3(0f, 0f, 0f), yOffset = 0f };
-    [SerializeField] BackgroundRotationSettings torchRotation = new BackgroundRotationSettings { yawMode = BackgroundYawMode.Random90, forceUpright = true, eulerOffset = new Vector3(0f, 0f, 0f), yOffset = 0f };
+    [SerializeField] BackgroundRotationSettings torchRotation = new BackgroundRotationSettings { yawMode = BackgroundYawMode.Random90, forceUpright = false, eulerOffset = new Vector3(0f, 0f, 0f), yOffset = 0f };
     [SerializeField] BackgroundRotationSettings extraRotation = new BackgroundRotationSettings { yawMode = BackgroundYawMode.Random90, forceUpright = true, eulerOffset = new Vector3(0f, 0f, 0f), yOffset = 0f };
     [SerializeField] float decoGroundY = 0f;
     [Tooltip("특정 프리팹만 따로 회전시키고 싶을 때 여기에 추가한다. 같은 프리팹 항목이 있으면 카테고리 설정보다 우선한다.")]
@@ -51,6 +53,14 @@ public class ArenaBackgroundBuilderNew : MonoBehaviour
         if (backgroundRoot == null) backgroundRoot = transform;
         Rebuild();
     }
+#if UNITY_EDITOR
+    // 인스펙터에서 회전값 바꿀 때마다 Play 재시작 없이 확인용. 실배치는 Start/Generate에서 Rebuild.
+    [ContextMenu("Rebuild Background (Editor)")]
+    void RebuildEditor()
+    {
+        Rebuild();
+    }
+#endif
 
     public void Rebuild()
     {
@@ -175,13 +185,16 @@ public class ArenaBackgroundBuilderNew : MonoBehaviour
     void SpawnDecoAt(Vector2Int c, MapLayout layout, GameObject prefab, float yaw, BackgroundRotationSettings settings)
     {
         Vector3 pos = CellToWorld(c, layout);
+        // Yaw * 프리팹원본 * 오프셋. forceUpright=false면 원본 X-90 같은 축 보정을 살린다.
+        // Torch처럼 X-90이 있어야 서는 것은 false, DeadTree처럼 X0이어야 서는 것은 true.
         Quaternion rot = ResolveRotation(prefab.transform.rotation, yaw, settings);
         var go = Instantiate(prefab, pos, rot, backgroundRoot);
         go.name = "Deco_" + c.x + "_" + c.y;
         StripColliders(go);
-        if (settings.forceUpright && go.transform.up.y < 0.6f)
+        if (settings.forceUpright && IsLyingDown(go))
         {
-            // 누워있는 프리팹은 세운 뒤 인스펙터 오프셋을 다시 적용한다.
+            // Yaw는 up을 안 바꾸므로 up 검사는 발동 불가. bounds 축 길이로 눕힘을 감지한다.
+            // 눕은 것은 원본 보정을 버린 탓이므로, 원본을 버린 채 eulerOffset(X -90/90)으로 세운다.
             go.transform.rotation = ResolveRotation(Quaternion.identity, yaw, settings);
         }
         GroundSnap(go, decoGroundY + settings.yOffset);
@@ -197,11 +210,24 @@ public class ArenaBackgroundBuilderNew : MonoBehaviour
     }
     static Quaternion ResolveRotation(Quaternion prefabRotation, float yaw, BackgroundRotationSettings settings)
     {
-        // 기본: Yaw * 프리팹원본 * 오프셋. forceUpright면 프리팹원본(눕힘)을 무시하고 세운다.
+        // 기본: Yaw * 프리팹원본 * 오프셋. forceUpright면 프리팹원본(X-90 같은 축 보정)을 무시하고 세운다.
         Quaternion q = Quaternion.Euler(0f, yaw, 0f);
         if (!settings.forceUpright) q *= prefabRotation;
         if (settings.eulerOffset != Vector3.zero) q *= Quaternion.Euler(settings.eulerOffset);
         return q;
+    }
+    static bool IsLyingDown(GameObject go)
+    {
+        // Y축 회전(Yaw)은 transform.up을 바꾸지 않으므로 up 검사는 눕힘을 못 잡는다.
+        // 회전 적용 뒤 월드 bounds의 축 길이로 판단한다. 서있으면 Y가 가장 길다.
+        if (go == null) return false;
+        Renderer rend = go.GetComponentInChildren<Renderer>();
+        if (rend == null) return false;
+        Vector3 size = rend.bounds.size;
+        if (size.y <= 0.001f) return size.x > 0.001f || size.z > 0.001f;
+        // 납작한 바닥류(Apron 등)는 눕힘으로 오판하지 않는다.
+        if (size.y < 0.15f && (size.x > size.y * 3f || size.z > size.y * 3f)) return false;
+        return size.x > size.y * 1.5f || size.z > size.y * 1.5f;
     }
     BackgroundRotationSettings ApplyOverride(GameObject prefab, BackgroundRotationSettings settings)
     {

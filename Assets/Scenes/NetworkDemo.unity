@@ -465,6 +465,28 @@ MonoBehaviour:
   decoOffsetCells: 4
   farGroundY: -0.15
   farGroundSize: 240
+  floorRotation:
+    yawMode: 1
+    forceUpright: 0
+    eulerOffset: {x: 0, y: 0, z: 0}
+    yOffset: 0
+  pillarRotation:
+    yawMode: 1
+    forceUpright: 1
+    eulerOffset: {x: 0, y: 0, z: 0}
+    yOffset: 0
+  torchRotation:
+    yawMode: 1
+    forceUpright: 0
+    eulerOffset: {x: 0, y: 0, z: 0}
+    yOffset: 0
+  extraRotation:
+    yawMode: 1
+    forceUpright: 1
+    eulerOffset: {x: 0, y: 0, z: 0}
+    yOffset: 0
+  decoGroundY: 0
+  rotationOverrides: []
 --- !u!1 &1378034206
 GameObject:
   m_ObjectHideFlags: 0
