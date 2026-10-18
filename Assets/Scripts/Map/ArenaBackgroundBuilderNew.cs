@@ -185,13 +185,11 @@ public class ArenaBackgroundBuilderNew : MonoBehaviour
     void SpawnDecoAt(Vector2Int c, MapLayout layout, GameObject prefab, float yaw, BackgroundRotationSettings settings)
     {
         Vector3 pos = CellToWorld(c, layout);
-        // 자동 보정 최우선: 원본 자세(X-90 같은 축 보정 포함)를 살려 배치한 뒤,
-        // 가장 키가 큰 자세를 골라 세운다. 수동 드래그 자세가 기준이다.
+        // 예외없이 원본 보정대로: 수동 드래그 자세(X-90 같은 축 보정 포함)를 살리고 Yaw만 곱한다.
         Quaternion rot = ResolveRotation(prefab.transform.rotation, yaw, settings);
         var go = Instantiate(prefab, pos, rot, backgroundRoot);
         go.name = "Deco_" + c.x + "_" + c.y;
         StripColliders(go);
-        AutoUpright(go, prefab, yaw, settings);
         GroundSnap(go, decoGroundY + settings.yOffset);
     }
     static float RollYaw(System.Random rand, BackgroundYawMode mode)
@@ -203,45 +201,6 @@ public class ArenaBackgroundBuilderNew : MonoBehaviour
             default: return 0f;
         }
     }
-    void AutoUpright(GameObject go, GameObject prefab, float yaw, BackgroundRotationSettings settings)
-    {
-        if (go == null || prefab == null) return;
-        Quaternion prefabRotation = prefab.transform.rotation;
-        Quaternion yawQ = Quaternion.Euler(0f, yaw, 0f);
-        Quaternion best = go.transform.rotation;
-        float bestH = MeasureHeight(go);
-        Quaternion[] cands = new Quaternion[7];
-        cands[0] = yawQ * prefabRotation;
-        cands[1] = yawQ;
-        cands[2] = yawQ * prefabRotation * Quaternion.Euler(-90f, 0f, 0f);
-        cands[3] = yawQ * prefabRotation * Quaternion.Euler(90f, 0f, 0f);
-        cands[4] = yawQ * prefabRotation * Quaternion.Euler(0f, 0f, 90f);
-        cands[5] = yawQ * prefabRotation * Quaternion.Euler(0f, 0f, -90f);
-        cands[6] = ResolveRotation(prefabRotation, yaw, settings);
-        for (int i = 0; i < cands.Length; i++)
-        {
-            go.transform.rotation = cands[i];
-            float h = MeasureHeight(go);
-            if (h > bestH + 0.001f) { bestH = h; best = cands[i]; }
-        }
-        go.transform.rotation = best;
-    }
-    float MeasureHeight(GameObject go)
-    {
-        if (go == null) return 0f;
-        Renderer[] rs = go.GetComponentsInChildren<Renderer>();
-        if (rs == null || rs.Length == 0) return 0f;
-        bool has = false;
-        Bounds b = new Bounds(go.transform.position, Vector3.zero);
-        for (int i = 0; i < rs.Length; i++)
-        {
-            if (rs[i] == null) continue;
-            if (!has) { b = rs[i].bounds; has = true; }
-            else b.Encapsulate(rs[i].bounds);
-        }
-        if (!has) return 0f;
-        return b.size.y;
-    }
     static Quaternion ResolveRotation(Quaternion prefabRotation, float yaw, BackgroundRotationSettings settings)
     {
         // 수동 배치 자세를 최우선으로 살린다: Yaw(월드Y) * 프리팹원본. 원본을 버리지 않는다.
@@ -249,19 +208,6 @@ public class ArenaBackgroundBuilderNew : MonoBehaviour
         q *= prefabRotation; // auto-correct
         if (settings.eulerOffset != Vector3.zero) q *= Quaternion.Euler(settings.eulerOffset);
         return q;
-    }
-    static bool IsLyingDown(GameObject go)
-    {
-        // Y축 회전(Yaw)은 transform.up을 바꾸지 않으므로 up 검사는 눕힘을 못 잡는다.
-        // 회전 적용 뒤 월드 bounds의 축 길이로 판단한다. 서있으면 Y가 가장 길다.
-        if (go == null) return false;
-        Renderer rend = go.GetComponentInChildren<Renderer>();
-        if (rend == null) return false;
-        Vector3 size = rend.bounds.size;
-        if (size.y <= 0.001f) return size.x > 0.001f || size.z > 0.001f;
-        // 납작한 바닥류(Apron 등)는 눕힘으로 오판하지 않는다.
-        if (size.y < 0.15f && (size.x > size.y * 3f || size.z > size.y * 3f)) return false;
-        return size.x > size.y * 1.5f || size.z > size.y * 1.5f;
     }
     BackgroundRotationSettings ApplyOverride(GameObject prefab, BackgroundRotationSettings settings)
     {
