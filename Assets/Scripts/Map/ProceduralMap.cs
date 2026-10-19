@@ -52,16 +52,7 @@ public class ProceduralMap : MonoBehaviour, ISpawnPointProvider
         BlockFactory blockFactory = GetComponent<BlockFactory>();
         blockFactory.ValidateConfiguration();
         blockFactory.Initialize(settings.Seed);
-
-        foreach (IBlock block in blocks)
-        {
-            Block instance = (Block)block;
-            if (instance == null) continue;
-            // Destroy가 프레임 끝에 처리되기 전에도 이전 맵의 충돌은 비활성화한다.
-            instance.gameObject.SetActive(false);
-            Destroy(instance.gameObject);
-        }
-        blocks.Clear();
+        DestroyBlocks();
 
         GeneratedLayout = generatedLayout;
         SpawnPoints = blockFactory.SpawnPoints;
@@ -76,5 +67,26 @@ public class ProceduralMap : MonoBehaviour, ISpawnPointProvider
                 blocks.AddRange(blockFactory.CreateCell(layout[z][x], position, transform));
             }
         }
+    }
+
+    // 맵을 비운다. 다음 Generate 전까지 레이아웃과 스폰 지점도 없다.
+    public void Clear()
+    {
+        DestroyBlocks();
+        GeneratedLayout = null;
+        SpawnPoints = null;
+    }
+
+    void DestroyBlocks()
+    {
+        foreach (IBlock block in blocks)
+        {
+            Block instance = (Block)block;
+            if (instance == null) continue;
+            // Destroy가 프레임 끝에 처리되기 전에도 이전 맵의 충돌은 비활성화한다.
+            instance.gameObject.SetActive(false);
+            Destroy(instance.gameObject);
+        }
+        blocks.Clear();
     }
 }
