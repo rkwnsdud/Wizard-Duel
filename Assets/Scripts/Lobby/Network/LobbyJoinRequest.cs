@@ -4,7 +4,8 @@ using Unity.Netcode;
 [Serializable]
 public struct LobbyJoinRequest : INetworkSerializable
 {
-    public const int CurrentVersion = 2;
+    // 3: 스냅샷에 방 단계를 넣고 전투 시작·맵 준비 메시지를 추가했다.
+    public const int CurrentVersion = 3;
 
     public int Version;
     public bool CreateRoom;

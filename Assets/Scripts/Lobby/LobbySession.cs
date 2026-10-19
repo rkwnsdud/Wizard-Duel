@@ -24,12 +24,14 @@ public sealed class LobbySession
     public ulong GuestClientId => guestConfirmed ? guestOwner.GetValueOrDefault() : 0;
     public bool OpponentPresent => guestConfirmed;
     public string RoomCode { get; private set; } = string.Empty;
+    public LobbyPhase Phase { get; private set; }
     public NetworkLobbySnapshot Snapshot => new NetworkLobbySnapshot
     {
         Code = RoomCode,
         HostClientId = HostClientId,
         OpponentPresent = OpponentPresent,
         GuestClientId = GuestClientId,
+        Phase = Phase,
         Settings = settings
     };
 
@@ -113,10 +115,43 @@ public sealed class LobbySession
     {
         reason = "Only the connected host can change room settings.";
         if (!hostConfirmed || hostOwner != sender) return false;
+        reason = "Room settings cannot change once the duel starts.";
+        if (Phase != LobbyPhase.Lobby) return false;
         if (!DuelSettings.ValidateSettings(requested, out reason)) return false;
 
         settings = new NetworkMapSettings(requested.Map);
         reason = string.Empty;
+        return true;
+    }
+
+    // 확정된 방장이 상대와 함께 있을 때만 전투 준비로 넘긴다. 저장한 시드와 설정은 그대로 쓴다.
+    public bool TryStart(ulong sender, out string reason)
+    {
+        reason = "Only the connected host can start the duel.";
+        if (!hostConfirmed || hostOwner != sender) return false;
+        reason = "Two players must join before the duel starts.";
+        if (!guestConfirmed) return false;
+        reason = "The duel has already started.";
+        if (Phase != LobbyPhase.Lobby) return false;
+
+        Phase = LobbyPhase.Preparing;
+        reason = string.Empty;
+        return true;
+    }
+
+    // 서버가 전투 맵을 만들지 못했을 때 로비 단계로 되돌린다.
+    public bool CancelStart()
+    {
+        if (Phase != LobbyPhase.Preparing) return false;
+        Phase = LobbyPhase.Lobby;
+        return true;
+    }
+
+    // 두 플레이어가 소환되고 전투 입력을 켤 때 부른다.
+    public bool BeginBattle()
+    {
+        if (Phase != LobbyPhase.Preparing || !Ready) return false;
+        Phase = LobbyPhase.Battle;
         return true;
     }
 
@@ -136,6 +171,7 @@ public sealed class LobbySession
         guestOwner = null;
         hostConfirmed = false;
         guestConfirmed = false;
+        Phase = LobbyPhase.Lobby;
         settings = default;
     }
 }

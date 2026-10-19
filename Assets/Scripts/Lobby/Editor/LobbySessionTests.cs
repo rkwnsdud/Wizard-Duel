@@ -187,6 +187,109 @@ public class LobbySessionTests
         }
     }
 
+    [Test]
+    public void GuestAndOutsiderCannotStart_RoomStaysInLobby()
+    {
+        var session = CreateFullRoom();
+        foreach (ulong sender in new ulong[] { 2, 99 })
+        {
+            Assert.That(session.TryStart(sender, out string reason), Is.False);
+            Assert.That(reason, Is.EqualTo("Only the connected host can start the duel."));
+            Assert.That(session.Phase, Is.EqualTo(LobbyPhase.Lobby));
+            Assert.That(session.Snapshot.Phase, Is.EqualTo(LobbyPhase.Lobby));
+        }
+    }
+
+    [Test]
+    public void HostCannotStartUntilBothPlayersAreConfirmed()
+    {
+        var session = CreateSession();
+        Assert.That(session.TryCreate(1, Settings(), out _), Is.True);
+        Assert.That(session.TryStart(1, out string unconfirmed), Is.False);
+        Assert.That(unconfirmed, Is.EqualTo("Only the connected host can start the duel."));
+
+        Assert.That(session.Confirm(1), Is.True);
+        Assert.That(session.TryStart(1, out string alone), Is.False);
+        Assert.That(alone, Is.EqualTo("Two players must join before the duel starts."));
+
+        // 참가 예약만 하고 접속을 끝내지 않은 상대도 아직 방에 없는 것으로 본다.
+        Assert.That(session.TryJoin(2, session.RoomCode, out _), Is.True);
+        Assert.That(session.TryStart(1, out string reserved), Is.False);
+        Assert.That(reserved, Is.EqualTo("Two players must join before the duel starts."));
+        Assert.That(session.Phase, Is.EqualTo(LobbyPhase.Lobby));
+
+        Assert.That(session.Confirm(2), Is.True);
+        Assert.That(session.TryStart(1, out string reason), Is.True, reason);
+        Assert.That(reason, Is.Empty);
+        Assert.That(session.Phase, Is.EqualTo(LobbyPhase.Preparing));
+        Assert.That(session.Snapshot.Phase, Is.EqualTo(LobbyPhase.Preparing));
+    }
+
+    [Test]
+    public void RepeatedStartIsRejectedWhilePreparingAndInBattle()
+    {
+        var session = CreateFullRoom();
+        Assert.That(session.BeginBattle(), Is.False);
+        Assert.That(session.TryStart(1, out _), Is.True);
+        Assert.That(session.TryStart(1, out string preparing), Is.False);
+        Assert.That(preparing, Is.EqualTo("The duel has already started."));
+        Assert.That(session.Phase, Is.EqualTo(LobbyPhase.Preparing));
+
+        Assert.That(session.BeginBattle(), Is.True);
+        Assert.That(session.TryStart(1, out string battle), Is.False);
+        Assert.That(battle, Is.EqualTo("The duel has already started."));
+        Assert.That(session.BeginBattle(), Is.False);
+        Assert.That(session.CancelStart(), Is.False);
+        Assert.That(session.Phase, Is.EqualTo(LobbyPhase.Battle));
+    }
+
+    [TestCase(false)]
+    [TestCase(true)]
+    public void SettingsCannotChangeOnceTheDuelStarts(bool inBattle)
+    {
+        var session = CreateFullRoom();
+        Assert.That(session.TryStart(1, out _), Is.True);
+        if (inBattle) Assert.That(session.BeginBattle(), Is.True);
+        DuelSettings before = new DuelSettings { Map = session.Snapshot.Settings.ToSettings() };
+
+        Assert.That(session.TryUpdateSettings(1, Settings(4242), out string hostReason), Is.False);
+        Assert.That(hostReason, Is.EqualTo("Room settings cannot change once the duel starts."));
+        Assert.That(session.TryUpdateSettings(2, Settings(4242), out string guestReason), Is.False);
+        Assert.That(guestReason, Is.EqualTo("Only the connected host can change room settings."));
+        AssertSettingsEqual(before, new DuelSettings { Map = session.Snapshot.Settings.ToSettings() });
+    }
+
+    [Test]
+    public void FailedPreparationReturnsToLobby_AndClosedRoomStartsOverInLobby()
+    {
+        var session = CreateFullRoom();
+        Assert.That(session.TryStart(1, out _), Is.True);
+        Assert.That(session.CancelStart(), Is.True);
+        Assert.That(session.Phase, Is.EqualTo(LobbyPhase.Lobby));
+        Assert.That(session.CancelStart(), Is.False);
+        Assert.That(session.TryUpdateSettings(1, Settings(5), out string reason), Is.True, reason);
+
+        Assert.That(session.TryStart(1, out _), Is.True);
+        Assert.That(session.BeginBattle(), Is.True);
+        Assert.That(session.Disconnect(2), Is.True);
+        Assert.That(session.HasRoom, Is.False);
+        Assert.That(session.Phase, Is.EqualTo(LobbyPhase.Lobby));
+
+        CreateAndConfirmHost(session, 3);
+        Assert.That(session.Snapshot.Phase, Is.EqualTo(LobbyPhase.Lobby));
+        Assert.That(session.TryStart(3, out string alone), Is.False);
+        Assert.That(alone, Is.EqualTo("Two players must join before the duel starts."));
+    }
+
+    static LobbySession CreateFullRoom()
+    {
+        var session = CreateSession();
+        CreateAndConfirmHost(session);
+        Assert.That(session.TryJoin(2, session.RoomCode, out string reason), Is.True, reason);
+        Assert.That(session.Confirm(2), Is.True);
+        return session;
+    }
+
     static void AssertSettingsEqual(DuelSettings expected, DuelSettings actual)
     {
         Assert.That(actual.Map.Seed, Is.EqualTo(expected.Map.Seed));
