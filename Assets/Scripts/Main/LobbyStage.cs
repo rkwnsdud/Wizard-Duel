@@ -68,6 +68,14 @@ public class LobbyStage : MonoBehaviour
         SpawnEffectController.Stop(1);
     }
 
+    // 전투 준비가 시작되면 부른다. 같은 자리에 전투 맵이 서므로 기다리던 미리보기 재생성을 버린다.
+    // 모형 마법사는 실제 플레이어가 소환될 때 무대와 함께 꺼진다.
+    public void StopPreview()
+    {
+        pending = null;
+        revealMap = null;
+    }
+
     // 바뀐 설정으로 미리보기를 다시 만든다. 슬라이더를 끄는 동안 매번 만들지 않도록 잠깐 모았다가 한 번만 만든다.
     public void Preview(DuelSettings settings)
     {

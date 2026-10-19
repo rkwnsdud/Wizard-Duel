@@ -44,6 +44,8 @@ public class LobbyScreen : MonoBehaviour
     string code;
     bool isHost;
     bool opponentPresent;
+    // 시작을 요청했거나 서버가 전투 준비를 알렸다. 이때는 시작 버튼과 설정을 잠근다.
+    bool starting;
     // 지난 프레임에 입력 칸에서 글자를 넣고 있었는지. Esc로 입력을 끝낸 프레임에 대기실까지 나가지 않게 한다.
     bool typing;
     // 버튼 자체는 레이아웃이 자리를 잡으므로, 흔들 때는 그 안의 그림만 움직인다.
@@ -73,10 +75,9 @@ public class LobbyScreen : MonoBehaviour
         this.isHost = isHost;
         this.code = code;
         this.opponentPresent = opponentPresent;
+        starting = false;
         codeLabel.text = code.Insert(code.Length / 2, " ");
         startFace.localPosition = startHome;
-        // 전투 시작은 후속 작업에서 연결한다.
-        startButton.interactable = false;
         mapSettings.Open(isHost, settings);
         Refresh();
         EventSystem.current.SetSelectedGameObject(isHost ? startButton.gameObject : null);
@@ -85,6 +86,15 @@ public class LobbyScreen : MonoBehaviour
     public void SetOpponentPresent(bool present)
     {
         opponentPresent = present;
+        Refresh();
+    }
+
+    // 시작 요청을 보냈거나 서버가 전투 준비를 알리면 켜고, 시작이 거절되면 끈다.
+    public void SetStarting(bool value)
+    {
+        if (starting == value) return;
+        starting = value;
+        mapSettings.SetLocked(value);
         Refresh();
     }
 
@@ -101,7 +111,7 @@ public class LobbyScreen : MonoBehaviour
 
     public void RequestStart()
     {
-        if (!isHost) return;
+        if (!isHost || starting) return;
         if (!opponentPresent)
         {
             if (shake != null) StopCoroutine(shake);
@@ -122,10 +132,13 @@ public class LobbyScreen : MonoBehaviour
         redWaiting.SetActive(!opponentPresent);
         startButton.gameObject.SetActive(isHost);
         waitPlaque.SetActive(!isHost);
-        startButton.targetGraphic.color = Idle;
-        startLabel.color = IdleInk;
-        status.text = !isHost ? "설정은 방장이 정해요. 바뀌면 여기에도 바로 보여요."
-            : opponentPresent ? "모두 모였어요 · 2 / 2 · 전투 시작은 준비 중이에요"
+        // 방장이 상대와 함께 로비 단계에 있을 때만 누를 수 있다. 서버도 같은 조건을 다시 확인한다.
+        startButton.interactable = isHost && opponentPresent && !starting;
+        startButton.targetGraphic.color = startButton.interactable ? Gold : Idle;
+        startLabel.color = startButton.interactable ? GoldInk : IdleInk;
+        status.text = starting ? "전투 맵을 맞추고 있어요 · 곧 시작해요"
+            : !isHost ? "설정은 방장이 정해요. 바뀌면 여기에도 바로 보여요."
+            : opponentPresent ? "모두 모였어요 · 2 / 2 · 게임을 시작할 수 있어요"
             : "상대가 들어오면 시작할 수 있어요 · 1 / 2";
     }
 
