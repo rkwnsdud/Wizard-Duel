@@ -20,7 +20,7 @@ public static class LightningStaffReplacementTool
     private const string MaterialPath = Root + "/LightningStaff_URP.mat";
     private const string PlayerPath = "Assets/Player/Player.prefab";
 
-    [InitializeOnLoadMethod]
+    // Legacy model builder: never automatically overwrite the fixed model/materials.
     private static void BuildAdjustedMaterialOnce()
     {
         var material = AssetDatabase.LoadAssetAtPath<Material>(MaterialPath);
