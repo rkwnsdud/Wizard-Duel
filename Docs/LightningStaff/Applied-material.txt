@@ -1,0 +1,5 @@
+Editor preview verification (not play mode)
+Shader=Universal Render Pipeline/Lit
+Emission=True
+HDR=RGBA(8.000, 8.000, 8.000, 1.000)
+Map=Assets/Weapons/Lightning Weapon/LightningStaff/NewStaff/LightningStaff_Emission_CrystalFilled.png
