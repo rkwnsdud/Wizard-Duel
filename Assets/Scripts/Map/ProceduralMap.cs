@@ -76,5 +76,9 @@ public class ProceduralMap : MonoBehaviour, ISpawnPointProvider
                 blocks.AddRange(blockFactory.CreateCell(layout[z][x], position, transform));
             }
         }
+        // 맵 블록을 다 깔고 나서 배경을 갱신한다. (서버/클라 모두 map.Generate를
+        // 거치므로 NetworkDemo에서 따로 호출할 필요가 없다.)
+        ArenaBackgroundBuilderNew background = FindFirstObjectByType<ArenaBackgroundBuilderNew>();
+        if (background != null) background.Rebuild();
     }
 }
