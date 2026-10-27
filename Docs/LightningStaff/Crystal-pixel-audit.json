@@ -1,0 +1,22 @@
+{
+  "source": "Assets\\Weapons\\Lightning Weapon\\LightningStaff\\NewStaff\\LightningStaff_Emission_Adjusted.png",
+  "output": "Assets\\Weapons\\Lightning Weapon\\LightningStaff\\NewStaff\\LightningStaff_Emission_CrystalFilled.png",
+  "audited_uv_islands": [
+    295,
+    325,
+    166
+  ],
+  "changed_pixels": 28723,
+  "bounds_xy_inclusive": [
+    1636,
+    1650,
+    3349,
+    3487
+  ],
+  "preserved_uv_border_pixels": 8,
+  "outside_audited_islands_changed": 0,
+  "existing_nonblack_texels_changed": 0,
+  "overlapping_uv_pixels_changed": 0,
+  "source_sha256": "30b8aec512f0834067f9c8e7bb0e78c7a5f461a50486dd9aad38d2d7b50a7c39",
+  "output_sha256": "ec86b9909a3a408399dff2496571f1580710543a3ea487fe5a50d7a69e7ce9ed"
+}
