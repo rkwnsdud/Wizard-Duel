@@ -120,6 +120,122 @@ public class LobbyNetworkSettingsTests
         Assert.That(failed, Is.Zero);
     }
 
+    [Test]
+    public void RequestStart_IsRefusedUnlessHostWithOpponentInLobby_AndNotAlreadyPending()
+    {
+        CreateNetwork(0);
+        Assert.That(network.RequestStart(), Is.False);
+
+        SetField("currentSnapshot", GuestSnapshot(LobbyPhase.Lobby));
+        Assert.That(network.IsHost, Is.False);
+        Assert.That(network.RequestStart(), Is.False);
+
+        SetField("currentSnapshot", Snapshot(0, 100, MapShape.Random, LobbyPhase.Preparing));
+        Assert.That(network.IsStarting, Is.True);
+        Assert.That(network.RequestStart(), Is.False);
+
+        SetField("currentSnapshot", Snapshot(0, 100, MapShape.Random, LobbyPhase.Lobby));
+        SetField("startPending", true);
+        Assert.That(network.IsStarting, Is.True);
+        Assert.That(network.RequestStart(), Is.False);
+        Assert.That(GetField<uint>("requestedStart"), Is.Zero);
+    }
+
+    [Test]
+    public void StartRejection_IsAcceptedOnlyForTheLatestPendingRequest()
+    {
+        CreateNetwork(0);
+        SetField("currentSnapshot", Snapshot(0, 100, MapShape.Random, LobbyPhase.Lobby));
+        SetField("requestedStart", 2u);
+        SetField("startPending", true);
+        var rejected = new List<string>();
+        network.StartRejected += rejected.Add;
+
+        SendStartRejection(1, "Older request.");
+        SendStartRejection(3, "Request that was never sent.");
+        Assert.That(rejected, Is.Empty);
+        Assert.That(network.IsStarting, Is.True);
+
+        SendStartRejection(2, "The duel has already started.");
+        SendStartRejection(2, "The duel has already started.");
+        Assert.That(rejected, Is.EqualTo(new[] { "The duel has already started." }));
+        Assert.That(network.IsStarting, Is.False);
+        Assert.That(network.IsInLobby, Is.True);
+    }
+
+    [Test]
+    public void PreparingSnapshotWithoutBattleMap_LeavesRoomInsteadOfPublishing()
+    {
+        CreateNetwork(0);
+        SetField("currentSnapshot", Snapshot(0, 100, MapShape.Random, LobbyPhase.Lobby));
+        SetField("requestedStart", 1u);
+        SetField("startPending", true);
+        var received = new List<NetworkLobbySnapshot>();
+        var rejected = new List<string>();
+        var closed = new List<string>();
+        network.SnapshotChanged += received.Add;
+        network.StartRejected += rejected.Add;
+        network.Closed += closed.Add;
+
+        SendSnapshot(Snapshot(0, 100, MapShape.Random, LobbyPhase.Preparing));
+        SendStartRejection(1, "Late rejection.");
+        Assert.That(received, Is.Empty);
+        Assert.That(network.IsInLobby, Is.False);
+        Assert.That(network.IsStarting, Is.False);
+
+        Invoke("Update");
+        Assert.That(closed, Is.EqualTo(new[] { "The battle map could not be generated." }));
+        Assert.That(rejected, Is.Empty);
+    }
+
+    [Test]
+    public void BattleSnapshotAfterPreparing_IsPublishedWithoutBuildingTheMapAgain()
+    {
+        CreateNetwork(0);
+        SetField("currentSnapshot", GuestSnapshot(LobbyPhase.Preparing));
+        SetField("createdRoom", false);
+        var received = new List<NetworkLobbySnapshot>();
+        network.SnapshotChanged += received.Add;
+
+        SendSnapshot(GuestSnapshot(LobbyPhase.Battle));
+        Assert.That(received.Count, Is.EqualTo(1));
+        Assert.That(received[0].Phase, Is.EqualTo(LobbyPhase.Battle));
+        Assert.That(network.IsInLobby, Is.True);
+        Assert.That(network.IsStarting, Is.True);
+    }
+
+    [Test]
+    public void SnapshotCannotMoveRoomBackToAnEarlierPhase()
+    {
+        CreateNetwork(0);
+        SetField("currentSnapshot", Snapshot(0, 100, MapShape.Random, LobbyPhase.Battle));
+        var received = new List<NetworkLobbySnapshot>();
+        network.SnapshotChanged += received.Add;
+
+        SendSnapshot(Snapshot(0, 100, MapShape.Random, LobbyPhase.Lobby));
+        Assert.That(received, Is.Empty);
+        Assert.That(network.IsInLobby, Is.False);
+    }
+
+    [TestCase(LobbyPhase.Preparing)]
+    [TestCase(LobbyPhase.Battle)]
+    public void JoiningRoomThatAlreadyStarted_IsRejected(LobbyPhase phase)
+    {
+        CreateNetwork(0);
+        SetField("inLobby", false);
+        SetField("connecting", true);
+        SetField("createdRoom", false);
+        SetField("requestedCode", "123456");
+        SetField("currentSnapshot", default(NetworkLobbySnapshot));
+        var received = new List<NetworkLobbySnapshot>();
+        network.SnapshotChanged += received.Add;
+
+        SendSnapshot(GuestSnapshot(phase));
+        Assert.That(received, Is.Empty);
+        Assert.That(network.IsInLobby, Is.False);
+        Assert.That(network.IsBusy, Is.True);
+    }
+
     void CreateNetwork(uint requestedRevision)
     {
         root = new GameObject("LobbyNetworkSettingsTests");
@@ -153,6 +269,36 @@ public class LobbyNetworkSettingsTests
         SettingsRevision = revision,
         Settings = new NetworkMapSettings(new MapGenerationSettings { Seed = seed, Shape = shape })
     };
+
+    // 방장 쪽에서 본, 상대가 들어온 방.
+    NetworkLobbySnapshot Snapshot(uint revision, int seed, MapShape shape, LobbyPhase phase)
+    {
+        NetworkLobbySnapshot snapshot = Snapshot(revision, seed, shape);
+        snapshot.OpponentPresent = true;
+        snapshot.GuestClientId = manager.LocalClientId + 1;
+        snapshot.Phase = phase;
+        return snapshot;
+    }
+
+    // 참가자 쪽에서 본 방.
+    NetworkLobbySnapshot GuestSnapshot(LobbyPhase phase)
+    {
+        NetworkLobbySnapshot snapshot = Snapshot(0, 100, MapShape.Random, phase);
+        snapshot.HostClientId = manager.LocalClientId + 1;
+        snapshot.GuestClientId = manager.LocalClientId;
+        return snapshot;
+    }
+
+    void SendStartRejection(uint request, string reason)
+    {
+        using var writer = new FastBufferWriter(128, Allocator.Temp);
+        writer.WriteValueSafe(request);
+        writer.WriteValueSafe(reason);
+        using var reader = new FastBufferReader(writer, Allocator.Temp);
+        Invoke("OnStartRejected", NetworkManager.ServerClientId, reader);
+    }
+
+    T GetField<T>(string name) => (T)typeof(LobbyNetwork).GetField(name, PrivateInstance).GetValue(network);
 
     void SendSnapshot(NetworkLobbySnapshot snapshot)
     {

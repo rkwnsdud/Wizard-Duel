@@ -9,6 +9,7 @@ public struct NetworkLobbySnapshot : INetworkSerializable
     public bool OpponentPresent;
     public ulong GuestClientId;
     public uint SettingsRevision;
+    public LobbyPhase Phase;
     public NetworkMapSettings Settings;
 
     public bool IsValidFor(ulong clientId)
@@ -16,6 +17,8 @@ public struct NetworkLobbySnapshot : INetworkSerializable
         bool isMember = HostClientId == clientId || (OpponentPresent && GuestClientId == clientId);
         if (!isMember || (OpponentPresent && GuestClientId == HostClientId)) return false;
         if (!LobbySession.IsValidCode(Code)) return false;
+        // 전투 준비와 전투는 두 명이 모두 있어야 시작된다.
+        if (!Enum.IsDefined(typeof(LobbyPhase), Phase) || (Phase != LobbyPhase.Lobby && !OpponentPresent)) return false;
         return DuelSettings.ValidateSettings(new DuelSettings { Map = Settings.ToSettings() }, out _);
     }
 
@@ -28,6 +31,7 @@ public struct NetworkLobbySnapshot : INetworkSerializable
         serializer.SerializeValue(ref OpponentPresent);
         serializer.SerializeValue(ref GuestClientId);
         serializer.SerializeValue(ref SettingsRevision);
+        serializer.SerializeValue(ref Phase);
         serializer.SerializeValue(ref Settings);
     }
 }

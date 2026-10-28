@@ -6871,9 +6871,9 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls: []
   m_text: "\uB4A4\uC758 \uB9F5\uC740 \uC9C0\uAE08 \uC124\uC815\uC73C\uB85C \uB9CC\uB4E0
-    \uBBF8\uB9AC\uBCF4\uAE30\uC608\uC694. \uC2E4\uC81C \uC804\uD22C \uB9F5\uC740
-    \uAC8C\uC784\uC744 \uC2DC\uC791\uD560 \uB54C \uC11C\uBC84 \uC2DC\uB4DC\uB85C
-    \uC0C8\uB85C \uB9CC\uB4E4\uC5B4\uC694."
+    \uBBF8\uB9AC\uBCF4\uAE30\uC608\uC694. \uAC8C\uC784\uC744 \uC2DC\uC791\uD558\uBA74
+    \uC11C\uBC84\uC640 \uB450 \uD654\uBA74\uC774 \uC774 \uC124\uC815 \uADF8\uB300\uB85C
+    \uC804\uD22C \uB9F5\uC744 \uB9CC\uB4E4\uC5B4\uC694."
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: ef2ba2f6499fe014a9ef0560a9e09d61, type: 2}
   m_sharedMaterial: {fileID: -550884184196037227, guid: ef2ba2f6499fe014a9ef0560a9e09d61, type: 2}
@@ -13262,6 +13262,7 @@ GameObject:
   - component: {fileID: 1557303529}
   - component: {fileID: 1557303531}
   - component: {fileID: 1557303530}
+  - component: {fileID: 1557303533}
   m_Layer: 0
   m_Name: Main Camera
   m_TagString: MainCamera
@@ -13387,6 +13388,22 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1557303533
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1557303528}
+  m_Enabled: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 87a5a5697a098f14fa8320523c8fc602, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::CameraFollow
+  player: {fileID: 0}
+  height: 10
+  distance: 8
+  lookHeight: 1
 --- !u!1 &1565942264
 GameObject:
   m_ObjectHideFlags: 0
@@ -14844,6 +14861,8 @@ MonoBehaviour:
   previewExtent: {x: 0.46, y: 0.55}
   previewSway: 2.5
   viewSharpness: 2.2
+  battleFieldOfView: 60
+  battleFog: {x: 40, y: 160}
 --- !u!4 &1688729993
 Transform:
   m_ObjectHideFlags: 0
@@ -15813,6 +15832,103 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1783244885}
   m_CullTransparentMesh: 1
+--- !u!1 &1787997945
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1787997949}
+  - component: {fileID: 1787997948}
+  - component: {fileID: 1787997947}
+  - component: {fileID: 1787997946}
+  m_Layer: 0
+  m_Name: Duel Arena
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1787997946
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1787997945}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1650d58d57168244594e2fc57e9165c5, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::DuelArena
+  map: {fileID: 1787997947}
+  playerPrefabs:
+  - {fileID: 4760838517846775089, guid: 902e0f01f8488be408e2ba4f863b2e6e, type: 3}
+  - {fileID: 7265209467207546497, guid: 11be34856f0c18648be46d1282272402, type: 3}
+  combatDelayPadding: 0.15
+--- !u!114 &1787997947
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1787997945}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ff6a83c9313be934cbbfc5abee4338e2, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::ProceduralMap
+  generateOnAwake: 0
+  seed: 7301
+  automaticSize: 1
+  size: {x: 31, y: 31}
+  shape: 0
+  obstacleDensity: 0.15
+  symmetry: 1
+  noiseStrength: 0.5
+  noiseScale: 0.75
+--- !u!114 &1787997948
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1787997945}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 948515391d62fae449b67dfc0f274619, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::BlockFactory
+  floorBlocks:
+  - {fileID: 1995253096088471428, guid: 986326ec0bfd8f7429656c1d39ddcd2d, type: 3}
+  - {fileID: 5527359961032963257, guid: cc96f872f659b7149be488c8b6ab806a, type: 3}
+  - {fileID: 5261112240152171569, guid: d70230f6be575094d92601966232ed68, type: 3}
+  - {fileID: 818492886333140396, guid: 71e913f2dbf37f74d8694f53a993f571, type: 3}
+  wallBlocks:
+  - {fileID: 6333956503313861839, guid: 278e048348be1e742b16babc96f2f61d, type: 3}
+  - {fileID: 2556189777204332245, guid: 51340cd2cd81764418be31faf0c03e6a, type: 3}
+  - {fileID: 6035069288633617733, guid: 2b5989713fb00e249829f90e0c154231, type: 3}
+  - {fileID: 7650263968882925252, guid: acefa3fa65caa1d419a6aeaaa4480ade, type: 3}
+  spawnBlocks:
+  - {fileID: 6194714110399475094, guid: 57cb17e3681ece848b9f82433d8f88ff, type: 3}
+  - {fileID: 7208045001040428938, guid: ff3c1e5e26ff0b545845bfafb0351f39, type: 3}
+--- !u!4 &1787997949
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1787997945}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1800006829
 GameObject:
   m_ObjectHideFlags: 0
@@ -17507,6 +17623,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::LobbyNetwork
   manager: {fileID: 2056890471}
   transport: {fileID: 2056890472}
+  arena: {fileID: 1787997946}
   serverAddress: 127.0.0.1
   port: 7777
   clientPresentation:
@@ -17754,6 +17871,7 @@ SceneRoots:
   - {fileID: 1557303532}
   - {fileID: 132266580}
   - {fileID: 1500475749}
+  - {fileID: 1787997949}
   - {fileID: 177177990}
   - {fileID: 1688729993}
   - {fileID: 15067042}

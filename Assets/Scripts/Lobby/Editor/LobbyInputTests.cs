@@ -300,6 +300,76 @@ public class LobbyInputTests
     }
 
     [UnityTest]
+    public IEnumerator StartButton_WorksOnlyForHostWithOpponent_AndLocksWhileStarting()
+    {
+        Button button = Field<Button>(lobby, "startButton");
+        MapSettingsPanel panel = Field<MapSettingsPanel>(lobby, "mapSettings");
+        int requests = 0, edits = 0;
+        lobby.StartRequested += () => requests++;
+        panel.Changed += _ => edits++;
+        OpenLobby(true);
+        Assert.That(button.interactable, Is.False, "The host cannot start alone.");
+
+        lobby.SetOpponentPresent(true);
+        Assert.That(button.interactable, Is.True);
+        lobby.RequestStart();
+        lobby.SetStarting(true);
+        lobby.RequestStart();
+        Assert.That(requests, Is.EqualTo(1), "Pressing again while starting must not send another request.");
+        Assert.That(button.interactable, Is.False);
+        Field<Slider>(panel, "density").value = 29;
+        Assert.That(edits, Is.Zero, "Settings are locked once the duel starts.");
+
+        // 시작이 거절되면 다시 누를 수 있고 설정도 바꿀 수 있다.
+        lobby.SetStarting(false);
+        Assert.That(button.interactable, Is.True);
+        Field<Slider>(panel, "density").value = 30;
+        Assert.That(edits, Is.EqualTo(1));
+
+        OpenLobby(false);
+        lobby.SetOpponentPresent(true);
+        Assert.That(button.gameObject.activeSelf, Is.False);
+        lobby.RequestStart();
+        Assert.That(requests, Is.EqualTo(1), "A guest cannot request the start.");
+        yield return WaitForFrames(1);
+    }
+
+    [UnityTest]
+    public IEnumerator PreparingSnapshotHidesPreview_AndRoomClosedBeforeSpawnReturnsToStart()
+    {
+        flow.enabled = true;
+        TitleBackdrop backdrop = Field<TitleBackdrop>(flow, "backdrop");
+        ProceduralMap titleMap = Field<ProceduralMap>(backdrop, "map");
+        OpenLobby(true);
+        SetField(flow, "wantsLobby", true);
+        SetField(flow, "lobbyVisible", true);
+        NetworkLobbySnapshot preparing = Snapshot(0, 7301);
+        preparing.OpponentPresent = true;
+        preparing.GuestClientId = manager.LocalClientId + 1;
+        preparing.Phase = LobbyPhase.Preparing;
+        SetField(network, "inLobby", true);
+        SetField(network, "currentSnapshot", preparing);
+
+        InvokeFlow("OnSnapshot", preparing);
+        yield return WaitForFrames(2);
+        Assert.That(titleMap.gameObject.activeSelf, Is.False, "The battle map takes the preview's place.");
+        Assert.That(Field<Button>(lobby, "startButton").interactable, Is.False);
+        Assert.That(lobby.gameObject.activeSelf, Is.True, "The lobby stays until the local player spawns.");
+        Assert.That(Field<bool>(flow, "battleVisible"), Is.False);
+        Assert.That(Field<Coroutine>(flow, "transition"), Is.Not.Null);
+
+        SetField(network, "inLobby", false);
+        InvokeFlow("OnClosed", "A player left, so the room was closed.");
+        yield return new WaitForSecondsRealtime(1.5f);
+        Assert.That(start.gameObject.activeSelf, Is.True);
+        Assert.That(lobby.gameObject.activeSelf, Is.False);
+        Assert.That(titleMap.gameObject.activeSelf, Is.True);
+        Assert.That(Field<Coroutine>(flow, "transition"), Is.Null);
+        Assert.That(Field<bool>(flow, "lobbyVisible"), Is.False);
+        Assert.That(Field<bool>(flow, "battleVisible"), Is.False);
+    }
+
+    [UnityTest]
     public IEnumerator CreateRoom_CopiesEntireTitleMap_HoldsItUntilApproval_AndReusesItsBlocks()
     {
         TitleBackdrop backdrop = PrepareFastTitleCycle();

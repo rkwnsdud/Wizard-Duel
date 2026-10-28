@@ -64,6 +64,105 @@ public class NetworkLobbySnapshotTests
         Assert.That(receivedLayout.SpawnB, Is.EqualTo(sourceLayout.SpawnB));
     }
 
+    [TestCase(LobbyPhase.Lobby)]
+    [TestCase(LobbyPhase.Preparing)]
+    [TestCase(LobbyPhase.Battle)]
+    public void WireRoundTrip_PreservesPhase(LobbyPhase phase)
+    {
+        var snapshot = new NetworkLobbySnapshot
+        {
+            Code = "234567",
+            HostClientId = 17,
+            OpponentPresent = true,
+            GuestClientId = 29,
+            SettingsRevision = 4,
+            Phase = phase,
+            Settings = new NetworkMapSettings(Settings().Map)
+        };
+
+        using var writer = new FastBufferWriter(256, Allocator.Temp);
+        writer.WriteNetworkSerializable(snapshot);
+        using var reader = new FastBufferReader(writer, Allocator.Temp);
+        reader.ReadNetworkSerializable(out NetworkLobbySnapshot received);
+
+        Assert.That(reader.Position, Is.EqualTo(reader.Length));
+        Assert.That(received.Phase, Is.EqualTo(phase));
+        Assert.That(received.SettingsRevision, Is.EqualTo(4u));
+        Assert.That(received.IsValidFor(17), Is.True);
+        Assert.That(received.IsValidFor(29), Is.True);
+    }
+
+    [Test]
+    public void StartedPhaseNeedsOpponent_AndUnknownPhaseIsInvalid()
+    {
+        var snapshot = new NetworkLobbySnapshot
+        {
+            Code = "234567",
+            HostClientId = 17,
+            Phase = LobbyPhase.Lobby,
+            Settings = new NetworkMapSettings(Settings().Map)
+        };
+        Assert.That(snapshot.IsValidFor(17), Is.True);
+
+        foreach (LobbyPhase started in new[] { LobbyPhase.Preparing, LobbyPhase.Battle })
+        {
+            snapshot.Phase = started;
+            Assert.That(snapshot.IsValidFor(17), Is.False);
+        }
+
+        snapshot.OpponentPresent = true;
+        snapshot.GuestClientId = 29;
+        snapshot.Phase = (LobbyPhase)3;
+        Assert.That(snapshot.IsValidFor(17), Is.False);
+        snapshot.Phase = (LobbyPhase)255;
+        Assert.That(snapshot.IsValidFor(29), Is.False);
+    }
+
+    // LobbyNetwork는 모든 메시지를 256바이트 버퍼로 보낸다. 가장 큰 값으로 채워도 그 안에 들어가야 한다.
+    [Test]
+    public void LargestSnapshotAndStartMessagesFitLobbyBuffer()
+    {
+        const int bufferSize = 256;
+        var snapshot = new NetworkLobbySnapshot
+        {
+            Code = "999999",
+            HostClientId = ulong.MaxValue,
+            OpponentPresent = true,
+            GuestClientId = ulong.MaxValue - 1,
+            SettingsRevision = uint.MaxValue,
+            Phase = LobbyPhase.Battle,
+            Settings = new NetworkMapSettings(WithMapSizeAndRanges(
+                new Vector2Int(DuelSettings.MaxSize, DuelSettings.MaxSize), DuelSettings.MaxObstacleDensity, 1, 2).Map)
+        };
+        using (var writer = new FastBufferWriter(bufferSize, Allocator.Temp))
+        {
+            writer.WriteNetworkSerializable(snapshot);
+            Assert.That(writer.Length, Is.LessThanOrEqualTo(bufferSize));
+        }
+
+        string[] reasons =
+        {
+            "The lobby request is invalid.",
+            "Only the connected host can start the duel.",
+            "Two players must join before the duel starts.",
+            "The duel has already started.",
+            "The battle map could not be generated."
+        };
+        foreach (string reason in reasons)
+        {
+            using var rejection = new FastBufferWriter(bufferSize, Allocator.Temp);
+            rejection.WriteValueSafe(uint.MaxValue);
+            rejection.WriteValueSafe(reason);
+            Assert.That(rejection.Length, Is.LessThanOrEqualTo(bufferSize));
+        }
+
+        string fingerprint = new string('F', 64);
+        using var mapReady = new FastBufferWriter(bufferSize, Allocator.Temp);
+        mapReady.WriteValueSafe(uint.MaxValue);
+        mapReady.WriteValueSafe(fingerprint);
+        Assert.That(mapReady.Length, Is.LessThanOrEqualTo(bufferSize));
+    }
+
     [TestCase(0)]
     [TestCase(-37)]
     [TestCase(6100)]

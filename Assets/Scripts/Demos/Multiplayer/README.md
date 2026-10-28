@@ -6,7 +6,29 @@
 
 **Tools > Wizard Duel > Network Test** 창의 **Mode**를 `Main`으로 두고 **Build**를 누르면 `Assets/Scenes/Main.unity`만 Development 빌드해 `Build/LobbyTest/WizardDuel.exe`에 만든다. **Server**는 창 없는 전용 서버로 UDP 7777을 열고, **Client**는 보이는 창에서 `-join 127.0.0.1` 주소를 설정해 시작 화면을 띄운다. `-join`은 방을 만들거나 참가하지 않으므로, 클라이언트 화면에서 **Create**를 누르거나 방장이 보여 준 6자리 코드로 **Join**한다.
 
-서버는 한 번에 방 하나와 확정 참가자 두 명만 받는다. Main 대기실에서 방을 만들면 현재 `TitleBackdrop.Current`의 전체 설정을 복사하고, 서버는 전달받은 시드를 그대로 저장해 두 참가자에게 동기화한다. 시드는 입력란에서 편집하거나 **새로 뽑기**로 바꿀 수 있으며, 다른 설정을 변경해도 시드는 유지된다. 접속한 두 참가자와 서버는 프로토콜 버전 2를 사용하므로 같은 빌드로 실행해야 한다. 확정 참가자 중 한 명이라도 나가면 방 전체를 닫는다. Main 빌드는 대기실·설정 동기화·맵 미리보기 검증 범위이며 전투는 시작하지 않는다. 빌드와 로그는 NetworkDemo와 분리해 `Build/LobbyTest/`, `Logs/LobbyTest/server.log`, `client1.log`, `client2.log`에 둔다. `Open Logs`에서 같은 로그 폴더를 열 수 있고, `[LobbyPreview]` 로그의 시드·형태·크기·스폰 셀·hash를 비교한다. 상세 비교 기록은 `Logs/LobbyTest/stage3-preview-comparison.json`에 있다.
+서버는 한 번에 방 하나와 확정 참가자 두 명만 받는다. Main 대기실에서 방을 만들면 현재 `TitleBackdrop.Current`의 전체 설정을 복사하고, 서버는 전달받은 시드를 그대로 저장해 두 참가자에게 동기화한다. 시드는 입력란에서 편집하거나 **새로 뽑기**로 바꿀 수 있으며, 다른 설정을 변경해도 시드는 유지된다. 접속한 두 참가자와 서버는 프로토콜 버전 4를 사용하므로 같은 빌드로 실행해야 한다. 확정 참가자 중 한 명이라도 나가면 방 전체를 닫는다. 빌드와 로그는 NetworkDemo와 분리해 `Build/LobbyTest/`, `Logs/LobbyTest/server.log`, `client1.log`, `client2.log`에 둔다. `Open Logs`에서 같은 로그 폴더를 열 수 있고, `[LobbyPreview]` 로그의 시드·형태·크기·스폰 셀·hash를 비교한다. 상세 비교 기록은 `Logs/LobbyTest/stage3-preview-comparison.json`에 있다.
+
+### Main에서 전투 시작
+
+- 두 명이 확정 참가하면 방장의 **게임 시작** 버튼이 활성화된다. 서버도 방장 권한·참가 인원·`Lobby` 단계를 검증하며, 시작 후 설정 변경과 중복 시작을 거절한다.
+- `Preparing` 단계에서 서버와 두 클라이언트가 저장된 시드·맵 설정으로 전투 맵을 만든다. `[Arena] Ready`의 fingerprint는 논리 레이아웃과 두 월드 스폰 위치·회전의 SHA-256이다. 세 프로세스의 지문이 일치한 뒤에만 방장(파랑)과 참가자(빨강)를 소환한다.
+- 소환 이펙트가 끝나면 `Battle` 단계로 바뀌고 소유자의 이동·조준·공격 입력을 켠다. 대기실 미리보기를 감추고 카메라는 내 플레이어를 따라간다.
+- 시작 전에는 서버의 `playerobjects=0 mapgenerated=False`를 확인한다. 시작 버튼을 반복해도 `Battle preparing`·`Players spawned`가 한 번씩만 기록되고, 두 플레이어의 스폰 위치·회전이 `[Arena] Spawn`과 일치해야 한다.
+- 상대 이탈 시 플레이어와 맵을 정리하고 시작 화면으로 돌아간다. 승패 표시, 연결을 유지한 대기실 복귀·재대결, 공개 무기 설정은 후속 작업이다.
+- 기존 전투 시작 검증 기록은 `Logs/LobbyTest/stage5-validation.txt`와 `stage5-editmode.xml`에 있다. 해당 시점 EditMode 448개와 Main 빌드, 실제 서버·클라이언트 2개의 반복 시작·이탈·새 방 시작을 검증했다. 최신 `main` 통합 후 재검증 결과는 `Logs/Issue19Pr/`에 기록한다.
+
+### Main 전투의 공격·피해·사망
+
+- 공격한 클라이언트가 충전·발사·명중을 판정한다. 서버는 보고받은 피해를 체력에 반영하고 첫 패배를 알린다. 클라이언트가 보고한 명중과 피해량을 신뢰한다.
+- `PlayerAttack`은 서버 응답을 기다리지 않고 시전 애니메이션을 시작한다. `PlayAttackRpc`는 상대에게 충전값을 전달한다.
+- 소유자의 `FireMagic`에서 `IWeapon.Fire`를 호출한다. `IShotSink.Broadcast`는 로컬 연출을 즉시 재생하고 `ShotRpc`로 상대에게 같은 시작점·끝점을 전달한다.
+- `IShotSink.Hit`은 `ReportHitRpc`로 대상·공격 ID·타격 번호·피해량을 서버에 보고한다. 보고는 공격자 소유의 네트워크 오브젝트에서만 보낼 수 있다.
+- `DuelCombatState`는 (공격자 슬롯, 공격 ID, 타격 번호) 중복, 자기 피해, 잘못된 피해량, 사망 이후 피해를 무시한다. 체력은 0 아래로 내려가지 않는다.
+- 체력은 서버만 쓰는 `NetworkVariable<float>`로 동기화한다. 각 화면의 `PlayerHealth`는 체력이 0이면 입력과 애니메이터를 멈춘다. 첫 패배는 `DuelArena`를 거쳐 `LobbyNetwork.OnPlayerDefeated`로 전달된다.
+- 온라인 무기는 `IWeapon`을 구현한다. 현재는 `DuelLightningWeapon`을 사용하며, 기존 `LightningWeapon`·`LightningBolt`와 PlayerTest 오프라인 공격은 독립적이다.
+- 상대 캐릭터의 콜라이더도 클라이언트에서 켜 두어 명중 판정에 사용한다. 상대의 이동·조준·공격 입력은 꺼 둔다.
+- 서버 로그: `[Combat] Hit … health=`, `[Arena] … defeated`, `[Lobby] Player defeated … loser= winner=`
+- `Logs/Issue46/`의 검증 기록은 이전 서버 판정 구현의 기록이다.
 
 검사와 인계:
 

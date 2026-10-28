@@ -35,10 +35,13 @@ public class MapSettingsPanel : MonoBehaviour
     DuelSettings settings = new DuelSettings();
     Coroutine[] highlights;
     bool isHost;
+    // 전투 준비가 시작되면 방장도 설정을 바꿀 수 없다.
+    bool locked;
     bool seedInputChanged;
 
     // 입력 칸에서 글자를 넣고 있는지.
     public bool IsTyping => seedField.isFocused || widthField.isFocused || heightField.isFocused;
+    bool Editable => isHost && !locked;
 
     void Awake()
     {
@@ -66,12 +69,19 @@ public class MapSettingsPanel : MonoBehaviour
         seedInputChanged = false;
         foreach (Graphic highlight in rowHighlights) SetAlpha(highlight, 0f);
         lockNote.SetActive(!isHost);
+        SetLocked(false);
+        ShowSettings();
+    }
+
+    // 전투 준비가 시작되면 방장 컨트롤도 참가자처럼 흐리게 잠근다.
+    public void SetLocked(bool locked)
+    {
+        this.locked = locked;
         foreach (CanvasGroup control in hostControls)
         {
-            control.interactable = control.blocksRaycasts = isHost;
-            control.alpha = isHost ? 1f : 0.5f;
+            control.interactable = control.blocksRaycasts = Editable;
+            control.alpha = Editable ? 1f : 0.5f;
         }
-        ShowSettings();
     }
 
     // 방장이 바꾼 설정을 참가자 화면에 반영하고, 바뀐 줄을 잠깐 밝힌다.
@@ -100,7 +110,7 @@ public class MapSettingsPanel : MonoBehaviour
     // 시드 줄의 "새로" 버튼이 호출한다.
     public void RollSeed()
     {
-        if (!isHost) return;
+        if (!Editable) return;
         settings.Map.Seed = Random.Range(1000, 100000);
         seedInputChanged = false;
         seedField.SetTextWithoutNotify(settings.Map.Seed.ToString());
@@ -112,7 +122,7 @@ public class MapSettingsPanel : MonoBehaviour
     {
         bool changed = seedInputChanged;
         seedInputChanged = false;
-        if (isHost && changed && !seedField.wasCanceled &&
+        if (Editable && changed && !seedField.wasCanceled &&
             int.TryParse(seedField.text, out int seed) && seed != settings.Map.Seed)
         {
             settings.Map.Seed = seed;
@@ -125,7 +135,7 @@ public class MapSettingsPanel : MonoBehaviour
     // 컨트롤의 값을 읽어 설정에 담고 알린다. 범위를 벗어난 입력은 고쳐서 다시 보여 준다.
     void Edit()
     {
-        if (!isHost) return;
+        if (!Editable) return;
         MapGenerationSettings map = settings.Map;
         Vector2Int size = map.Size ?? new Vector2Int(31, 31);
         if (int.TryParse(widthField.text, out int width)) size.x = Mathf.Clamp(width, DuelSettings.MinSize, DuelSettings.MaxSize);
