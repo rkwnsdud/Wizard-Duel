@@ -5,7 +5,8 @@ using Unity.Netcode;
 public struct LobbyJoinRequest : INetworkSerializable
 {
     // 3: 스냅샷에 방 단계를 넣고 전투 시작·맵 준비 메시지를 추가했다.
-    public const int CurrentVersion = 3;
+    // 4: 전투 플레이어에 공격 요청·승인 RPC와 서버 체력을 추가했다.
+    public const int CurrentVersion = 4;
 
     public int Version;
     public bool CreateRoom;

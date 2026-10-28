@@ -18,6 +18,9 @@ public class PlayerAttack : MonoBehaviour
     private bool hasFired;
 
     public bool IsAttacking { get; private set; }
+    // 온라인 전투에서 DuelPlayer가 넣는다. 없으면 오프라인으로 바로 공격한다.
+    public IAttackAuthority Authority { get; set; }
+    public WeaponBase Weapon => currentWeapon;
 
     private void Awake()
     {
@@ -122,6 +125,13 @@ public class PlayerAttack : MonoBehaviour
 
     private void CommitAttack(float chargeRatio)
     {
+        PlayAttack(chargeRatio);
+        Authority?.StartAttack(chargeRatio);
+    }
+
+    // 소유자는 즉시 재생하고 상대는 전달받은 충전값으로 재생한다.
+    public void PlayAttack(float chargeRatio)
+    {
         if (playerHealth != null && playerHealth.IsDead)
             return;
 
@@ -144,7 +154,12 @@ public class PlayerAttack : MonoBehaviour
 
         hasFired = true;
 
-        if (currentWeapon != null)
+        // 온라인 명중은 공격한 클라이언트가 판정하고 체력은 서버가 반영한다.
+        if (Authority != null)
+        {
+            Authority.FireMagic(pendingChargeRatio);
+        }
+        else if (currentWeapon != null)
         {
             currentWeapon.Fire(pendingChargeRatio);
         }
