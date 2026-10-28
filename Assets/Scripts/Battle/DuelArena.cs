@@ -16,6 +16,7 @@ public sealed class DuelArena : MonoBehaviour
 
     readonly List<NetworkObject> players = new List<NetworkObject>();
     Coroutine combat;
+    Action<int> playerDefeated;
 
     public bool HasMap => map.GeneratedLayout != null;
     public string Fingerprint { get; private set; }
@@ -44,8 +45,10 @@ public sealed class DuelArena : MonoBehaviour
     }
 
     // 서버에서 방장과 참가자를 각자의 스폰 위치에 소환하고, 스폰 이펙트가 끝나면 전투 입력을 켠다.
-    public void SpawnPlayers(ulong host, ulong guest, Action combatEnabled)
+    // playerDefeated는 먼저 쓰러진 플레이어의 슬롯으로 한 번만 불린다.
+    public void SpawnPlayers(ulong host, ulong guest, Action combatEnabled, Action<int> playerDefeated)
     {
+        this.playerDefeated = playerDefeated;
         ulong[] owners = { host, guest };
         var spawned = new DuelPlayer[owners.Length];
         for (int slot = 0; slot < owners.Length; slot++)
@@ -55,9 +58,17 @@ public sealed class DuelArena : MonoBehaviour
             player.SpawnAsPlayerObject(owners[slot]);
             players.Add(player);
             spawned[slot] = player.GetComponent<DuelPlayer>();
+            if (spawned[slot] != null) spawned[slot].Defeated += OnPlayerDefeated;
             Debug.Log($"[Arena] Player-{slot + 1} owner={owners[slot]} position={spawn.position} rotation={spawn.rotation}");
         }
         combat = StartCoroutine(EnableCombat(spawned, combatEnabled));
+    }
+
+    void OnPlayerDefeated(DuelPlayer player)
+    {
+        Debug.Log($"[Arena] Player-{player.Slot + 1} defeated owner={player.OwnerClientId} position={player.transform.position}");
+        playerDefeated?.Invoke(player.Slot);
+        playerDefeated = null;
     }
 
     IEnumerator EnableCombat(DuelPlayer[] spawned, Action combatEnabled)
@@ -77,6 +88,7 @@ public sealed class DuelArena : MonoBehaviour
     {
         if (combat != null) StopCoroutine(combat);
         combat = null;
+        playerDefeated = null;
         foreach (NetworkObject player in players)
         {
             if (player == null) continue;

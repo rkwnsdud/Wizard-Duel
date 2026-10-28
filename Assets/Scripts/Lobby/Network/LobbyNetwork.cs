@@ -502,7 +502,7 @@ public sealed class LobbyNetwork : MonoBehaviour
         if (!readyClients.Add(senderId)) return;
         Debug.Log($"[Lobby] Client {senderId} map ready ({readyClients.Count}/2) fingerprint={fingerprint}");
         if (!readyClients.Contains(session.HostClientId) || !readyClients.Contains(session.GuestClientId)) return;
-        arena.SpawnPlayers(session.HostClientId, session.GuestClientId, OnCombatEnabled);
+        arena.SpawnPlayers(session.HostClientId, session.GuestClientId, OnCombatEnabled, OnPlayerDefeated);
         Debug.Log($"[Lobby] Players spawned code={session.RoomCode} playerobjects={manager.SpawnManager.PlayerObjects.Count}");
     }
 
@@ -510,6 +510,15 @@ public sealed class LobbyNetwork : MonoBehaviour
     {
         if (closing || !session.BeginBattle()) return;
         BroadcastSnapshot();
+    }
+
+    // 먼저 쓰러진 플레이어 한 명만 온다. 승자 표시와 로비 화면 복귀는 #19 후속 작업에서 이 결과를 쓴다.
+    void OnPlayerDefeated(int slot)
+    {
+        if (closing) return;
+        ulong loser = slot == 0 ? session.HostClientId : session.GuestClientId;
+        ulong winner = slot == 0 ? session.GuestClientId : session.HostClientId;
+        Debug.Log($"[Lobby] Player defeated code={session.RoomCode} slot={slot} loser={loser} winner={winner} phase={session.Phase}");
     }
 
     void OnDisconnected(ulong clientId)
