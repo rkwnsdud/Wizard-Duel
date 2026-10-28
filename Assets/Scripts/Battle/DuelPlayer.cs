@@ -54,7 +54,7 @@ public sealed class DuelPlayer : NetworkBehaviour, IAttackAuthority, IShotSink
             combat = new DuelCombatState(slot, playerHealth.MaxHealth);
             health.Value = combat.Health;
         }
-        else health.OnValueChanged += OnHealthChanged;
+        health.OnValueChanged += OnHealthChanged;
         ApplyHealth(health.Value);
         combatEnabled.OnValueChanged += OnCombatEnabledChanged;
         if (IsClient) PlaySpawnEffect();
@@ -125,7 +125,6 @@ public sealed class DuelPlayer : NetworkBehaviour, IAttackAuthority, IShotSink
             !player.combat.TryTakeHit(slot, attackId, hitIndex, damage, out bool defeatedNow)) return;
         Debug.Log($"[Combat] Hit slot={player.slot} attacker={slot} id={attackId} hit={hitIndex} health={player.combat.Health:F3}");
         player.health.Value = player.combat.Health;
-        player.ApplyHealth(player.combat.Health);
         if (defeatedNow) player.Defeated?.Invoke(player);
     }
 

@@ -10,7 +10,7 @@ public class PlayerAttack : MonoBehaviour
     [Min(0.01f)] [SerializeField] private float maxChargeTime = 2f;
 
     private bool isCharging;
-    private float chargeTime;
+    private float chargeStartedAt;
 
     private Animator animator;
 
@@ -24,7 +24,6 @@ public class PlayerAttack : MonoBehaviour
 
     private void Awake()
     {
-        inputActions = new PlayerInputActions();
         playerHealth = GetComponent<PlayerHealth>();
 
         // Keep player variants working if the weapon reference is not serialized on the variant.
@@ -35,15 +34,7 @@ public class PlayerAttack : MonoBehaviour
         animator = character.GetComponent<Animator>();
     }
 
-    private void Update()
-    {
-        if (isCharging)
-        {
-            chargeTime = Mathf.Min(chargeTime + Time.deltaTime, Mathf.Max(0f, maxChargeTime));
-        }
-    }
-
-    private float ChargeRatio => maxChargeTime > 0f ? Mathf.Clamp01(chargeTime / maxChargeTime) : 1f;
+    private float ChargeRatio => maxChargeTime > 0f ? Mathf.Clamp01((Time.time - chargeStartedAt) / maxChargeTime) : 1f;
 
     private void LateUpdate()
     {
@@ -53,10 +44,7 @@ public class PlayerAttack : MonoBehaviour
     }
     private void OnEnable()
     {
-        if (inputActions == null)
-        {
-            inputActions = new PlayerInputActions();
-        }
+        inputActions ??= new PlayerInputActions();
 
         inputActions.Player.Attack.started += AttackStarted;
         inputActions.Player.Attack.canceled += Attack;
@@ -78,7 +66,6 @@ public class PlayerAttack : MonoBehaviour
 
         if (currentWeapon != null) currentWeapon.HideChargePreview();
         isCharging = false;
-        chargeTime = 0f;
         IsAttacking = false;
         hasFired = false;
 
@@ -103,8 +90,8 @@ public class PlayerAttack : MonoBehaviour
         }
 
         isCharging = true;
-        chargeTime = 0f;
-        if (currentWeapon != null) currentWeapon.ShowChargePreview(ChargeRatio);
+        chargeStartedAt = Time.time;
+        currentWeapon.ShowChargePreview(ChargeRatio);
     }
 
     // 공격 버튼을 뗀 순간 공격 애니메이션 시작
