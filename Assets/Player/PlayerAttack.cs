@@ -7,6 +7,7 @@ public class PlayerAttack : MonoBehaviour
     private PlayerHealth playerHealth;
 
     [SerializeField] private WeaponBase currentWeapon;
+    public WeaponBase CurrentWeapon => currentWeapon;
     [Min(0.01f)] [SerializeField] private float maxChargeTime = 2f;
 
     private bool isCharging;
