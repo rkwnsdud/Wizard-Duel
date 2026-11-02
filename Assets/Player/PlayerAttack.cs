@@ -14,6 +14,19 @@ public class PlayerAttack : MonoBehaviour
     private float chargeStartedAt;
 
     private Animator animator;
+    private BasicWandIdlePose[] wandPoses;
+    private bool animationOnlyWandAttack;
+
+    private bool HasActiveWand()
+    {
+        foreach (var pose in wandPoses)
+            if (pose != null && pose.IsActiveFor(animator)) return true;
+        return false;
+    }
+
+    // PlayerTest keeps its previous WeaponBase reference while the animation-only
+    // wand is visible. Procedural weapon poses must honor the visible pose owner.
+    public bool IsWeaponPoseActive(WeaponBase weapon) => currentWeapon == weapon && !HasActiveWand();
 
     private float pendingChargeRatio;
     private bool hasFired;
@@ -33,6 +46,7 @@ public class PlayerAttack : MonoBehaviour
 
         Transform character = transform.Find("Wizard");
         animator = character.GetComponent<Animator>();
+        wandPoses = GetComponentsInChildren<BasicWandIdlePose>(true);
     }
 
     private float ChargeRatio => maxChargeTime > 0f ? Mathf.Clamp01((Time.time - chargeStartedAt) / maxChargeTime) : 1f;
@@ -84,7 +98,7 @@ public class PlayerAttack : MonoBehaviour
             return;
         }
 
-        if (currentWeapon == null || !currentWeapon.UsesCharge)
+        if (HasActiveWand() || currentWeapon == null || !currentWeapon.UsesCharge)
         {
             CommitAttack(0f);
             return;
@@ -124,6 +138,9 @@ public class PlayerAttack : MonoBehaviour
             return;
 
         pendingChargeRatio = chargeRatio;
+        // Capture the visual weapon at attack start; do not fire the old WeaponBase
+        // still serialized on PlayerTest while previewing the animation-only wand.
+        animationOnlyWandAttack = HasActiveWand();
         hasFired = false;
         IsAttacking = true;
 
@@ -141,6 +158,8 @@ public class PlayerAttack : MonoBehaviour
         }
 
         hasFired = true;
+
+        if (animationOnlyWandAttack) return;
 
         // 온라인 명중은 공격한 클라이언트가 판정하고 체력은 서버가 반영한다.
         if (Authority != null)

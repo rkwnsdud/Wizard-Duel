@@ -1,0 +1,2037 @@
+Original serialized blocks: 67; current: 75
+Only two Player prefab instances and two BasicWand instances changed.
+Added two BasicWandIdlePose components and six stripped object references.
+No temporary Player(Clone) remains. No scene created.
+[
+  {
+    "id": "1396498",
+    "changes": [
+      {
+        "before": {
+          "target": "{fileID: 3759419378231829450, guid: a797a62da8b406b42ad029f43ef9cd46, type: 3}",
+          "property": "m_LocalScale.x",
+          "value": "0.8139531",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 3759419378231829450, guid: a797a62da8b406b42ad029f43ef9cd46, type: 3}",
+          "property": "m_LocalScale.x",
+          "value": "1",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "before": {
+          "target": "{fileID: 3759419378231829450, guid: a797a62da8b406b42ad029f43ef9cd46, type: 3}",
+          "property": "m_LocalScale.y",
+          "value": "0.8139531",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 3759419378231829450, guid: a797a62da8b406b42ad029f43ef9cd46, type: 3}",
+          "property": "m_LocalScale.y",
+          "value": "1",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "before": {
+          "target": "{fileID: 3759419378231829450, guid: a797a62da8b406b42ad029f43ef9cd46, type: 3}",
+          "property": "m_LocalScale.z",
+          "value": "0.8139531",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 3759419378231829450, guid: a797a62da8b406b42ad029f43ef9cd46, type: 3}",
+          "property": "m_LocalScale.z",
+          "value": "1",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "before": {
+          "target": "{fileID: 3759419378231829450, guid: a797a62da8b406b42ad029f43ef9cd46, type: 3}",
+          "property": "m_LocalPosition.x",
+          "value": "-0.02",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 3759419378231829450, guid: a797a62da8b406b42ad029f43ef9cd46, type: 3}",
+          "property": "m_LocalPosition.x",
+          "value": "-0.006878698",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "before": {
+          "target": "{fileID: 3759419378231829450, guid: a797a62da8b406b42ad029f43ef9cd46, type: 3}",
+          "property": "m_LocalPosition.y",
+          "value": "0.145",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 3759419378231829450, guid: a797a62da8b406b42ad029f43ef9cd46, type: 3}",
+          "property": "m_LocalPosition.y",
+          "value": "0.12996401",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "before": {
+          "target": "{fileID: 3759419378231829450, guid: a797a62da8b406b42ad029f43ef9cd46, type: 3}",
+          "property": "m_LocalPosition.z",
+          "value": "0.026",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 3759419378231829450, guid: a797a62da8b406b42ad029f43ef9cd46, type: 3}",
+          "property": "m_LocalPosition.z",
+          "value": "0.05112066",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "before": {
+          "target": "{fileID: 3759419378231829450, guid: a797a62da8b406b42ad029f43ef9cd46, type: 3}",
+          "property": "m_LocalRotation.w",
+          "value": "0",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 3759419378231829450, guid: a797a62da8b406b42ad029f43ef9cd46, type: 3}",
+          "property": "m_LocalRotation.w",
+          "value": "-0.44810724",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "before": {
+          "target": "{fileID: 3759419378231829450, guid: a797a62da8b406b42ad029f43ef9cd46, type: 3}",
+          "property": "m_LocalRotation.x",
+          "value": "0",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 3759419378231829450, guid: a797a62da8b406b42ad029f43ef9cd46, type: 3}",
+          "property": "m_LocalRotation.x",
+          "value": "0.07729221",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "before": {
+          "target": "{fileID: 3759419378231829450, guid: a797a62da8b406b42ad029f43ef9cd46, type: 3}",
+          "property": "m_LocalRotation.y",
+          "value": "0.7071068",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 3759419378231829450, guid: a797a62da8b406b42ad029f43ef9cd46, type: 3}",
+          "property": "m_LocalRotation.y",
+          "value": "0.87767196",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "before": {
+          "target": "{fileID: 3759419378231829450, guid: a797a62da8b406b42ad029f43ef9cd46, type: 3}",
+          "property": "m_LocalRotation.z",
+          "value": "0.7071068",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 3759419378231829450, guid: a797a62da8b406b42ad029f43ef9cd46, type: 3}",
+          "property": "m_LocalRotation.z",
+          "value": "0.1513861",
+          "ref": "{fileID: 0}"
+        }
+      }
+    ]
+  },
+  {
+    "id": "257733373",
+    "changes": [
+      {
+        "before": {
+          "target": "{fileID: 337222326645421709, guid: 1ab917ea557eca240adc7d8b8a4aff86, type: 3}",
+          "property": "m_LocalRotation.w",
+          "value": "0.9669257",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 337222326645421709, guid: 1ab917ea557eca240adc7d8b8a4aff86, type: 3}",
+          "property": "m_LocalRotation.w",
+          "value": "0.9536341",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "before": {
+          "target": "{fileID: 337222326645421709, guid: 1ab917ea557eca240adc7d8b8a4aff86, type: 3}",
+          "property": "m_LocalRotation.x",
+          "value": "0.19868816",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 337222326645421709, guid: 1ab917ea557eca240adc7d8b8a4aff86, type: 3}",
+          "property": "m_LocalRotation.x",
+          "value": "0.18291797",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "before": {
+          "target": "{fileID: 337222326645421709, guid: 1ab917ea557eca240adc7d8b8a4aff86, type: 3}",
+          "property": "m_LocalRotation.y",
+          "value": "0.14045697",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 337222326645421709, guid: 1ab917ea557eca240adc7d8b8a4aff86, type: 3}",
+          "property": "m_LocalRotation.y",
+          "value": "0.1604561",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "before": {
+          "target": "{fileID: 337222326645421709, guid: 1ab917ea557eca240adc7d8b8a4aff86, type: 3}",
+          "property": "m_LocalRotation.z",
+          "value": "-0.07648302",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 337222326645421709, guid: 1ab917ea557eca240adc7d8b8a4aff86, type: 3}",
+          "property": "m_LocalRotation.z",
+          "value": "-0.17713529",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "before": {
+          "target": "{fileID: 884668948892092013, guid: 1ab917ea557eca240adc7d8b8a4aff86, type: 3}",
+          "property": "m_Controller",
+          "value": "",
+          "ref": "{fileID: 22100000, guid: 4c11a60ab2af4e14ebd3695358445a7b, type: 2}"
+        },
+        "after": {
+          "target": "{fileID: 884668948892092013, guid: 1ab917ea557eca240adc7d8b8a4aff86, type: 3}",
+          "property": "m_Controller",
+          "value": "",
+          "ref": "{fileID: 9100000, guid: 02eb5397f0b14884dae5b4d49ddc4333, type: 2}"
+        }
+      },
+      {
+        "before": {
+          "target": "{fileID: 1173026930725723731, guid: 1ab917ea557eca240adc7d8b8a4aff86, type: 3}",
+          "property": "m_LocalRotation.w",
+          "value": "0.74301326",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 1173026930725723731, guid: 1ab917ea557eca240adc7d8b8a4aff86, type: 3}",
+          "property": "m_LocalRotation.w",
+          "value": "0.77307016",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "before": {
+          "target": "{fileID: 1173026930725723731, guid: 1ab917ea557eca240adc7d8b8a4aff86, type: 3}",
+          "property": "m_LocalRotation.x",
+          "value": "-0.020173235",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 1173026930725723731, guid: 1ab917ea557eca240adc7d8b8a4aff86, type: 3}",
+          "property": "m_LocalRotation.x",
+          "value": "-0.0115145305",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "before": {
+          "target": "{fileID: 1173026930725723731, guid: 1ab917ea557eca240adc7d8b8a4aff86, type: 3}",
+          "property": "m_LocalRotation.y",
+          "value": "-0.17998767",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 1173026930725723731, guid: 1ab917ea557eca240adc7d8b8a4aff86, type: 3}",
+          "property": "m_LocalRotation.y",
+          "value": "-0.18074828",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "before": {
+          "target": "{fileID: 1173026930725723731, guid: 1ab917ea557eca240adc7d8b8a4aff86, type: 3}",
+          "property": "m_LocalRotation.z",
+          "value": "0.6443049",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 1173026930725723731, guid: 1ab917ea557eca240adc7d8b8a4aff86, type: 3}",
+          "property": "m_LocalRotation.z",
+          "value": "0.60791457",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "before": {
+          "target": "{fileID: 2346027089519666691, guid: 1ab917ea557eca240adc7d8b8a4aff86, type: 3}",
+          "property": "m_LocalRotation.w",
+          "value": "0.8165673",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 2346027089519666691, guid: 1ab917ea557eca240adc7d8b8a4aff86, type: 3}",
+          "property": "m_LocalRotation.w",
+          "value": "0.8185553",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "before": {
+          "target": "{fileID: 2346027089519666691, guid: 1ab917ea557eca240adc7d8b8a4aff86, type: 3}",
+          "property": "m_LocalRotation.x",
+          "value": "0.024666306",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 2346027089519666691, guid: 1ab917ea557eca240adc7d8b8a4aff86, type: 3}",
+          "property": "m_LocalRotation.x",
+          "value": "0.023133334",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "before": {
+          "target": "{fileID: 2346027089519666691, guid: 1ab917ea557eca240adc7d8b8a4aff86, type: 3}",
+          "property": "m_LocalRotation.y",
+          "value": "0.35127884",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 2346027089519666691, guid: 1ab917ea557eca240adc7d8b8a4aff86, type: 3}",
+          "property": "m_LocalRotation.y",
+          "value": "0.35138312",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "before": {
+          "target": "{fileID: 2346027089519666691, guid: 1ab917ea557eca240adc7d8b8a4aff86, type: 3}",
+          "property": "m_LocalRotation.z",
+          "value": "0.45739773",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 2346027089519666691, guid: 1ab917ea557eca240adc7d8b8a4aff86, type: 3}",
+          "property": "m_LocalRotation.z",
+          "value": "0.45383042",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "before": {
+          "target": "{fileID: 3101920563417186516, guid: 1ab917ea557eca240adc7d8b8a4aff86, type: 3}",
+          "property": "m_LocalRotation.w",
+          "value": "0.74590254",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 3101920563417186516, guid: 1ab917ea557eca240adc7d8b8a4aff86, type: 3}",
+          "property": "m_LocalRotation.w",
+          "value": "0.87689584",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "before": {
+          "target": "{fileID: 3101920563417186516, guid: 1ab917ea557eca240adc7d8b8a4aff86, type: 3}",
+          "property": "m_LocalRotation.x",
+          "value": "0.04164278",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 3101920563417186516, guid: 1ab917ea557eca240adc7d8b8a4aff86, type: 3}",
+          "property": "m_LocalRotation.x",
+          "value": "0.09582598",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "before": {
+          "target": "{fileID: 3101920563417186516, guid: 1ab917ea557eca240adc7d8b8a4aff86, type: 3}",
+          "property": "m_LocalRotation.y",
+          "value": "-0.22532505",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 3101920563417186516, guid: 1ab917ea557eca240adc7d8b8a4aff86, type: 3}",
+          "property": "m_LocalRotation.y",
+          "value": "-0.20814149",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "before": {
+          "target": "{fileID: 3101920563417186516, guid: 1ab917ea557eca240adc7d8b8a4aff86, type: 3}",
+          "property": "m_LocalRotation.z",
+          "value": "0.625399",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 3101920563417186516, guid: 1ab917ea557eca240adc7d8b8a4aff86, type: 3}",
+          "property": "m_LocalRotation.z",
+          "value": "0.42254966",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "before": {
+          "target": "{fileID: 3599924139111111831, guid: 1ab917ea557eca240adc7d8b8a4aff86, type: 3}",
+          "property": "m_LocalRotation.w",
+          "value": "0.9970291",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 3599924139111111831, guid: 1ab917ea557eca240adc7d8b8a4aff86, type: 3}",
+          "property": "m_LocalRotation.w",
+          "value": "-0.9751277",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "before": {
+          "target": "{fileID: 3599924139111111831, guid: 1ab917ea557eca240adc7d8b8a4aff86, type: 3}",
+          "property": "m_LocalRotation.x",
+          "value": "0.00000011385965",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 3599924139111111831, guid: 1ab917ea557eca240adc7d8b8a4aff86, type: 3}",
+          "property": "m_LocalRotation.x",
+          "value": "-0.124969125",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "before": {
+          "target": "{fileID: 3599924139111111831, guid: 1ab917ea557eca240adc7d8b8a4aff86, type: 3}",
+          "property": "m_LocalRotation.y",
+          "value": "0.07702557",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 3599924139111111831, guid: 1ab917ea557eca240adc7d8b8a4aff86, type: 3}",
+          "property": "m_LocalRotation.y",
+          "value": "-0.023269402",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "before": {
+          "target": "{fileID: 3599924139111111831, guid: 1ab917ea557eca240adc7d8b8a4aff86, type: 3}",
+          "property": "m_LocalRotation.z",
+          "value": "0.00000007322505",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 3599924139111111831, guid: 1ab917ea557eca240adc7d8b8a4aff86, type: 3}",
+          "property": "m_LocalRotation.z",
+          "value": "0.18156883",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "before": {
+          "target": "{fileID: 3889614445756582045, guid: 1ab917ea557eca240adc7d8b8a4aff86, type: 3}",
+          "property": "m_LocalRotation.w",
+          "value": "0.7180222",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 3889614445756582045, guid: 1ab917ea557eca240adc7d8b8a4aff86, type: 3}",
+          "property": "m_LocalRotation.w",
+          "value": "0.746537",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "before": {
+          "target": "{fileID: 3889614445756582045, guid: 1ab917ea557eca240adc7d8b8a4aff86, type: 3}",
+          "property": "m_LocalRotation.x",
+          "value": "-0.09325306",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 3889614445756582045, guid: 1ab917ea557eca240adc7d8b8a4aff86, type: 3}",
+          "property": "m_LocalRotation.x",
+          "value": "-0.08590853",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "before": {
+          "target": "{fileID: 3889614445756582045, guid: 1ab917ea557eca240adc7d8b8a4aff86, type: 3}",
+          "property": "m_LocalRotation.y",
+          "value": "-0.16634282",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 3889614445756582045, guid: 1ab917ea557eca240adc7d8b8a4aff86, type: 3}",
+          "property": "m_LocalRotation.y",
+          "value": "-0.17025214",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "before": {
+          "target": "{fileID: 3889614445756582045, guid: 1ab917ea557eca240adc7d8b8a4aff86, type: 3}",
+          "property": "m_LocalRotation.z",
+          "value": "0.6693863",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 3889614445756582045, guid: 1ab917ea557eca240adc7d8b8a4aff86, type: 3}",
+          "property": "m_LocalRotation.z",
+          "value": "0.63742954",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "before": {
+          "target": "{fileID: 4193432002914138287, guid: 1ab917ea557eca240adc7d8b8a4aff86, type: 3}",
+          "property": "m_LocalRotation.w",
+          "value": "0.96684694",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 4193432002914138287, guid: 1ab917ea557eca240adc7d8b8a4aff86, type: 3}",
+          "property": "m_LocalRotation.w",
+          "value": "0.925882",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "before": {
+          "target": "{fileID: 4193432002914138287, guid: 1ab917ea557eca240adc7d8b8a4aff86, type: 3}",
+          "property": "m_LocalRotation.x",
+          "value": "-0.22555543",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 4193432002914138287, guid: 1ab917ea557eca240adc7d8b8a4aff86, type: 3}",
+          "property": "m_LocalRotation.x",
+          "value": "0.24497561",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "before": {
+          "target": "{fileID: 4193432002914138287, guid: 1ab917ea557eca240adc7d8b8a4aff86, type: 3}",
+          "property": "m_LocalRotation.y",
+          "value": "0.08489171",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 4193432002914138287, guid: 1ab917ea557eca240adc7d8b8a4aff86, type: 3}",
+          "property": "m_LocalRotation.y",
+          "value": "-0.017241418",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "before": {
+          "target": "{fileID: 4193432002914138287, guid: 1ab917ea557eca240adc7d8b8a4aff86, type: 3}",
+          "property": "m_LocalRotation.z",
+          "value": "0.084410764",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 4193432002914138287, guid: 1ab917ea557eca240adc7d8b8a4aff86, type: 3}",
+          "property": "m_LocalRotation.z",
+          "value": "0.28711024",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "before": {
+          "target": "{fileID: 6070074840943651463, guid: 1ab917ea557eca240adc7d8b8a4aff86, type: 3}",
+          "property": "m_LocalRotation.w",
+          "value": "0.6689906",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 6070074840943651463, guid: 1ab917ea557eca240adc7d8b8a4aff86, type: 3}",
+          "property": "m_LocalRotation.w",
+          "value": "0.8224422",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "before": {
+          "target": "{fileID: 6070074840943651463, guid: 1ab917ea557eca240adc7d8b8a4aff86, type: 3}",
+          "property": "m_LocalRotation.x",
+          "value": "-0.022419916",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 6070074840943651463, guid: 1ab917ea557eca240adc7d8b8a4aff86, type: 3}",
+          "property": "m_LocalRotation.x",
+          "value": "0.04201649",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "before": {
+          "target": "{fileID: 6070074840943651463, guid: 1ab917ea557eca240adc7d8b8a4aff86, type: 3}",
+          "property": "m_LocalRotation.y",
+          "value": "-0.25450227",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 6070074840943651463, guid: 1ab917ea557eca240adc7d8b8a4aff86, type: 3}",
+          "property": "m_LocalRotation.y",
+          "value": "-0.25200927",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "before": {
+          "target": "{fileID: 6070074840943651463, guid: 1ab917ea557eca240adc7d8b8a4aff86, type: 3}",
+          "property": "m_LocalRotation.z",
+          "value": "0.69798106",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 6070074840943651463, guid: 1ab917ea557eca240adc7d8b8a4aff86, type: 3}",
+          "property": "m_LocalRotation.z",
+          "value": "0.50824684",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "before": {
+          "target": "{fileID: 6078698754578527012, guid: 1ab917ea557eca240adc7d8b8a4aff86, type: 3}",
+          "property": "m_LocalRotation.w",
+          "value": "0.8299523",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 6078698754578527012, guid: 1ab917ea557eca240adc7d8b8a4aff86, type: 3}",
+          "property": "m_LocalRotation.w",
+          "value": "0.89760613",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "before": {
+          "target": "{fileID: 6078698754578527012, guid: 1ab917ea557eca240adc7d8b8a4aff86, type: 3}",
+          "property": "m_LocalRotation.x",
+          "value": "-0.002909938",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 6078698754578527012, guid: 1ab917ea557eca240adc7d8b8a4aff86, type: 3}",
+          "property": "m_LocalRotation.x",
+          "value": "-0.0570953",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "before": {
+          "target": "{fileID: 6078698754578527012, guid: 1ab917ea557eca240adc7d8b8a4aff86, type: 3}",
+          "property": "m_LocalRotation.y",
+          "value": "0.31229565",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 6078698754578527012, guid: 1ab917ea557eca240adc7d8b8a4aff86, type: 3}",
+          "property": "m_LocalRotation.y",
+          "value": "0.30704588",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "before": {
+          "target": "{fileID: 6078698754578527012, guid: 1ab917ea557eca240adc7d8b8a4aff86, type: 3}",
+          "property": "m_LocalRotation.z",
+          "value": "0.46221453",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 6078698754578527012, guid: 1ab917ea557eca240adc7d8b8a4aff86, type: 3}",
+          "property": "m_LocalRotation.z",
+          "value": "0.31107274",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "before": {
+          "target": "{fileID: 6346000514874377939, guid: 1ab917ea557eca240adc7d8b8a4aff86, type: 3}",
+          "property": "m_LocalRotation.w",
+          "value": "0.9350144",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 6346000514874377939, guid: 1ab917ea557eca240adc7d8b8a4aff86, type: 3}",
+          "property": "m_LocalRotation.w",
+          "value": "0.9533786",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "before": {
+          "target": "{fileID: 6346000514874377939, guid: 1ab917ea557eca240adc7d8b8a4aff86, type: 3}",
+          "property": "m_LocalRotation.x",
+          "value": "0.09018156",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 6346000514874377939, guid: 1ab917ea557eca240adc7d8b8a4aff86, type: 3}",
+          "property": "m_LocalRotation.x",
+          "value": "0.075523004",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "before": {
+          "target": "{fileID: 6346000514874377939, guid: 1ab917ea557eca240adc7d8b8a4aff86, type: 3}",
+          "property": "m_LocalRotation.y",
+          "value": "0.19445239",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 6346000514874377939, guid: 1ab917ea557eca240adc7d8b8a4aff86, type: 3}",
+          "property": "m_LocalRotation.y",
+          "value": "0.2006009",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "before": {
+          "target": "{fileID: 6346000514874377939, guid: 1ab917ea557eca240adc7d8b8a4aff86, type: 3}",
+          "property": "m_LocalRotation.z",
+          "value": "0.2824953",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 6346000514874377939, guid: 1ab917ea557eca240adc7d8b8a4aff86, type: 3}",
+          "property": "m_LocalRotation.z",
+          "value": "0.21242598",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "before": {
+          "target": "{fileID: 6387981308538261161, guid: 1ab917ea557eca240adc7d8b8a4aff86, type: 3}",
+          "property": "m_LocalRotation.w",
+          "value": "0.93240535",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 6387981308538261161, guid: 1ab917ea557eca240adc7d8b8a4aff86, type: 3}",
+          "property": "m_LocalRotation.w",
+          "value": "0.977006",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "before": {
+          "target": "{fileID: 6387981308538261161, guid: 1ab917ea557eca240adc7d8b8a4aff86, type: 3}",
+          "property": "m_LocalRotation.x",
+          "value": "0.076870374",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 6387981308538261161, guid: 1ab917ea557eca240adc7d8b8a4aff86, type: 3}",
+          "property": "m_LocalRotation.x",
+          "value": "0.07373729",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "before": {
+          "target": "{fileID: 6387981308538261161, guid: 1ab917ea557eca240adc7d8b8a4aff86, type: 3}",
+          "property": "m_LocalRotation.y",
+          "value": "0.0132726915",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 6387981308538261161, guid: 1ab917ea557eca240adc7d8b8a4aff86, type: 3}",
+          "property": "m_LocalRotation.y",
+          "value": "0.025456442",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "before": {
+          "target": "{fileID: 6387981308538261161, guid: 1ab917ea557eca240adc7d8b8a4aff86, type: 3}",
+          "property": "m_LocalRotation.z",
+          "value": "0.3528952",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 6387981308538261161, guid: 1ab917ea557eca240adc7d8b8a4aff86, type: 3}",
+          "property": "m_LocalRotation.z",
+          "value": "0.19842903",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "before": {
+          "target": "{fileID: 6876276892789294884, guid: 1ab917ea557eca240adc7d8b8a4aff86, type: 3}",
+          "property": "m_LocalRotation.w",
+          "value": "0.9958038",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 6876276892789294884, guid: 1ab917ea557eca240adc7d8b8a4aff86, type: 3}",
+          "property": "m_LocalRotation.w",
+          "value": "0.08705213",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "before": {
+          "target": "{fileID: 6876276892789294884, guid: 1ab917ea557eca240adc7d8b8a4aff86, type: 3}",
+          "property": "m_LocalRotation.x",
+          "value": "0.08145257",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 6876276892789294884, guid: 1ab917ea557eca240adc7d8b8a4aff86, type: 3}",
+          "property": "m_LocalRotation.x",
+          "value": "-0.027164582",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "before": {
+          "target": "{fileID: 6876276892789294884, guid: 1ab917ea557eca240adc7d8b8a4aff86, type: 3}",
+          "property": "m_LocalRotation.y",
+          "value": "0.025271762",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 6876276892789294884, guid: 1ab917ea557eca240adc7d8b8a4aff86, type: 3}",
+          "property": "m_LocalRotation.y",
+          "value": "0.99530727",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "before": {
+          "target": "{fileID: 6876276892789294884, guid: 1ab917ea557eca240adc7d8b8a4aff86, type: 3}",
+          "property": "m_LocalRotation.z",
+          "value": "0.03319366",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 6876276892789294884, guid: 1ab917ea557eca240adc7d8b8a4aff86, type: 3}",
+          "property": "m_LocalRotation.z",
+          "value": "-0.032365378",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "before": {
+          "target": "{fileID: 7008936950859963844, guid: 1ab917ea557eca240adc7d8b8a4aff86, type: 3}",
+          "property": "m_LocalRotation.w",
+          "value": "0.92825854",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 7008936950859963844, guid: 1ab917ea557eca240adc7d8b8a4aff86, type: 3}",
+          "property": "m_LocalRotation.w",
+          "value": "0.93666863",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "before": {
+          "target": "{fileID: 7008936950859963844, guid: 1ab917ea557eca240adc7d8b8a4aff86, type: 3}",
+          "property": "m_LocalRotation.x",
+          "value": "0.1682787",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 7008936950859963844, guid: 1ab917ea557eca240adc7d8b8a4aff86, type: 3}",
+          "property": "m_LocalRotation.x",
+          "value": "0.15202259",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "before": {
+          "target": "{fileID: 7008936950859963844, guid: 1ab917ea557eca240adc7d8b8a4aff86, type: 3}",
+          "property": "m_LocalRotation.y",
+          "value": "0.28196707",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 7008936950859963844, guid: 1ab917ea557eca240adc7d8b8a4aff86, type: 3}",
+          "property": "m_LocalRotation.y",
+          "value": "0.29105374",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "before": {
+          "target": "{fileID: 7008936950859963844, guid: 1ab917ea557eca240adc7d8b8a4aff86, type: 3}",
+          "property": "m_LocalRotation.z",
+          "value": "0.17467967",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 7008936950859963844, guid: 1ab917ea557eca240adc7d8b8a4aff86, type: 3}",
+          "property": "m_LocalRotation.z",
+          "value": "0.12177317",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "before": {
+          "target": "{fileID: 7525642159320085701, guid: 1ab917ea557eca240adc7d8b8a4aff86, type: 3}",
+          "property": "m_LocalRotation.w",
+          "value": "0.8005591",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 7525642159320085701, guid: 1ab917ea557eca240adc7d8b8a4aff86, type: 3}",
+          "property": "m_LocalRotation.w",
+          "value": "0.77139735",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "before": {
+          "target": "{fileID: 7525642159320085701, guid: 1ab917ea557eca240adc7d8b8a4aff86, type: 3}",
+          "property": "m_LocalRotation.x",
+          "value": "0.1225528",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 7525642159320085701, guid: 1ab917ea557eca240adc7d8b8a4aff86, type: 3}",
+          "property": "m_LocalRotation.x",
+          "value": "0.14049259",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "before": {
+          "target": "{fileID: 7525642159320085701, guid: 1ab917ea557eca240adc7d8b8a4aff86, type: 3}",
+          "property": "m_LocalRotation.y",
+          "value": "0.3199154",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 7525642159320085701, guid: 1ab917ea557eca240adc7d8b8a4aff86, type: 3}",
+          "property": "m_LocalRotation.y",
+          "value": "0.31245303",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "before": {
+          "target": "{fileID: 7525642159320085701, guid: 1ab917ea557eca240adc7d8b8a4aff86, type: 3}",
+          "property": "m_LocalRotation.z",
+          "value": "0.49167076",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 7525642159320085701, guid: 1ab917ea557eca240adc7d8b8a4aff86, type: 3}",
+          "property": "m_LocalRotation.z",
+          "value": "0.5362659",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "before": {
+          "target": "{fileID: 8777779881493056567, guid: 1ab917ea557eca240adc7d8b8a4aff86, type: 3}",
+          "property": "m_LocalRotation.w",
+          "value": "0.9205531",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 8777779881493056567, guid: 1ab917ea557eca240adc7d8b8a4aff86, type: 3}",
+          "property": "m_LocalRotation.w",
+          "value": "0.96551394",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "before": {
+          "target": "{fileID: 8777779881493056567, guid: 1ab917ea557eca240adc7d8b8a4aff86, type: 3}",
+          "property": "m_LocalRotation.x",
+          "value": "-0.026572514",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 8777779881493056567, guid: 1ab917ea557eca240adc7d8b8a4aff86, type: 3}",
+          "property": "m_LocalRotation.x",
+          "value": "-0.032177635",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "before": {
+          "target": "{fileID: 8777779881493056567, guid: 1ab917ea557eca240adc7d8b8a4aff86, type: 3}",
+          "property": "m_LocalRotation.y",
+          "value": "0.04213258",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 8777779881493056567, guid: 1ab917ea557eca240adc7d8b8a4aff86, type: 3}",
+          "property": "m_LocalRotation.y",
+          "value": "0.03802437",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "before": {
+          "target": "{fileID: 8777779881493056567, guid: 1ab917ea557eca240adc7d8b8a4aff86, type: 3}",
+          "property": "m_LocalRotation.z",
+          "value": "0.38742834",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 8777779881493056567, guid: 1ab917ea557eca240adc7d8b8a4aff86, type: 3}",
+          "property": "m_LocalRotation.z",
+          "value": "0.25554168",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "after": {
+          "target": "{fileID: 709982998370077731, guid: 1ab917ea557eca240adc7d8b8a4aff86, type: 3}",
+          "property": "m_LocalRotation.w",
+          "value": "0.97603315",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "after": {
+          "target": "{fileID: 709982998370077731, guid: 1ab917ea557eca240adc7d8b8a4aff86, type: 3}",
+          "property": "m_LocalRotation.x",
+          "value": "0.2141757",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "after": {
+          "target": "{fileID: 709982998370077731, guid: 1ab917ea557eca240adc7d8b8a4aff86, type: 3}",
+          "property": "m_LocalRotation.y",
+          "value": "-0.02621447",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "after": {
+          "target": "{fileID: 709982998370077731, guid: 1ab917ea557eca240adc7d8b8a4aff86, type: 3}",
+          "property": "m_LocalRotation.z",
+          "value": "-0.028300423",
+          "ref": "{fileID: 0}"
+        }
+      }
+    ]
+  },
+  {
+    "id": "1676349549",
+    "changes": [
+      {
+        "before": {
+          "target": "{fileID: 3759419378231829450, guid: a797a62da8b406b42ad029f43ef9cd46, type: 3}",
+          "property": "m_LocalPosition.x",
+          "value": "-0.02",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 3759419378231829450, guid: a797a62da8b406b42ad029f43ef9cd46, type: 3}",
+          "property": "m_LocalPosition.x",
+          "value": "-0.006878698",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "before": {
+          "target": "{fileID: 3759419378231829450, guid: a797a62da8b406b42ad029f43ef9cd46, type: 3}",
+          "property": "m_LocalPosition.y",
+          "value": "0.145",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 3759419378231829450, guid: a797a62da8b406b42ad029f43ef9cd46, type: 3}",
+          "property": "m_LocalPosition.y",
+          "value": "0.12996401",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "before": {
+          "target": "{fileID: 3759419378231829450, guid: a797a62da8b406b42ad029f43ef9cd46, type: 3}",
+          "property": "m_LocalPosition.z",
+          "value": "0.026",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 3759419378231829450, guid: a797a62da8b406b42ad029f43ef9cd46, type: 3}",
+          "property": "m_LocalPosition.z",
+          "value": "0.05112066",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "before": {
+          "target": "{fileID: 3759419378231829450, guid: a797a62da8b406b42ad029f43ef9cd46, type: 3}",
+          "property": "m_LocalRotation.w",
+          "value": "0",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 3759419378231829450, guid: a797a62da8b406b42ad029f43ef9cd46, type: 3}",
+          "property": "m_LocalRotation.w",
+          "value": "-0.44810724",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "before": {
+          "target": "{fileID: 3759419378231829450, guid: a797a62da8b406b42ad029f43ef9cd46, type: 3}",
+          "property": "m_LocalRotation.x",
+          "value": "0",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 3759419378231829450, guid: a797a62da8b406b42ad029f43ef9cd46, type: 3}",
+          "property": "m_LocalRotation.x",
+          "value": "0.07729221",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "before": {
+          "target": "{fileID: 3759419378231829450, guid: a797a62da8b406b42ad029f43ef9cd46, type: 3}",
+          "property": "m_LocalRotation.y",
+          "value": "0.7071068",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 3759419378231829450, guid: a797a62da8b406b42ad029f43ef9cd46, type: 3}",
+          "property": "m_LocalRotation.y",
+          "value": "0.87767196",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "before": {
+          "target": "{fileID: 3759419378231829450, guid: a797a62da8b406b42ad029f43ef9cd46, type: 3}",
+          "property": "m_LocalRotation.z",
+          "value": "0.7071068",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 3759419378231829450, guid: a797a62da8b406b42ad029f43ef9cd46, type: 3}",
+          "property": "m_LocalRotation.z",
+          "value": "0.1513861",
+          "ref": "{fileID: 0}"
+        }
+      }
+    ]
+  },
+  {
+    "id": "2003209115",
+    "changes": [
+      {
+        "before": {
+          "target": "{fileID: 202494747787169962, guid: 4b4b7037726d3c5429c6497442d51b10, type: 3}",
+          "property": "m_LocalRotation.w",
+          "value": "0.74301326",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 202494747787169962, guid: 4b4b7037726d3c5429c6497442d51b10, type: 3}",
+          "property": "m_LocalRotation.w",
+          "value": "0.77307016",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "before": {
+          "target": "{fileID: 202494747787169962, guid: 4b4b7037726d3c5429c6497442d51b10, type: 3}",
+          "property": "m_LocalRotation.x",
+          "value": "-0.020173235",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 202494747787169962, guid: 4b4b7037726d3c5429c6497442d51b10, type: 3}",
+          "property": "m_LocalRotation.x",
+          "value": "-0.0115145305",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "before": {
+          "target": "{fileID: 202494747787169962, guid: 4b4b7037726d3c5429c6497442d51b10, type: 3}",
+          "property": "m_LocalRotation.y",
+          "value": "-0.17998767",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 202494747787169962, guid: 4b4b7037726d3c5429c6497442d51b10, type: 3}",
+          "property": "m_LocalRotation.y",
+          "value": "-0.18074828",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "before": {
+          "target": "{fileID: 202494747787169962, guid: 4b4b7037726d3c5429c6497442d51b10, type: 3}",
+          "property": "m_LocalRotation.z",
+          "value": "0.6443049",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 202494747787169962, guid: 4b4b7037726d3c5429c6497442d51b10, type: 3}",
+          "property": "m_LocalRotation.z",
+          "value": "0.60791457",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "before": {
+          "target": "{fileID: 1595971683815323764, guid: 4b4b7037726d3c5429c6497442d51b10, type: 3}",
+          "property": "m_LocalRotation.w",
+          "value": "0.9669257",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 1595971683815323764, guid: 4b4b7037726d3c5429c6497442d51b10, type: 3}",
+          "property": "m_LocalRotation.w",
+          "value": "0.9536341",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "before": {
+          "target": "{fileID: 1595971683815323764, guid: 4b4b7037726d3c5429c6497442d51b10, type: 3}",
+          "property": "m_LocalRotation.x",
+          "value": "0.19868816",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 1595971683815323764, guid: 4b4b7037726d3c5429c6497442d51b10, type: 3}",
+          "property": "m_LocalRotation.x",
+          "value": "0.18291797",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "before": {
+          "target": "{fileID: 1595971683815323764, guid: 4b4b7037726d3c5429c6497442d51b10, type: 3}",
+          "property": "m_LocalRotation.y",
+          "value": "0.14045697",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 1595971683815323764, guid: 4b4b7037726d3c5429c6497442d51b10, type: 3}",
+          "property": "m_LocalRotation.y",
+          "value": "0.1604561",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "before": {
+          "target": "{fileID: 1595971683815323764, guid: 4b4b7037726d3c5429c6497442d51b10, type: 3}",
+          "property": "m_LocalRotation.z",
+          "value": "-0.07648302",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 1595971683815323764, guid: 4b4b7037726d3c5429c6497442d51b10, type: 3}",
+          "property": "m_LocalRotation.z",
+          "value": "-0.17713529",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "before": {
+          "target": "{fileID: 2219979508854491284, guid: 4b4b7037726d3c5429c6497442d51b10, type: 3}",
+          "property": "m_Controller",
+          "value": "",
+          "ref": "{fileID: 22100000, guid: 4c11a60ab2af4e14ebd3695358445a7b, type: 2}"
+        },
+        "after": {
+          "target": "{fileID: 2219979508854491284, guid: 4b4b7037726d3c5429c6497442d51b10, type: 3}",
+          "property": "m_Controller",
+          "value": "",
+          "ref": "{fileID: 9100000, guid: 02eb5397f0b14884dae5b4d49ddc4333, type: 2}"
+        }
+      },
+      {
+        "before": {
+          "target": "{fileID: 2557329696701370990, guid: 4b4b7037726d3c5429c6497442d51b10, type: 3}",
+          "property": "m_LocalRotation.w",
+          "value": "0.9970291",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 2557329696701370990, guid: 4b4b7037726d3c5429c6497442d51b10, type: 3}",
+          "property": "m_LocalRotation.w",
+          "value": "-0.9751277",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "before": {
+          "target": "{fileID: 2557329696701370990, guid: 4b4b7037726d3c5429c6497442d51b10, type: 3}",
+          "property": "m_LocalRotation.x",
+          "value": "0.00000011385965",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 2557329696701370990, guid: 4b4b7037726d3c5429c6497442d51b10, type: 3}",
+          "property": "m_LocalRotation.x",
+          "value": "-0.124969125",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "before": {
+          "target": "{fileID: 2557329696701370990, guid: 4b4b7037726d3c5429c6497442d51b10, type: 3}",
+          "property": "m_LocalRotation.y",
+          "value": "0.07702557",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 2557329696701370990, guid: 4b4b7037726d3c5429c6497442d51b10, type: 3}",
+          "property": "m_LocalRotation.y",
+          "value": "-0.023269402",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "before": {
+          "target": "{fileID: 2557329696701370990, guid: 4b4b7037726d3c5429c6497442d51b10, type: 3}",
+          "property": "m_LocalRotation.z",
+          "value": "0.00000007322505",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 2557329696701370990, guid: 4b4b7037726d3c5429c6497442d51b10, type: 3}",
+          "property": "m_LocalRotation.z",
+          "value": "0.18156883",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "before": {
+          "target": "{fileID: 2842516403249972836, guid: 4b4b7037726d3c5429c6497442d51b10, type: 3}",
+          "property": "m_LocalRotation.w",
+          "value": "0.7180222",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 2842516403249972836, guid: 4b4b7037726d3c5429c6497442d51b10, type: 3}",
+          "property": "m_LocalRotation.w",
+          "value": "0.746537",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "before": {
+          "target": "{fileID: 2842516403249972836, guid: 4b4b7037726d3c5429c6497442d51b10, type: 3}",
+          "property": "m_LocalRotation.x",
+          "value": "-0.09325306",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 2842516403249972836, guid: 4b4b7037726d3c5429c6497442d51b10, type: 3}",
+          "property": "m_LocalRotation.x",
+          "value": "-0.08590853",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "before": {
+          "target": "{fileID: 2842516403249972836, guid: 4b4b7037726d3c5429c6497442d51b10, type: 3}",
+          "property": "m_LocalRotation.y",
+          "value": "-0.16634282",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 2842516403249972836, guid: 4b4b7037726d3c5429c6497442d51b10, type: 3}",
+          "property": "m_LocalRotation.y",
+          "value": "-0.17025214",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "before": {
+          "target": "{fileID: 2842516403249972836, guid: 4b4b7037726d3c5429c6497442d51b10, type: 3}",
+          "property": "m_LocalRotation.z",
+          "value": "0.6693863",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 2842516403249972836, guid: 4b4b7037726d3c5429c6497442d51b10, type: 3}",
+          "property": "m_LocalRotation.z",
+          "value": "0.63742954",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "before": {
+          "target": "{fileID: 2934686769113773654, guid: 4b4b7037726d3c5429c6497442d51b10, type: 3}",
+          "property": "m_LocalRotation.w",
+          "value": "0.96684694",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 2934686769113773654, guid: 4b4b7037726d3c5429c6497442d51b10, type: 3}",
+          "property": "m_LocalRotation.w",
+          "value": "0.925882",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "before": {
+          "target": "{fileID: 2934686769113773654, guid: 4b4b7037726d3c5429c6497442d51b10, type: 3}",
+          "property": "m_LocalRotation.x",
+          "value": "-0.22555543",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 2934686769113773654, guid: 4b4b7037726d3c5429c6497442d51b10, type: 3}",
+          "property": "m_LocalRotation.x",
+          "value": "0.24497561",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "before": {
+          "target": "{fileID: 2934686769113773654, guid: 4b4b7037726d3c5429c6497442d51b10, type: 3}",
+          "property": "m_LocalRotation.y",
+          "value": "0.08489171",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 2934686769113773654, guid: 4b4b7037726d3c5429c6497442d51b10, type: 3}",
+          "property": "m_LocalRotation.y",
+          "value": "-0.017241418",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "before": {
+          "target": "{fileID: 2934686769113773654, guid: 4b4b7037726d3c5429c6497442d51b10, type: 3}",
+          "property": "m_LocalRotation.z",
+          "value": "0.084410764",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 2934686769113773654, guid: 4b4b7037726d3c5429c6497442d51b10, type: 3}",
+          "property": "m_LocalRotation.z",
+          "value": "0.28711024",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "before": {
+          "target": "{fileID: 3604789641424693498, guid: 4b4b7037726d3c5429c6497442d51b10, type: 3}",
+          "property": "m_LocalRotation.w",
+          "value": "0.8165673",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 3604789641424693498, guid: 4b4b7037726d3c5429c6497442d51b10, type: 3}",
+          "property": "m_LocalRotation.w",
+          "value": "0.8185553",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "before": {
+          "target": "{fileID: 3604789641424693498, guid: 4b4b7037726d3c5429c6497442d51b10, type: 3}",
+          "property": "m_LocalRotation.x",
+          "value": "0.024666306",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 3604789641424693498, guid: 4b4b7037726d3c5429c6497442d51b10, type: 3}",
+          "property": "m_LocalRotation.x",
+          "value": "0.023133334",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "before": {
+          "target": "{fileID: 3604789641424693498, guid: 4b4b7037726d3c5429c6497442d51b10, type: 3}",
+          "property": "m_LocalRotation.y",
+          "value": "0.35127884",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 3604789641424693498, guid: 4b4b7037726d3c5429c6497442d51b10, type: 3}",
+          "property": "m_LocalRotation.y",
+          "value": "0.35138312",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "before": {
+          "target": "{fileID: 3604789641424693498, guid: 4b4b7037726d3c5429c6497442d51b10, type: 3}",
+          "property": "m_LocalRotation.z",
+          "value": "0.45739773",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 3604789641424693498, guid: 4b4b7037726d3c5429c6497442d51b10, type: 3}",
+          "property": "m_LocalRotation.z",
+          "value": "0.45383042",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "before": {
+          "target": "{fileID: 4144497413573643821, guid: 4b4b7037726d3c5429c6497442d51b10, type: 3}",
+          "property": "m_LocalRotation.w",
+          "value": "0.74590254",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 4144497413573643821, guid: 4b4b7037726d3c5429c6497442d51b10, type: 3}",
+          "property": "m_LocalRotation.w",
+          "value": "0.87689584",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "before": {
+          "target": "{fileID: 4144497413573643821, guid: 4b4b7037726d3c5429c6497442d51b10, type: 3}",
+          "property": "m_LocalRotation.x",
+          "value": "0.04164278",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 4144497413573643821, guid: 4b4b7037726d3c5429c6497442d51b10, type: 3}",
+          "property": "m_LocalRotation.x",
+          "value": "0.09582598",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "before": {
+          "target": "{fileID: 4144497413573643821, guid: 4b4b7037726d3c5429c6497442d51b10, type: 3}",
+          "property": "m_LocalRotation.y",
+          "value": "-0.22532505",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 4144497413573643821, guid: 4b4b7037726d3c5429c6497442d51b10, type: 3}",
+          "property": "m_LocalRotation.y",
+          "value": "-0.20814149",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "before": {
+          "target": "{fileID: 4144497413573643821, guid: 4b4b7037726d3c5429c6497442d51b10, type: 3}",
+          "property": "m_LocalRotation.z",
+          "value": "0.625399",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 4144497413573643821, guid: 4b4b7037726d3c5429c6497442d51b10, type: 3}",
+          "property": "m_LocalRotation.z",
+          "value": "0.42254966",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "before": {
+          "target": "{fileID: 5095038790441395326, guid: 4b4b7037726d3c5429c6497442d51b10, type: 3}",
+          "property": "m_LocalRotation.w",
+          "value": "0.6689906",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 5095038790441395326, guid: 4b4b7037726d3c5429c6497442d51b10, type: 3}",
+          "property": "m_LocalRotation.w",
+          "value": "0.8224422",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "before": {
+          "target": "{fileID: 5095038790441395326, guid: 4b4b7037726d3c5429c6497442d51b10, type: 3}",
+          "property": "m_LocalRotation.x",
+          "value": "-0.022419916",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 5095038790441395326, guid: 4b4b7037726d3c5429c6497442d51b10, type: 3}",
+          "property": "m_LocalRotation.x",
+          "value": "0.04201649",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "before": {
+          "target": "{fileID: 5095038790441395326, guid: 4b4b7037726d3c5429c6497442d51b10, type: 3}",
+          "property": "m_LocalRotation.y",
+          "value": "-0.25450227",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 5095038790441395326, guid: 4b4b7037726d3c5429c6497442d51b10, type: 3}",
+          "property": "m_LocalRotation.y",
+          "value": "-0.25200927",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "before": {
+          "target": "{fileID: 5095038790441395326, guid: 4b4b7037726d3c5429c6497442d51b10, type: 3}",
+          "property": "m_LocalRotation.z",
+          "value": "0.69798106",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 5095038790441395326, guid: 4b4b7037726d3c5429c6497442d51b10, type: 3}",
+          "property": "m_LocalRotation.z",
+          "value": "0.50824684",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "before": {
+          "target": "{fileID: 5103680563594673629, guid: 4b4b7037726d3c5429c6497442d51b10, type: 3}",
+          "property": "m_LocalRotation.w",
+          "value": "0.8299523",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 5103680563594673629, guid: 4b4b7037726d3c5429c6497442d51b10, type: 3}",
+          "property": "m_LocalRotation.w",
+          "value": "0.89760613",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "before": {
+          "target": "{fileID: 5103680563594673629, guid: 4b4b7037726d3c5429c6497442d51b10, type: 3}",
+          "property": "m_LocalRotation.x",
+          "value": "-0.002909938",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 5103680563594673629, guid: 4b4b7037726d3c5429c6497442d51b10, type: 3}",
+          "property": "m_LocalRotation.x",
+          "value": "-0.0570953",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "before": {
+          "target": "{fileID: 5103680563594673629, guid: 4b4b7037726d3c5429c6497442d51b10, type: 3}",
+          "property": "m_LocalRotation.y",
+          "value": "0.31229565",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 5103680563594673629, guid: 4b4b7037726d3c5429c6497442d51b10, type: 3}",
+          "property": "m_LocalRotation.y",
+          "value": "0.30704588",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "before": {
+          "target": "{fileID: 5103680563594673629, guid: 4b4b7037726d3c5429c6497442d51b10, type: 3}",
+          "property": "m_LocalRotation.z",
+          "value": "0.46221453",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 5103680563594673629, guid: 4b4b7037726d3c5429c6497442d51b10, type: 3}",
+          "property": "m_LocalRotation.z",
+          "value": "0.31107274",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "before": {
+          "target": "{fileID: 5345386857228206160, guid: 4b4b7037726d3c5429c6497442d51b10, type: 3}",
+          "property": "m_LocalRotation.w",
+          "value": "0.93240535",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 5345386857228206160, guid: 4b4b7037726d3c5429c6497442d51b10, type: 3}",
+          "property": "m_LocalRotation.w",
+          "value": "0.977006",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "before": {
+          "target": "{fileID: 5345386857228206160, guid: 4b4b7037726d3c5429c6497442d51b10, type: 3}",
+          "property": "m_LocalRotation.x",
+          "value": "0.076870374",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 5345386857228206160, guid: 4b4b7037726d3c5429c6497442d51b10, type: 3}",
+          "property": "m_LocalRotation.x",
+          "value": "0.07373729",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "before": {
+          "target": "{fileID: 5345386857228206160, guid: 4b4b7037726d3c5429c6497442d51b10, type: 3}",
+          "property": "m_LocalRotation.y",
+          "value": "0.0132726915",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 5345386857228206160, guid: 4b4b7037726d3c5429c6497442d51b10, type: 3}",
+          "property": "m_LocalRotation.y",
+          "value": "0.025456442",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "before": {
+          "target": "{fileID: 5345386857228206160, guid: 4b4b7037726d3c5429c6497442d51b10, type: 3}",
+          "property": "m_LocalRotation.z",
+          "value": "0.3528952",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 5345386857228206160, guid: 4b4b7037726d3c5429c6497442d51b10, type: 3}",
+          "property": "m_LocalRotation.z",
+          "value": "0.19842903",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "before": {
+          "target": "{fileID: 5375485932989024298, guid: 4b4b7037726d3c5429c6497442d51b10, type: 3}",
+          "property": "m_LocalRotation.w",
+          "value": "0.9350144",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 5375485932989024298, guid: 4b4b7037726d3c5429c6497442d51b10, type: 3}",
+          "property": "m_LocalRotation.w",
+          "value": "0.9533786",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "before": {
+          "target": "{fileID: 5375485932989024298, guid: 4b4b7037726d3c5429c6497442d51b10, type: 3}",
+          "property": "m_LocalRotation.x",
+          "value": "0.09018156",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 5375485932989024298, guid: 4b4b7037726d3c5429c6497442d51b10, type: 3}",
+          "property": "m_LocalRotation.x",
+          "value": "0.075523004",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "before": {
+          "target": "{fileID: 5375485932989024298, guid: 4b4b7037726d3c5429c6497442d51b10, type: 3}",
+          "property": "m_LocalRotation.y",
+          "value": "0.19445239",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 5375485932989024298, guid: 4b4b7037726d3c5429c6497442d51b10, type: 3}",
+          "property": "m_LocalRotation.y",
+          "value": "0.2006009",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "before": {
+          "target": "{fileID: 5375485932989024298, guid: 4b4b7037726d3c5429c6497442d51b10, type: 3}",
+          "property": "m_LocalRotation.z",
+          "value": "0.2824953",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 5375485932989024298, guid: 4b4b7037726d3c5429c6497442d51b10, type: 3}",
+          "property": "m_LocalRotation.z",
+          "value": "0.21242598",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "before": {
+          "target": "{fileID: 5613028059093256669, guid: 4b4b7037726d3c5429c6497442d51b10, type: 3}",
+          "property": "m_LocalRotation.w",
+          "value": "0.9958038",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 5613028059093256669, guid: 4b4b7037726d3c5429c6497442d51b10, type: 3}",
+          "property": "m_LocalRotation.w",
+          "value": "0.08705213",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "before": {
+          "target": "{fileID: 5613028059093256669, guid: 4b4b7037726d3c5429c6497442d51b10, type: 3}",
+          "property": "m_LocalRotation.x",
+          "value": "0.08145257",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 5613028059093256669, guid: 4b4b7037726d3c5429c6497442d51b10, type: 3}",
+          "property": "m_LocalRotation.x",
+          "value": "-0.027164582",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "before": {
+          "target": "{fileID: 5613028059093256669, guid: 4b4b7037726d3c5429c6497442d51b10, type: 3}",
+          "property": "m_LocalRotation.y",
+          "value": "0.025271762",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 5613028059093256669, guid: 4b4b7037726d3c5429c6497442d51b10, type: 3}",
+          "property": "m_LocalRotation.y",
+          "value": "0.99530727",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "before": {
+          "target": "{fileID: 5613028059093256669, guid: 4b4b7037726d3c5429c6497442d51b10, type: 3}",
+          "property": "m_LocalRotation.z",
+          "value": "0.03319366",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 5613028059093256669, guid: 4b4b7037726d3c5429c6497442d51b10, type: 3}",
+          "property": "m_LocalRotation.z",
+          "value": "-0.032365378",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "before": {
+          "target": "{fileID: 7735207695658369742, guid: 4b4b7037726d3c5429c6497442d51b10, type: 3}",
+          "property": "m_LocalRotation.w",
+          "value": "0.9205531",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 7735207695658369742, guid: 4b4b7037726d3c5429c6497442d51b10, type: 3}",
+          "property": "m_LocalRotation.w",
+          "value": "0.96551394",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "before": {
+          "target": "{fileID: 7735207695658369742, guid: 4b4b7037726d3c5429c6497442d51b10, type: 3}",
+          "property": "m_LocalRotation.x",
+          "value": "-0.026572514",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 7735207695658369742, guid: 4b4b7037726d3c5429c6497442d51b10, type: 3}",
+          "property": "m_LocalRotation.x",
+          "value": "-0.032177635",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "before": {
+          "target": "{fileID: 7735207695658369742, guid: 4b4b7037726d3c5429c6497442d51b10, type: 3}",
+          "property": "m_LocalRotation.y",
+          "value": "0.04213258",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 7735207695658369742, guid: 4b4b7037726d3c5429c6497442d51b10, type: 3}",
+          "property": "m_LocalRotation.y",
+          "value": "0.03802437",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "before": {
+          "target": "{fileID: 7735207695658369742, guid: 4b4b7037726d3c5429c6497442d51b10, type: 3}",
+          "property": "m_LocalRotation.z",
+          "value": "0.38742834",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 7735207695658369742, guid: 4b4b7037726d3c5429c6497442d51b10, type: 3}",
+          "property": "m_LocalRotation.z",
+          "value": "0.25554168",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "before": {
+          "target": "{fileID: 8344243378560242493, guid: 4b4b7037726d3c5429c6497442d51b10, type: 3}",
+          "property": "m_LocalRotation.w",
+          "value": "0.92825854",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 8344243378560242493, guid: 4b4b7037726d3c5429c6497442d51b10, type: 3}",
+          "property": "m_LocalRotation.w",
+          "value": "0.93666863",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "before": {
+          "target": "{fileID: 8344243378560242493, guid: 4b4b7037726d3c5429c6497442d51b10, type: 3}",
+          "property": "m_LocalRotation.x",
+          "value": "0.1682787",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 8344243378560242493, guid: 4b4b7037726d3c5429c6497442d51b10, type: 3}",
+          "property": "m_LocalRotation.x",
+          "value": "0.15202259",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "before": {
+          "target": "{fileID: 8344243378560242493, guid: 4b4b7037726d3c5429c6497442d51b10, type: 3}",
+          "property": "m_LocalRotation.y",
+          "value": "0.28196707",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 8344243378560242493, guid: 4b4b7037726d3c5429c6497442d51b10, type: 3}",
+          "property": "m_LocalRotation.y",
+          "value": "0.29105374",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "before": {
+          "target": "{fileID: 8344243378560242493, guid: 4b4b7037726d3c5429c6497442d51b10, type: 3}",
+          "property": "m_LocalRotation.z",
+          "value": "0.17467967",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 8344243378560242493, guid: 4b4b7037726d3c5429c6497442d51b10, type: 3}",
+          "property": "m_LocalRotation.z",
+          "value": "0.12177317",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "before": {
+          "target": "{fileID: 8860965904349477436, guid: 4b4b7037726d3c5429c6497442d51b10, type: 3}",
+          "property": "m_LocalRotation.w",
+          "value": "0.8005591",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 8860965904349477436, guid: 4b4b7037726d3c5429c6497442d51b10, type: 3}",
+          "property": "m_LocalRotation.w",
+          "value": "0.77139735",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "before": {
+          "target": "{fileID: 8860965904349477436, guid: 4b4b7037726d3c5429c6497442d51b10, type: 3}",
+          "property": "m_LocalRotation.x",
+          "value": "0.1225528",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 8860965904349477436, guid: 4b4b7037726d3c5429c6497442d51b10, type: 3}",
+          "property": "m_LocalRotation.x",
+          "value": "0.14049259",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "before": {
+          "target": "{fileID: 8860965904349477436, guid: 4b4b7037726d3c5429c6497442d51b10, type: 3}",
+          "property": "m_LocalRotation.y",
+          "value": "0.3199154",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 8860965904349477436, guid: 4b4b7037726d3c5429c6497442d51b10, type: 3}",
+          "property": "m_LocalRotation.y",
+          "value": "0.31245303",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "before": {
+          "target": "{fileID: 8860965904349477436, guid: 4b4b7037726d3c5429c6497442d51b10, type: 3}",
+          "property": "m_LocalRotation.z",
+          "value": "0.49167076",
+          "ref": "{fileID: 0}"
+        },
+        "after": {
+          "target": "{fileID: 8860965904349477436, guid: 4b4b7037726d3c5429c6497442d51b10, type: 3}",
+          "property": "m_LocalRotation.z",
+          "value": "0.5362659",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "after": {
+          "target": "{fileID: 1968732637921624794, guid: 4b4b7037726d3c5429c6497442d51b10, type: 3}",
+          "property": "m_LocalRotation.w",
+          "value": "0.97603315",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "after": {
+          "target": "{fileID: 1968732637921624794, guid: 4b4b7037726d3c5429c6497442d51b10, type: 3}",
+          "property": "m_LocalRotation.x",
+          "value": "0.2141757",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "after": {
+          "target": "{fileID: 1968732637921624794, guid: 4b4b7037726d3c5429c6497442d51b10, type: 3}",
+          "property": "m_LocalRotation.y",
+          "value": "-0.02621447",
+          "ref": "{fileID: 0}"
+        }
+      },
+      {
+        "after": {
+          "target": "{fileID: 1968732637921624794, guid: 4b4b7037726d3c5429c6497442d51b10, type: 3}",
+          "property": "m_LocalRotation.z",
+          "value": "-0.028300423",
+          "ref": "{fileID: 0}"
+        }
+      }
+    ]
+  }
+]
+One wand instance also contains manual in-editor scale changes to (1,1,1), retained. The setup tool never assigns localScale.

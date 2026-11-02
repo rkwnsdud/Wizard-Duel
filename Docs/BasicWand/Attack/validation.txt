@@ -1,0 +1,6 @@
+PASS: duration .400s; FireMagic .080s; EndAttack .400s; non-looping.
+PASS Player: immediate attack/input lock; FireMagic suppresses old weapon only for wand; EndAttack unlocks; hidden wand restores original single-fire event routing (authority spy, no projectile).
+PASS Player: 81 samples preserve fingers/socket; idle endpoints match; release aim error=0.0000 deg; wrist bend=27.98 deg.
+PASS Dummy Player: 81 samples preserve fingers/socket; idle endpoints match; release aim error=0.0000 deg; wrist bend=37.94 deg.
+PASS: only Idle/Cast overrides; private controller, .015s entry, no post-cast blend delay. Existing IsAttacking movement lock retained.
+No Play Mode, no new scene. Only existing wand controller references saved in PlayerTest; attachment transforms unchanged. Final motion review is manual in Unity.

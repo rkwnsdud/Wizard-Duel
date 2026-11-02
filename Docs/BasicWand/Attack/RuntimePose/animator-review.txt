@@ -1,0 +1,52 @@
+controller=WizardLocomotion; Idle=True; state=2081823275
+clip=WizardCombatIdle; weight=1
+RightArm expected=(0.495328, 0.330919, 0.377495, 0.708972) evaluated=(0.495328, 0.330919, 0.377495, 0.708972); delta=0
+RightForeArm expected=(0.000000, -0.040209, -0.000001, 0.999191) evaluated=(-0.541048, -0.030642, 0.380497, 0.749367); delta=82.8206
+RightHand expected=(0.000000, 0.077026, 0.000000, 0.997029) evaluated=(0.139786, 0.076460, -0.065195, 0.985070); delta=17.74571
+RightIndexProximal expected=(-0.057095, 0.307046, 0.311073, 0.897606) evaluated=(-0.024687, 0.311332, 0.403194, 0.860173); delta=11.99991
+RightMiddleProximal expected=(0.023133, 0.351383, 0.453830, 0.818555) evaluated=(0.000102, 0.352144, 0.399323, 0.846485); delta=7.499968
+NATIVE SWAP:
+RightArm=(0.493913, 0.329596, 0.379702, 0.709396)
+RightForeArm=(-0.542416, -0.030926, 0.379447, 0.748898)
+RightHand=(0.141613, 0.076659, -0.065489, 0.984774)
+RightIndexProximal=(-0.024687, 0.311332, 0.403194, 0.860173)
+RightMiddleProximal=(0.000102, 0.352144, 0.399323, 0.846485)
+NATIVE REBIND:
+RightArm=(0.495328, 0.330919, 0.377495, 0.708972)
+RightForeArm=(-0.541048, -0.030642, 0.380497, 0.749367)
+RightHand=(0.139786, 0.076460, -0.065195, 0.985070)
+RightIndexProximal=(-0.024687, 0.311332, 0.403194, 0.860173)
+RightMiddleProximal=(0.000102, 0.352144, 0.399323, 0.846485)
+controller=BasicWandGrip; Idle=True; state=2081823275
+clip=WizardCombatIdle_BasicWandGrip; weight=1
+RightArm expected=(0.495328, 0.330919, 0.377495, 0.708972) evaluated=(0.495328, 0.330919, 0.377495, 0.708972); delta=0
+RightForeArm expected=(0.000000, -0.040209, -0.000001, 0.999191) evaluated=(0.000000, -0.040209, -0.000001, 0.999191); delta=0
+RightHand expected=(0.000000, 0.077026, 0.000000, 0.997029) evaluated=(0.000000, 0.077026, 0.000000, 0.997029); delta=0
+RightIndexProximal expected=(-0.057095, 0.307046, 0.311073, 0.897606) evaluated=(-0.057095, 0.307046, 0.311073, 0.897606); delta=0
+RightMiddleProximal expected=(0.023133, 0.351383, 0.453830, 0.818555) evaluated=(0.023133, 0.351383, 0.453830, 0.818555); delta=0
+NATIVE SWAP:
+RightArm=(0.495328, 0.330919, 0.377495, 0.708972)
+RightForeArm=(0.000000, -0.040209, -0.000001, 0.999191)
+RightHand=(0.000000, 0.077026, 0.000000, 0.997029)
+RightIndexProximal=(-0.057095, 0.307046, 0.311073, 0.897606)
+RightMiddleProximal=(0.023133, 0.351383, 0.453830, 0.818555)
+NATIVE REBIND:
+RightArm=(0.495328, 0.330919, 0.377495, 0.708972)
+RightForeArm=(0.000000, -0.040209, -0.000001, 0.999191)
+RightHand=(0.000000, 0.077026, 0.000000, 0.997029)
+RightIndexProximal=(-0.057095, 0.307046, 0.311073, 0.897606)
+RightMiddleProximal=(0.023133, 0.351383, 0.453830, 0.818555)
+OLD ORB OVERLAY REPRODUCTION:
+RightArm=(0.495328, 0.330919, 0.377495, 0.708972)
+RightForeArm=(0.000003, 0.994885, -0.000002, 0.101011)
+RightHand=(0.014956, 0.077218, 0.021612, 0.996668)
+RightIndexProximal=(0.024623, 0.329908, -0.021282, 0.943452)
+RightMiddleProximal=(0.026303, 0.406986, -0.019166, 0.912854)
+PASS: visible wand rejects selected Orb's procedural pose.
+RESTORED WAND POSE:
+RightArm delta=0
+RightForeArm delta=0
+RightHand delta=0
+RightIndexProximal delta=0
+RightMiddleProximal delta=0
+PASS: hidden wand restores selected Orb's procedural pose authority.

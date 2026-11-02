@@ -1,0 +1,5 @@
+Idle-only override: PASS
+Unrelated curves, duration, loop settings, events: PASS
+Right forearm/wrist/finger start=end and zero endpoint tangents: PASS
+Movement and attack resolve to original clips: PASS
+Edit-mode controller checks (visible, hidden, disabled, external owner): PASS; no Play Mode

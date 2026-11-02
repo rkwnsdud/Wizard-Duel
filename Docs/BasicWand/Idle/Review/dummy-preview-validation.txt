@@ -1,0 +1,4 @@
+Dummy before: wand active=False, model enabled=True, mesh=char1
+Dummy after: repaired mesh=Wizard_BasicWandGrip; hidden-wand edit preview enabled. Wand visibility preserved.
+Hidden wand / component disable / preview disable / re-enable checks PASS on temporary copy.
+Player mesh and every Player transform unchanged: PASS. Runtime wand/Idle checks remain in force. No Play Mode or new scene.

@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!221 &22100000
+AnimatorOverrideController:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: BasicWandGrip_DummyGrip
+  m_Controller: {fileID: 9100000, guid: c9a48da2849c33541af8ea611284bbc6, type: 2}
+  m_Clips:
+  - m_OriginalClip: {fileID: 7400000, guid: 0d22509e0b861704fab6cff617e1a911, type: 2}
+    m_OverrideClip: {fileID: 0}
+  - m_OriginalClip: {fileID: 7400000, guid: aeff85ceffd4aee40b454be980866768, type: 2}
+    m_OverrideClip: {fileID: 7400000, guid: ba2262f8c687cda4bba3c046d753103a, type: 2}
+  - m_OriginalClip: {fileID: 7400000, guid: 4d5503137de5d8e44ac8ca66059f395c, type: 2}
+    m_OverrideClip: {fileID: 0}
+  - m_OriginalClip: {fileID: 7400000, guid: 2339c21bd5cb2da45b4051c7804bdee5, type: 2}
+    m_OverrideClip: {fileID: 7400000, guid: ebfa04e66c1a97a4c860e7c91806ca86, type: 2}
+  - m_OriginalClip: {fileID: 7400000, guid: 28691b84d33333c4eb08a28bcc12fd74, type: 2}
+    m_OverrideClip: {fileID: 0}
+  - m_OriginalClip: {fileID: 7400000, guid: c3ff54081b4ea0445a2df9686c01f097, type: 2}
+    m_OverrideClip: {fileID: 0}

@@ -1,0 +1,4 @@
+Source root rotation: (-0.70711, 0.00000, 0.00000, 0.70711)
+Player: right-hand socket OK; length=0.4000006; FirePoint=(0.000071, -0.000238, 0.331000); material references OK
+Dummy Player: right-hand socket OK; length=0.4000006; FirePoint=(0.000071, -0.000238, 0.331000); material references OK
+No scene saved; no Play Mode; no new scene.

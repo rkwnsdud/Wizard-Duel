@@ -1,0 +1,49 @@
+{
+  "changed": [
+    {
+      "id": "1396498",
+      "type": "1001"
+    },
+    {
+      "id": "257733373",
+      "type": "1001"
+    },
+    {
+      "id": "1676349549",
+      "type": "1001"
+    },
+    {
+      "id": "2003209115",
+      "type": "1001"
+    }
+  ],
+  "added": [
+    {
+      "id": "257733375 stripped",
+      "type": "1"
+    },
+    {
+      "id": "257733376 stripped",
+      "type": "137"
+    },
+    {
+      "id": "257733377",
+      "type": "114",
+      "component": "Assembly-CSharp::BasicWandGripSkin"
+    },
+    {
+      "id": "1993162810 stripped",
+      "type": "1"
+    },
+    {
+      "id": "1993162811 stripped",
+      "type": "137"
+    },
+    {
+      "id": "1993162812",
+      "type": "114",
+      "component": "Assembly-CSharp::BasicWandGripSkin"
+    }
+  ],
+  "temporaryClone": false
+}
