@@ -282,16 +282,17 @@ public static class MapLayoutGenerator
         }
     }
 
+    // 스폰 영역이 모두 바닥인 자리를 영역의 최소 좌표 칸으로 모은다.
     static List<Vector2Int> GetSpawnCandidates(MapCell[,] cells)
     {
         var candidates = new List<Vector2Int>();
-        for (int y = 1; y < cells.GetLength(1) - 1; y++)
+        for (int y = 0; y <= cells.GetLength(1) - MapLayout.SpawnSize; y++)
         {
-            for (int x = 1; x < cells.GetLength(0) - 1; x++)
+            for (int x = 0; x <= cells.GetLength(0) - MapLayout.SpawnSize; x++)
             {
                 bool safe = true;
-                for (int dy = -1; dy <= 1; dy++)
-                    for (int dx = -1; dx <= 1; dx++)
+                for (int dy = 0; dy < MapLayout.SpawnSize; dy++)
+                    for (int dx = 0; dx < MapLayout.SpawnSize; dx++)
                         if (cells[x + dx, y + dy] != MapCell.Floor) safe = false;
                 if (safe) candidates.Add(new Vector2Int(x, y));
             }
@@ -310,15 +311,16 @@ public static class MapLayoutGenerator
             spawnA = Farthest(candidates, distances);
             FloodFill(cells, spawnA, distances, queue);
             spawnB = Farthest(candidates, distances);
-            return spawnA != spawnB;
+            return !SpawnsOverlap(spawnA, spawnB);
         }
 
         var size = new Vector2Int(cells.GetLength(0), cells.GetLength(1));
         int bestDistance = -1;
         foreach (Vector2Int candidate in candidates)
         {
-            Vector2Int opposite = Mirror(candidate, size);
-            if (candidate.y * size.x + candidate.x >= opposite.y * size.x + opposite.x) continue;
+            Vector2Int opposite = MirrorSpawn(candidate, size);
+            if (candidate.y * size.x + candidate.x >= opposite.y * size.x + opposite.x
+                || SpawnsOverlap(candidate, opposite)) continue;
             FloodFill(cells, candidate, distances, queue);
             if (distances[opposite.x, opposite.y] <= bestDistance) continue;
             bestDistance = distances[opposite.x, opposite.y];
@@ -349,7 +351,7 @@ public static class MapLayoutGenerator
             for (int x = 0; x < size.x; x++)
             {
                 var cell = new Vector2Int(x, y);
-                if (cells[x, y] != MapCell.Floor || NearSpawn(cell, spawnA) || NearSpawn(cell, spawnB)) continue;
+                if (cells[x, y] != MapCell.Floor || MapLayout.InSpawn(cell, spawnA) || MapLayout.InSpawn(cell, spawnB)) continue;
                 Vector2Int opposite = Mirror(cell, size);
                 if (symmetry == MapSymmetry.Rotate180 && y * size.x + x > opposite.y * size.x + opposite.x) continue;
                 candidates.Add(cell);
@@ -384,9 +386,15 @@ public static class MapLayoutGenerator
         return placed;
     }
 
-    static bool NearSpawn(Vector2Int cell, Vector2Int spawn)
+    // 180도 돌리면 영역의 최소 좌표 칸은 반대편 영역의 최대 좌표 칸이 된다.
+    static Vector2Int MirrorSpawn(Vector2Int spawn, Vector2Int size)
     {
-        return Math.Abs(cell.x - spawn.x) <= 1 && Math.Abs(cell.y - spawn.y) <= 1;
+        return Mirror(spawn, size) - Vector2Int.one * (MapLayout.SpawnSize - 1);
+    }
+
+    static bool SpawnsOverlap(Vector2Int a, Vector2Int b)
+    {
+        return Math.Abs(a.x - b.x) < MapLayout.SpawnSize && Math.Abs(a.y - b.y) < MapLayout.SpawnSize;
     }
 
     static Vector2Int Mirror(Vector2Int cell, Vector2Int size)

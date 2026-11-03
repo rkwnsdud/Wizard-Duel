@@ -20,7 +20,7 @@ public class GridMap : MonoBehaviour, ISpawnPointProvider
         "###########"
     };
 
-    const float cellSize = 2f;
+    const float cellSize = 1f;
 
     readonly List<IBlock> blocks = new List<IBlock>();
 
@@ -45,5 +45,6 @@ public class GridMap : MonoBehaviour, ISpawnPointProvider
                 blocks.AddRange(blockFactory.CreateCell(layout[z][x], position, transform));
             }
         }
+        blocks.AddRange(blockFactory.CreateSpawns(transform));
     }
 }
