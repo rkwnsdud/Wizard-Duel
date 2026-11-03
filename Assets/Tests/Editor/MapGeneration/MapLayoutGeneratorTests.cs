@@ -319,8 +319,8 @@ public class MapLayoutGeneratorTests
                     : map[x, y] == MapCell.Wall ? '#' : ' '));
             }
         }
-        Assert.That(blueSpawns, Is.EqualTo(1));
-        Assert.That(orangeSpawns, Is.EqualTo(1));
+        Assert.That(blueSpawns, Is.EqualTo(MapLayout.SpawnSize * MapLayout.SpawnSize));
+        Assert.That(orangeSpawns, Is.EqualTo(MapLayout.SpawnSize * MapLayout.SpawnSize));
         Assert.That(rows[map.SpawnA.y][map.SpawnA.x], Is.EqualTo('B'));
         Assert.That(rows[map.SpawnB.y][map.SpawnB.x], Is.EqualTo('O'));
     }
@@ -442,8 +442,8 @@ public class MapLayoutGeneratorTests
     static void AssertValid(MapLayout map, MapSymmetry symmetry)
     {
         Assert.That(map.SpawnA, Is.Not.EqualTo(map.SpawnB));
-        Assert.That(SafeSpawn(map, map.SpawnA), Is.True, "Spawn A must have a clear 3x3 area.");
-        Assert.That(SafeSpawn(map, map.SpawnB), Is.True, "Spawn B must have a clear 3x3 area.");
+        Assert.That(SafeSpawn(map, map.SpawnA), Is.True, "Spawn A must have a clear 2x2 area.");
+        Assert.That(SafeSpawn(map, map.SpawnB), Is.True, "Spawn B must have a clear 2x2 area.");
         int[,] distances = Distances(map, map.SpawnA);
         int reachable = 0;
         for (int y = 0; y < map.Height; y++)
@@ -469,18 +469,21 @@ public class MapLayoutGeneratorTests
             Assert.That(map.SpawnB, Is.EqualTo(Opposite(map, map.SpawnA)));
     }
 
+    // spawn은 스폰 영역의 최소 좌표 칸이다.
     static bool SafeSpawn(MapLayout map, Vector2Int spawn)
     {
-        if (spawn.x <= 0 || spawn.y <= 0 || spawn.x >= map.Width - 1 || spawn.y >= map.Height - 1) return false;
-        for (int dy = -1; dy <= 1; dy++)
-        for (int dx = -1; dx <= 1; dx++)
+        if (spawn.x < 0 || spawn.y < 0 || spawn.x > map.Width - MapLayout.SpawnSize
+            || spawn.y > map.Height - MapLayout.SpawnSize) return false;
+        for (int dy = 0; dy < MapLayout.SpawnSize; dy++)
+        for (int dx = 0; dx < MapLayout.SpawnSize; dx++)
             if (map[spawn.x + dx, spawn.y + dy] != MapCell.Floor) return false;
         return true;
     }
 
-    static Vector2Int Opposite(MapLayout map, Vector2Int cell)
+    // 180도 돌린 스폰 영역의 최소 좌표 칸.
+    static Vector2Int Opposite(MapLayout map, Vector2Int spawn)
     {
-        return new Vector2Int(map.Width - 1 - cell.x, map.Height - 1 - cell.y);
+        return new Vector2Int(map.Width - MapLayout.SpawnSize - spawn.x, map.Height - MapLayout.SpawnSize - spawn.y);
     }
 
     static int CountFloors(MapLayout map)

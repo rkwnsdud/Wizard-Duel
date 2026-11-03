@@ -17,7 +17,7 @@ public class ProceduralMap : MonoBehaviour, ISpawnPointProvider
     [SerializeField, Range(0f, 1f)] float noiseStrength = 0.5f;
     [SerializeField, Range(0.25f, 2f)] float noiseScale = 0.75f;
 
-    const float cellSize = 2f;
+    const float cellSize = 1f;
     readonly List<IBlock> blocks = new List<IBlock>();
 
     public MapLayout GeneratedLayout { get; private set; }
@@ -67,6 +67,7 @@ public class ProceduralMap : MonoBehaviour, ISpawnPointProvider
                 blocks.AddRange(blockFactory.CreateCell(layout[z][x], position, transform));
             }
         }
+        blocks.AddRange(blockFactory.CreateSpawns(transform));
         // 맵 블록을 다 깔고 나서 배경을 갱신한다. (서버/클라 모두 map.Generate를
         // 거치므로 NetworkDemo에서 따로 호출할 필요가 없다.)
         ArenaBackgroundBuilderNew background = FindFirstObjectByType<ArenaBackgroundBuilderNew>();

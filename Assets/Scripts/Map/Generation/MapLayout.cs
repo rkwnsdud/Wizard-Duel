@@ -9,6 +9,9 @@ public enum MapCell
 
 public sealed class MapLayout
 {
+    // 스폰 타일 하나가 차지하는 정사각형 영역의 한 변(칸 수). SpawnA/B는 그 영역의 최소 좌표 칸이다.
+    public const int SpawnSize = 2;
+
     readonly MapCell[,] cells;
 
     public int Width => cells.GetLength(0);
@@ -44,11 +47,19 @@ public sealed class MapLayout
             {
                 row[x] = cells[x, y] == MapCell.Floor ? '.'
                     : cells[x, y] == MapCell.Wall ? '#' : ' ';
-                if (SpawnA.x == x && SpawnA.y == y) row[x] = 'B';
-                if (SpawnB.x == x && SpawnB.y == y) row[x] = 'O';
+                var cell = new Vector2Int(x, y);
+                if (InSpawn(cell, SpawnA)) row[x] = 'B';
+                if (InSpawn(cell, SpawnB)) row[x] = 'O';
             }
             layout[y] = new string(row);
         }
         return layout;
+    }
+
+    // cell이 spawn에서 시작하는 스폰 영역 안에 있는지.
+    public static bool InSpawn(Vector2Int cell, Vector2Int spawn)
+    {
+        return cell.x >= spawn.x && cell.y >= spawn.y
+            && cell.x < spawn.x + SpawnSize && cell.y < spawn.y + SpawnSize;
     }
 }
