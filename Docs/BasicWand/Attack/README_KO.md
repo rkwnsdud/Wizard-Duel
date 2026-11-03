@@ -1,63 +1,20 @@
-# Basic Wand 전용 공격
+﻿# 완드 공격: 번개 원본 모션 적용
 
-플레이 중 Light Orb의 손 보정이 완드 자세를 덮어쓰던 후속 문제와 수정·전후 이미지는 [RuntimePose/README_KO.md](RuntimePose/README_KO.md)에 기록했다.
+실제 번개 무기 `Cast` 상태가 참조하는 `Assets/Player/Animations/WizardAnimated/WizardStaffCast.anim`(0.65초)을 복사해 완드 공격 클립 2개에 적용했다. 원본 클립과 `WizardLocomotion.controller`, 번개 무기를 사용하는 `Player.prefab`은 유지한다. 이전에 따로 만든 오른발 디딤과 전신 키포즈는 제거했다.
 
-기존 PlayerTest에 장착된 완드와 `WizardCombatIdle_BasicWandGrip`의 실제 파지를 기준으로 제작했다. Player.prefab에는 완드가 장착되어 있지 않아 프리팹을 수정하지 않았다. 기존 WizardLocomotion은 Idle/방향 이동 BlendTree/Cast 구조이며 Attack 트리거와 FireMagic/EndAttack 이벤트를 사용한다. 기존 WizardStaffCast는 0.65초, FireMagic 0.20초, EndAttack 0.65초다.
+복사본은 번개 원본의 준비·발사·복귀 속도, 골반·척추·다리 움직임을 사용한다. 완드 대기 자세에서 손이 튀지 않도록 오른쪽 아래팔·손·손가락 17개 관절을 파지 기준으로 옮겼고, 발사 전후에만 오른팔·아래팔·손을 조준 자세로 부드럽게 연결했다. Player와 Dummy의 완드 장착 각도 차이는 각각의 클립에서 보정한다. 공격이 끝나면 완드 대기 자세로 돌아온다.
 
-## 모션과 타이밍
+- `BasicWandAttack.anim`: Player용 복사본.
+- `BasicWandAttack_DummyGrip.anim`: Dummy용 복사본.
+- 발사 이벤트 `FireMagic`: 0.20초, 1회.
+- 종료 이벤트 `EndAttack`: 0.65초, 1회.
+- 번개 전용 이벤트는 복사하지 않았다. 기존 완드의 `BasicWandIdlePose`와 `PlayerAttack`은 완드 공격에서 이전 번개 무기 발사를 막는다.
 
-`BasicWandAttack.anim`: 0.400초, 비루프, Animator 속도 1. 단순 배속이 아니라 오른쪽 위팔·아래팔·손목의 키포즈를 별도로 제작했다. 몸통·왼팔·하체는 완드 Idle 첫 프레임을 유지한다. 이동 및 조준 방향 잠금은 기존 PlayerAttack.IsAttacking, PlayerMovement, PlayerAim 구조를 사용한다.
+`lightning-offline-validation.txt`는 원본 몸통·다리 곡선 13개가 일치하고, 발사 시 완드 방향 오차가 0°이며 오른손목 각도가 Player 43.63° / Dummy 43.35°임을 기록한다. 오른팔 키 간 최대 회전량은 원본 번개 공격 이하이다. 발 궤적은 원본과 동일하다. 손가락 시작·종료 자세와 이벤트도 검사했다.
 
-| 시점 | 동작 / 이벤트 |
-| --- | --- |
-| 0.00 | 실제 완드 Idle의 팔·손가락 자세에서 시작, 입력 즉시 공격/이동 잠금 |
-| 0.04 | 오른팔을 빠르게 들어 올림 |
-| 0.06 | 팔을 앞으로 보내며 손목 스냅 준비 |
-| 0.08 | 전방 찌르기, 완드 +Z가 캐릭터 전방과 일치, **FireMagic** |
-| 0.11 | 짧은 추가 뻗기와 손목 스냅의 후속 동작 |
-| 0.16–0.32 | 팔꿈치를 접고 팔과 완드 방향을 자연스럽게 내림 |
-| 0.40 | 완드 Idle 첫 프레임과 같은 팔 자세, **EndAttack**, 이동 잠금 해제 |
+Unity 메뉴 `Tools > Basic Wand > Build Attack`은 같은 번개 원본을 이용해 클립을 다시 작성하는 편집기 생성기다. 오프라인 재생성에는 Blender 4.2의 `Tools/retarget_lightning_wand_offline.py`, `Tools/aim_wand_offline.py`, `Tools/neutralize_offhand_wrist.py`, `Tools/check_wand_aim_offline.py`를 이 순서로 사용한다.
 
-캐릭터 전방은 기존 PlayerAim이 공격 직전 정한 수평 조준 방향이다. 손목에 조준 회전이 집중되지 않도록 아래팔 회전과 팔꿈치 굴곡을 함께 사용했다. 손가락 15개 관절은 기존 Idle 파지 회전을 공격 전체에서 일정하게 유지한다. 완드 로컬 위치·회전·스케일 및 소켓을 변경하지 않았다.
+2026-11-03 손 자세 수정: 새 녹화에서 손이 몸 오른쪽으로 벌어져 보이는 현상을 확인했다. 발사 시 손 목표의 좌우 위치를 팔 길이 기준 0.30에서 0.09로 줄여 몸 전방에 두고, 완드 축을 따라 손바닥이 100° 이상 돌아가던 회전을 최대 78°로 제한했다. 손가락 파지와 완드 소켓 변환은 유지한다. 재검사 결과 두 캐릭터의 공격 전체 손목 각도는 50° 미만이고, 오른팔 인접 키 회전량은 번개 원본보다 작다.
 
-Player와 Dummy의 기존 완드 장착 회전이 약 10도 달라 `BasicWandAttack_DummyGrip.anim`에는 손목 조준 보정을 반영했다. 길이·이벤트·나머지 팔 키포즈·손가락 파지는 동일하다. Dummy의 표시/활성 상태를 변경하지 않았다.
+2026-11-03 빈 왼손 수정: 사용자가 지적한 손은 완드를 든 오른손이 아니라 반대쪽 왼손이다. 번개 원본의 왼쪽 아래팔은 대기 자세에서 최대 79.37° 회전해, 빈 손이 로브 옆에서 꺾여 보였다. 완드 복사본에서는 왼쪽 아래팔 회전을 40%로 줄여 최대 31.75°로 제한하고, 왼손 로컬 회전을 완드 대기 자세로 유지한다. 키 사이 최대 회전량은 13.64°에서 5.46°로 줄었다. 왼쪽 윗팔과 몸통·다리·오른손 파지는 유지한다. 변경 후 Unity 플레이 화면은 아직 확인하지 못해 로브 관통과 대기 전환의 시각적 상태는 미검증이다.
 
-## 연결과 기존 무기 분리
-
-- `BasicWandLocomotion.controller`: 원본 컨트롤러의 전용 사본. Cast 진입 블렌드 0.015초, Cast 종료는 normalized time 1에서 지연 없이 Idle로 전환한다. 원본의 0.25초 종료 블렌드는 이 사본에서만 제거했다. 클립의 마지막 자세 자체가 완드 Idle과 맞는다.
-- 기존 `BasicWandGrip.overrideController`: 전용 사본을 기반으로 Idle과 Cast 두 클립만 교체. 이동 클립은 원본을 사용한다.
-- `BasicWandGrip_DummyGrip.overrideController`: 동일 구조, Dummy의 장착 회전에 맞는 Cast 변형 사용.
-- `BasicWandIdlePose`: 완드가 표시되어 있을 때만 해당 전용 컨트롤러를 소유한다. 완드를 숨기거나 비활성화하면 기존 WizardLocomotion으로 복원한다. 외부에서 설치한 다른 컨트롤러를 덮어쓰지 않는다.
-- `BasicWandGripSkin`: 완드 Idle/Cast 및 관련 블렌드에서 기존 손 스킨 보정을 유지한다.
-- `PlayerAttack`: 완드가 현재 전용 컨트롤러를 소유하면 차징 없이 입력 즉시 공격한다. 공격 시작 때 완드 여부를 저장하고, 완드 공격의 FireMagic은 기존 currentWeapon/Authority 발사를 호출하지 않는다. 완드를 숨긴 상태의 기존 무기 공격은 원래 경로를 사용한다.
-
-BasicWand는 여전히 외형/애니메이션 전용이다. Arcane Bolt, 데미지, 충돌, 공격 효과는 구현하지 않았다. 기존 FireMagic 이벤트 이름과 WizardAnimationEvent 전달 구조는 유지했으며 향후 실제 완드 무기 구현 시 발사 연결이 필요하다. currentWeapon만 변경하고 완드를 계속 표시하면 완드 모드가 유지되므로, 다른 무기를 확인할 때는 완드 모델을 숨기거나 BasicWand를 비활성화한다.
-
-## 변경 파일
-
-신규 에셋 및 각 `.meta`:
-
-- `Assets/Weapons/Basic Wand/Animations/BasicWandAttack.anim`
-- `Assets/Weapons/Basic Wand/Animations/BasicWandAttack_DummyGrip.anim`
-- `Assets/Weapons/Basic Wand/Animations/BasicWandLocomotion.controller`
-- `Assets/Weapons/Basic Wand/Animations/BasicWandGrip_DummyGrip.overrideController`
-- `Assets/Editor/BasicWandAttackSetup.cs`
-
-수정:
-
-- `Assets/Weapons/Basic Wand/Animations/BasicWandGrip.overrideController`
-- `Assets/Weapons/Basic Wand/BasicWandIdlePose.cs`
-- `Assets/Weapons/Basic Wand/BasicWandGripSkin.cs`
-- `Assets/Player/PlayerAttack.cs`
-- `Assets/Scenes/PlayerTest.unity`: 기존 완드 컨트롤러/손 스킨 연결. 이번 작업 전의 씬 변경 사항은 보존했다.
-- 이 폴더의 README, build.txt, build_DummyGrip.txt, validation.txt.
-
-기존 Lightning/Light Orb 무기, 원본 Animator Controller, 원본 공격/Idle/이동 클립, Player.prefab은 수정하지 않았다. 기존에 사용하지 않던 WizardStaffCast_BasicWandGrip 복사본도 그대로 두었다.
-
-## 검증과 수동 확인
-
-Unity 6000.3.24f1 편집 모드에서 생성·컴파일·검증했다. [validation.txt](validation.txt)에 길이·이벤트·81개 시점의 손가락/장착 유지·Idle 경계·발사 방향 검사를 기록했다. 임시 복제본과 IAttackAuthority 대역으로 입력 즉시 잠금, 완드의 기존 무기 발사 차단, EndAttack 해제, 완드를 숨겼을 때 기존 무기의 중복 없는 이벤트 전달도 확인했다. 실제 투사체를 생성하지 않았다.
-
-새 검증 씬을 만들거나 Play Mode를 실행하지 않았다. 최종 시각적 모션과 실제 프레임 단위 이벤트 도달 시각은 Unity에서 직접 확인한다. 이벤트는 클립 로컬 시간 0.08/0.40초이며 실행 중에는 Animator 갱신 주기 단위로 도달한다.
-
-`Tools > Basic Wand > Build Attack`은 현재 PlayerTest의 두 장착 상태를 기준으로 재생성하고 기존 씬의 참조만 저장하는 명시적 편집 도구다. `Validate Attack`은 임시 복제본으로 검사한다. 자동 실행 코드는 없다. 과거 `Apply Idle Only` 도구는 공격 연결 이전의 도구이므로 다시 적용했다면 Build Attack을 실행해 공격 연결을 복구한다.

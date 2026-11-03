@@ -1,0 +1,2 @@
+BasicWandAttack.anim: empty-hand LeftForeArm motion reduced 79.37 -> 31.75 deg; LeftHand local rotation held at idle (source deviation 4.32 deg); upper arm/body/legs/weapon unchanged.
+BasicWandAttack_DummyGrip.anim: empty-hand LeftForeArm motion reduced 79.37 -> 31.75 deg; LeftHand local rotation held at idle (source deviation 4.32 deg); upper arm/body/legs/weapon unchanged.
