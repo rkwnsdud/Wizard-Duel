@@ -5,6 +5,8 @@ public class PlayerAttack : MonoBehaviour
 {
     private PlayerInputActions inputActions;
     private PlayerHealth playerHealth;
+    private PlayerWeaponPassiveController passiveController;
+    private PlayerCombatStats combatStats;
 
     [SerializeField] private WeaponBase currentWeapon;
     public WeaponBase CurrentWeapon => currentWeapon;
@@ -12,6 +14,8 @@ public class PlayerAttack : MonoBehaviour
 
     private bool isCharging;
     private float chargeStartedAt;
+    private float cooldownEndsAt;
+    private float activeCooldownDuration;
 
     private Animator animator;
     [SerializeField, Tooltip("The Cast motion in the shared locomotion controller, replaced by the equipped weapon's clip.")]
@@ -37,6 +41,14 @@ public class PlayerAttack : MonoBehaviour
     private bool hasFired;
 
     public bool IsAttacking { get; private set; }
+    public bool IsOnCooldown => CooldownRemaining > 0f;
+    public float CooldownRemaining => Mathf.Max(0f, cooldownEndsAt - Time.time);
+    public float CooldownRemainingFraction => activeCooldownDuration <= 0f || !IsOnCooldown
+        ? 0f
+        : Mathf.Clamp01(CooldownRemaining / activeCooldownDuration);
+    public float CooldownProgress => activeCooldownDuration <= 0f || !IsOnCooldown
+        ? 1f
+        : Mathf.Clamp01(1f - CooldownRemaining / activeCooldownDuration);
     // 온라인 전투에서 DuelPlayer가 넣는다. 없으면 오프라인으로 바로 공격한다.
     public IAttackAuthority Authority { get; set; }
     public WeaponBase Weapon => currentWeapon;
@@ -50,11 +62,13 @@ public class PlayerAttack : MonoBehaviour
         RestoreWeaponController();
         if (currentWeapon != null && currentWeapon != weapon)
         {
+            passiveController?.Unequip(currentWeapon);
             currentWeapon.HideChargePreview();
             currentWeapon.gameObject.SetActive(false);
         }
         currentWeapon = weapon;
         if (weapon != null) weapon.gameObject.SetActive(true);
+        passiveController?.Equip(weapon);
         return true;
     }
 
@@ -83,14 +97,19 @@ public class PlayerAttack : MonoBehaviour
     private void Awake()
     {
         playerHealth = GetComponent<PlayerHealth>();
+        passiveController = GetComponent<PlayerWeaponPassiveController>();
+        combatStats = GetComponent<PlayerCombatStats>();
 
         // Keep player variants working if the weapon reference is not serialized on the variant.
         if (currentWeapon == null)
             currentWeapon = GetComponentInChildren<WeaponBase>(true);
 
+        passiveController?.Equip(currentWeapon);
+
         Transform character = transform.Find("Wizard");
         animator = character.GetComponent<Animator>();
         wandPoses = GetComponentsInChildren<BasicWandIdlePose>(true);
+        combatStats ??= GetComponent<PlayerCombatStats>();
     }
 
     private float ChargeRatio => maxChargeTime > 0f ? Mathf.Clamp01((Time.time - chargeStartedAt) / maxChargeTime) : 1f;
@@ -138,7 +157,7 @@ public class PlayerAttack : MonoBehaviour
     // 공격 버튼을 누른 순간 차징 시작
     private void AttackStarted(InputAction.CallbackContext context)
     {
-        if (IsAttacking || (playerHealth != null && playerHealth.IsDead))
+        if (IsAttacking || IsOnCooldown || (playerHealth != null && playerHealth.IsDead))
         {
             return;
         }
@@ -157,7 +176,7 @@ public class PlayerAttack : MonoBehaviour
     // 공격 버튼을 뗀 순간 공격 애니메이션 시작
     private void Attack(InputAction.CallbackContext context)
     {
-        if (IsAttacking || !isCharging || (playerHealth != null && playerHealth.IsDead))
+        if (IsAttacking || IsOnCooldown || !isCharging || (playerHealth != null && playerHealth.IsDead))
         {
             return;
         }
@@ -179,7 +198,20 @@ public class PlayerAttack : MonoBehaviour
     // 소유자는 즉시 재생하고 상대는 전달받은 충전값으로 재생한다.
     public void PlayAttack(float chargeRatio)
     {
-        if (IsAttacking || (playerHealth != null && playerHealth.IsDead) ||
+        TryPlayAttack(chargeRatio, respectCooldown: true);
+    }
+
+    // Remote attack RPCs must be replayed even if network delay makes local
+    // cooldown clocks differ by a few milliseconds.
+    public void PlayReplicatedAttack(float chargeRatio)
+    {
+        TryPlayAttack(chargeRatio, respectCooldown: false);
+    }
+
+    private void TryPlayAttack(float chargeRatio, bool respectCooldown)
+    {
+        if (IsAttacking || (respectCooldown && IsOnCooldown) ||
+            (playerHealth != null && playerHealth.IsDead) ||
             (currentWeapon == null && !HasActiveWand()))
             return;
 
@@ -191,10 +223,19 @@ public class PlayerAttack : MonoBehaviour
         ApplyWeaponAnimation();
         hasFired = false;
         IsAttacking = true;
+        StartAttackCooldown(attackingWeapon);
 
         // WizardAnimationEvent fires at the cast pose.
         animator.SetFloat("MoveSpeed", 0f);
         animator.SetTrigger("Attack");
+    }
+
+    private void StartAttackCooldown(WeaponBase weapon)
+    {
+        activeCooldownDuration = combatStats != null
+            ? combatStats.GetAttackCooldown(weapon)
+            : weapon != null ? weapon.AttackCooldown : 0f;
+        cooldownEndsAt = Time.time + activeCooldownDuration;
     }
 
     // 공격 애니메이션 중간 Animation Event에서 호출
