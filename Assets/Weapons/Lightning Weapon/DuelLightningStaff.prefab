@@ -327,6 +327,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0553436afbe21d14eafe39037be4396a, type: 3}
   m_Name:
   m_EditorClassIdentifier: Assembly-CSharp::DuelLightningWeapon
+  attackAnimation: {fileID: 7400000, guid: 2339c21bd5cb2da45b4051c7804bdee5, type: 2}
   effectPrefab: {fileID: 1002, guid: 35dcfaaedbf0467fa35f09e588890a42, type: 3}
   firePoint: {fileID: 3179100261422331543}
   preview: {fileID: 7363959964365926871}
