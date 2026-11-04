@@ -113,21 +113,19 @@ public class PlayerAttack : MonoBehaviour
 
     private void OnDisable()
     {
-        if (inputActions == null)
+        if (inputActions != null)
         {
-            return;
+            inputActions.Player.Attack.started -= AttackStarted;
+            inputActions.Player.Attack.canceled -= Attack;
+            inputActions.Disable();
         }
-
-        inputActions.Player.Attack.started -= AttackStarted;
-        inputActions.Player.Attack.canceled -= Attack;
-
-        inputActions.Disable();
 
         if (currentWeapon != null) currentWeapon.HideChargePreview();
         isCharging = false;
         IsAttacking = false;
         hasFired = false;
         attackingWeapon = null;
+        RestoreWeaponController();
 
         if (animator != null)
         {
@@ -186,7 +184,7 @@ public class PlayerAttack : MonoBehaviour
         pendingChargeRatio = chargeRatio;
         // Capture the visual weapon at attack start; do not fire the old WeaponBase
         // still serialized on PlayerTest while previewing the animation-only wand.
-        animationOnlyWandAttack = HasActiveWand();
+        animationOnlyWandAttack = HasActiveWand() && !(currentWeapon is BasicWandWeapon);
         attackingWeapon = currentWeapon;
         ApplyWeaponAnimation();
         hasFired = false;

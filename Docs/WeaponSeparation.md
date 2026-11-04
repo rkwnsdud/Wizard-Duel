@@ -14,6 +14,8 @@
 
 PlayerTest의 기존 Basic Wand는 외형/애니메이션 테스트용이며 기존 전용 Idle·Cast Override와 발사 억제 동작을 유지한다. 공격 클립이 미설정인 기존 프로토타입 무기는 기존 컨트롤러 모션을 사용한다. 네트워크에서 장비 변경을 전달하는 기능과 무기 선택 UI는 추가하지 않는다.
 
+PlayerTest의 Player와 Dummy Player에 별도로 추가된 LightningWeapon·LightOrbWeapon 컴포넌트 4개에도 `StaffCast.anim`을 명시적으로 연결했다. 두 무기는 기존 공통 시전 모션을 계속 사용한다. 각 무기의 Attack Animation을 다른 클립으로 바꾸면 무기별 모션을 지정할 수 있다.
+
 ## 검증 방법
 
 2026-11-04 최종 배치 실행: 아래 테스트 9개 모두 통과. 결과는 로컬 `Logs/WeaponSeparation-final-tests.xml`, 실행 로그는 `Logs/WeaponSeparation-final-tests.log`에 있다.

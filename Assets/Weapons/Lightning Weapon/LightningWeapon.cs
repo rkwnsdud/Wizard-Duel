@@ -18,8 +18,7 @@ public sealed class LightningWeapon : WeaponBase
     {
         playerAim = GetComponentInParent<PlayerAim>();
         if (audioSource == null) audioSource = GetComponentInParent<AudioSource>();
-        preview = GetComponentInChildren<LightningPreview>();
-        if (preview == null) preview = gameObject.AddComponent<LightningPreview>();
+        if (preview == null) preview = GetComponentInChildren<LightningPreview>(true);
     }
 
     private Vector3 GetAimDirection()

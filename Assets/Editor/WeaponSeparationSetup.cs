@@ -92,6 +92,8 @@ public static class WeaponSeparationSetup
             {
                 Require(attack.CurrentWeapon != null, attack.name + " scene weapon reference");
                 Require(attack.CurrentWeapon.transform.IsChildOf(attack.transform), attack.name + " scene weapon owner");
+                foreach (var weapon in attack.GetComponentsInChildren<WeaponBase>(true))
+                    Require(weapon.AttackAnimation != null, attack.name + "/" + weapon.name + " scene attack clip");
                 var wizard = attack.transform.Find("Wizard");
                 Require(wizard && wizard.GetComponent<Animator>(), attack.name + " scene Animator");
                 foreach (var pose in attack.GetComponentsInChildren<BasicWandIdlePose>(true))
