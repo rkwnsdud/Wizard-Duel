@@ -1,0 +1,6 @@
+﻿BasicWandAttack.anim: source body/leg curves 13 unchanged; empty LeftForeArm max 31.75 deg, key jump 5.46 deg (source 13.64); LeftHand local max 0.00 deg; release aim 0.000 deg; right wrist 43.63 deg; max right wrist 48.84 deg at 0.367s; max right arm key jump 13.29 deg at RightForeArm 0.583-0.600 (source 17.81 deg)
+BasicWandAttack_DummyGrip.anim: source body/leg curves 13 unchanged; empty LeftForeArm max 31.75 deg, key jump 5.46 deg (source 13.64); LeftHand local max 0.00 deg; release aim 0.000 deg; right wrist 43.35 deg; max right wrist 47.35 deg at 0.350s; max right arm key jump 13.62 deg at RightForeArm 0.000-0.017 (source 17.81 deg)
+PASS: Lightning source remains separate; only standard FireMagic/EndAttack events in wand copies.
+BasicWandAttack.anim: empty-hand LeftForeArm motion reduced 79.37 -> 31.75 deg; LeftHand local rotation held at idle (source deviation 4.32 deg); upper arm/body/legs/weapon unchanged.
+BasicWandAttack_DummyGrip.anim: empty-hand LeftForeArm motion reduced 79.37 -> 31.75 deg; LeftHand local rotation held at idle (source deviation 4.32 deg); upper arm/body/legs/weapon unchanged.
+

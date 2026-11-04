@@ -1,0 +1,1 @@
+Final natural-grip sources compiled and applied successfully in Unity 6000.3.24f1 edit mode. Unity curve/controller validation passed. No Play Mode.

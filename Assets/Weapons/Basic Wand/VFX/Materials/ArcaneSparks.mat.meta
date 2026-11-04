@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: c587bca11f27539782628e7dbc5090cd
+timeCreated: 1468540008
+licenseType: Store
+NativeFormatImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 345212
+  packageName: Free Game VFX Collection(URP)
+  packageVersion: 1.03
+  assetPath: Assets/Eric VFX Studio/Resource/Materials/particle_sprite_droplet.mat
+  uploadId: 992578

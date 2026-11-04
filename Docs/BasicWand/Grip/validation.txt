@@ -1,0 +1,8 @@
+WizardWalkBackward: duration, loop, events, all curves outside right-hand rotation unchanged.
+WizardCombatIdle: duration, loop, events, all curves outside right-hand rotation unchanged.
+WizardWalkRight: duration, loop, events, all curves outside right-hand rotation unchanged.
+WizardStaffCast: duration, loop, events, all curves outside right-hand rotation unchanged.
+WizardWalkForward: duration, loop, events, all curves outside right-hand rotation unchanged.
+WizardWalkLeft: duration, loop, events, all curves outside right-hand rotation unchanged.
+Player: forearm down dot=0.992, wand down dot=0.992, wrist bend=0.00 degrees, hand world=(0.361, 1.052, 0.077)
+Dummy Player: forearm down dot=0.992, wand down dot=0.992, wrist bend=0.00 degrees, hand world=(0.361, 1.052, 0.077)

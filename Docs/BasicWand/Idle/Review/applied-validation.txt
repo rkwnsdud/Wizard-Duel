@@ -1,0 +1,8 @@
+Mesh validation PASS: only vertices 2, 2089, 2184 changed; RightRingDistal -> RightMiddleDistal, weight 1.0.
+Vertex positions, normals, tangents, colors, UV0..UV7, topology, bounds, bind poses and blend shape count unchanged.
+Original mesh: Assets/Player/Models/WizardAnimated/Wizard_Animated.fbx / char1
+Player: repaired copy assigned; original mesh stored for restoration.
+Dummy Player: repaired copy assigned; original mesh stored for restoration.
+Player: visible / hidden / disabled / inactive / re-enabled / external override restoration checks PASS on temporary copy; authored visibility preserved. Applied scene state=repaired mesh
+Dummy Player: visible / hidden / disabled / inactive / re-enabled / external override restoration checks PASS on temporary copy; authored visibility preserved. Applied scene state=original mesh (wand hidden or inactive)
+No original FBX, bind poses, bones, character vertex positions, UVs, materials, wand Transform, animations or events modified. No Play Mode or new scene.

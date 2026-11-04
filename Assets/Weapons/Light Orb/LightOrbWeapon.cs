@@ -89,11 +89,12 @@ public class LightOrbWeapon : WeaponBase
     public void ApplyPalmUpPose()
     {
         // Editor captures may explicitly preview a pose; during gameplay the
-        // attack system's selected weapon is the authority, not activeSelf.
+        // attack system's pose owner is the authority, including the visible
+        // animation-only wand that can coexist with an old WeaponBase reference.
         if (Application.isPlaying)
         {
             if (!poseOwner) poseOwner=GetComponentInParent<PlayerAttack>();
-            if (!poseOwner || !poseOwner.isActiveAndEnabled || poseOwner.CurrentWeapon != this)
+            if (!poseOwner || !poseOwner.isActiveAndEnabled || !poseOwner.IsWeaponPoseActive(this))
             {
                 RestorePalmPose();
                 return;

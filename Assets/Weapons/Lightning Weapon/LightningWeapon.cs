@@ -17,6 +17,7 @@ public sealed class LightningWeapon : WeaponBase
     private void Awake()
     {
         playerAim = GetComponentInParent<PlayerAim>();
+        if (audioSource == null) audioSource = GetComponentInParent<AudioSource>();
         preview = GetComponentInChildren<LightningPreview>();
         if (preview == null) preview = gameObject.AddComponent<LightningPreview>();
     }
