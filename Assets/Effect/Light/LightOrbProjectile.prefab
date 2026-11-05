@@ -370,6 +370,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 002f3340d68dd7d4f80591072eb0c4bb, type: 3}
+  hitEffectPrefab: {fileID: 2944396702758532163, guid: e190bf97c041e58448af6b043116cba0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LightOrbProjectile
   beamCore: {fileID: 4522455890971518933}

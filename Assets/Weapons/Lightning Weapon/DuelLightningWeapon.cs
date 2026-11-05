@@ -5,6 +5,7 @@ using UnityEngine;
 public sealed class DuelLightningWeapon : WeaponBase, IChargeableWeapon, IWeapon
 {
     [SerializeField] private LightningEffect effectPrefab;
+    [SerializeField] private GameObject hitEffectPrefab;
     [SerializeField] private Transform firePoint;
     [SerializeField] private LightningPreview preview;
     [SerializeField] private AudioSource audioSource;
@@ -42,11 +43,19 @@ public sealed class DuelLightningWeapon : WeaponBase, IChargeableWeapon, IWeapon
         // A lethal hit may despawn players, so send the visual first.
         sink.Broadcast(shot);
         if (target != null)
+        {
+            sink.Broadcast(new ShotEvent(attackId, 1, shot.Start, GetHitPoint(target, shot), charge));
             sink.Hit(attackId, 0, target, Mathf.Lerp(minDamage, maxDamage, charge));
+        }
     }
 
     public void Present(ShotEvent shot)
     {
+        if (shot.Kind == 1)
+        {
+            WeaponHitEffect.Spawn(hitEffectPrefab, shot.Point);
+            return;
+        }
         if (shot.Kind != 0) return;
         HideChargePreview();
         if (audioSource != null && thunderSound != null)
@@ -65,7 +74,18 @@ public sealed class DuelLightningWeapon : WeaponBase, IChargeableWeapon, IWeapon
         chargeRatio = Mathf.Clamp01(chargeRatio);
         ShotEvent shot = Trace(0, AimDirection, chargeRatio, out PlayerHealth target);
         Present(shot);
-        if (target != null) target.TakeDamage(Mathf.Lerp(minDamage, maxDamage, chargeRatio));
+        if (target != null)
+        {
+            WeaponHitEffect.Spawn(hitEffectPrefab, GetHitPoint(target, shot));
+            target.TakeDamage(Mathf.Lerp(minDamage, maxDamage, chargeRatio));
+        }
+    }
+
+    private static Vector3 GetHitPoint(PlayerHealth target, ShotEvent shot)
+    {
+        Collider collider = target.GetComponentInChildren<Collider>();
+        return collider != null ? collider.ClosestPoint((shot.Start + shot.Point) / 2f)
+            : target.transform.position;
     }
 
     private Vector3 GetEndPosition(Vector3 direction, float charge)
