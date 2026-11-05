@@ -2,7 +2,9 @@
 
 기존 캐릭터 FBX와 지팡이 FBX는 이미 별도 모델이다. 이번 변경은 Player 안에 저장되어 있던 지팡이 구성(모델, FirePoint, LightningWeapon)을 `Assets/Weapons/Lightning Weapon/LightningStaff.prefab`으로 추출한다. Player는 오른손의 WeaponSocket 아래에 이 프리팹을 중첩해 사용한다. 기존 모델, 장착 위치, 크기, 캐릭터 색상은 유지한다.
 
-공격 모션은 각 `WeaponBase`의 **Attack Animation**에서 지정한다. PlayerAttack은 공통 이동 컨트롤러의 Cast 모션만 해당 클립으로 교체하고 공격 종료 시 원래 컨트롤러를 복원한다. 이동 상태와 파라미터는 유지한다. 기존 공격 클립은 GUID·애니메이션 곡선·이벤트를 유지해 `Assets/Weapons/Common/StaffCast.anim`으로 옮겼으며 오프라인/온라인 번개 무기에 연결했다.
+공격 모션은 각 `WeaponBase`의 **Attack Animation**에서 지정한다. PlayerAttack은 공통 이동 컨트롤러의 Cast 모션만 해당 클립으로 교체하고 공격 종료 시 원래 컨트롤러를 복원한다. 이동 상태와 파라미터는 유지한다. 기존 공격 클립은 GUID·애니메이션 곡선·이벤트를 유지해 `Assets/Weapons/Common/BaseCast.anim`으로 옮겼으며 오프라인/온라인 번개 무기에 연결했다.
+
+PlayerAttack의 **Base Cast Clip**은 공통 Animator의 Cast 상태에 연결된 원본 클립을 식별하는 교체 기준이다. 실제로 재생할 무기별 모션은 각 무기의 **Attack Animation**에서 지정한다. 기존 **Attack Animation Slot**(`attackAnimationSlot`)은 이 역할을 명확히 하도록 **Base Cast Clip**(`baseCastClip`)으로 이름을 바꿨다. 기존 직렬화 참조는 `FormerlySerializedAs`로 호환되며, Player 프리팹도 동일한 클립 참조를 유지한다. 공통 원본 클립의 파일명은 `BaseCast.anim`, 내부 이름은 `WizardBaseCast`로 정리했다(이전: `StaffCast.anim` / `WizardStaffCast`). 번개·Light Orb도 공유하는 기본 시전 모션이며, 완드 장착 시에는 완드의 Attack Animation으로 교체된다. 클립 GUID와 곡선·이벤트는 유지했다.
 
 새 무기를 추가할 때:
 
@@ -14,7 +16,7 @@
 
 공격과 런타임 포즈는 실제 `Current Weapon`을 기준으로 결정한다. Basic Wand를 장착하면 기존 Idle·Cast와 Grip을 사용하며 Arcane Bolt를 발사한다. 모델의 Renderer를 켜거나 끄는 것만으로 무기가 바뀌지 않는다. 2차 작업 시작 시 로컬 PlayerTest의 Player에는 Light Orb가 선택되어 있었으며 씬 설정은 변경하지 않았다. 공격 클립이 미설정인 기존 프로토타입 무기는 기존 컨트롤러 모션을 사용한다. 네트워크에서 장비 변경을 전달하는 기능과 무기 선택 UI는 추가하지 않는다.
 
-PlayerTest의 Player와 Dummy Player에 별도로 추가된 LightningWeapon·LightOrbWeapon 컴포넌트 4개에도 `StaffCast.anim`을 명시적으로 연결했다. 두 무기는 기존 공통 시전 모션을 계속 사용한다. 각 무기의 Attack Animation을 다른 클립으로 바꾸면 무기별 모션을 지정할 수 있다.
+PlayerTest의 Player와 Dummy Player에 별도로 추가된 LightningWeapon·LightOrbWeapon 컴포넌트 4개에도 `BaseCast.anim`을 명시적으로 연결했다. 두 무기는 기존 공통 시전 모션을 계속 사용한다. 각 무기의 Attack Animation을 다른 클립으로 바꾸면 무기별 모션을 지정할 수 있다.
 
 ## 검증 방법
 

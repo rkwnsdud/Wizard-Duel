@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.Serialization;
 
 public class PlayerAttack : MonoBehaviour
 {
@@ -15,8 +16,9 @@ public class PlayerAttack : MonoBehaviour
     private float chargeStartedAt;
 
     private Animator animator;
-    [SerializeField, Tooltip("The Cast motion in the shared locomotion controller, replaced by the equipped weapon's clip.")]
-    private AnimationClip attackAnimationSlot;
+    [FormerlySerializedAs("attackAnimationSlot")]
+    [SerializeField, Tooltip("공통 Animator의 Cast 상태에 연결된 원본 클립입니다. 공격 시 이 클립을 장착 무기의 Attack Animation으로 교체합니다. 무기별 공격 모션은 각 무기에서 지정하세요.")]
+    private AnimationClip baseCastClip;
     private AnimatorOverrideController weaponController;
     private RuntimeAnimatorController sourceController;
     private WeaponBase attackingWeapon;
@@ -71,7 +73,7 @@ public class PlayerAttack : MonoBehaviour
     {
         RestoreWeaponController();
         if (attackingWeapon == null ||
-            attackingWeapon.AttackAnimation == null || attackAnimationSlot == null) return;
+            attackingWeapon.AttackAnimation == null || baseCastClip == null) return;
         sourceController = animator.runtimeAnimatorController;
         if (sourceController == null) return;
         // Copy existing Idle/Grip mappings onto the same underlying controller.
@@ -85,7 +87,7 @@ public class PlayerAttack : MonoBehaviour
             poseOverride.GetOverrides(overrides);
             weaponController.ApplyOverrides(overrides);
         }
-        weaponController[attackAnimationSlot] = attackingWeapon.AttackAnimation;
+        weaponController[baseCastClip] = attackingWeapon.AttackAnimation;
         animator.runtimeAnimatorController = weaponController;
     }
 

@@ -9,7 +9,7 @@ public static class WeaponSeparationSetup
 {
     const string PlayerPath = "Assets/Player/Player.prefab";
     const string StaffPath = "Assets/Weapons/Lightning Weapon/LightningStaff.prefab";
-    const string CastPath = "Assets/Weapons/Common/StaffCast.anim";
+    const string CastPath = "Assets/Weapons/Common/BaseCast.anim";
 
     public static void Apply()
     {
@@ -24,7 +24,7 @@ public static class WeaponSeparationSetup
         try
         {
             var attack = player.GetComponent<PlayerAttack>();
-            SetReference(attack, "attackAnimationSlot", clip);
+            SetReference(attack, "baseCastClip", clip);
             var staff = attack.CurrentWeapon;
             SetReference(staff, "attackAnimation", clip);
             if (PrefabUtility.GetPrefabAssetPathOfNearestInstanceRoot(staff.gameObject) != StaffPath)

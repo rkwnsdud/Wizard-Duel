@@ -12,7 +12,7 @@ using UnityEngine;
 // The source clip and Lightning controller are read only.
 public static class LightningBasedWandAttackSetup
 {
-    const string Source = "Assets/Weapons/Common/StaffCast.anim";
+    const string Source = "Assets/Weapons/Common/BaseCast.anim";
     const string Idle = "Assets/Weapons/Basic Wand/Animations/WizardCombatIdle_BasicWandGrip.anim";
     const string Folder = "Assets/Weapons/Basic Wand/Animations/";
     const string Report = "Docs/BasicWand/Attack/lightning-motion-validation.txt";

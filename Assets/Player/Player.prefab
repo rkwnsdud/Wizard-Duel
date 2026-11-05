@@ -211,7 +211,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PlayerAttack
   currentWeapon: {fileID: 4100219137000000001}
   maxChargeTime: 2
-  attackAnimationSlot: {fileID: 7400000, guid: 2339c21bd5cb2da45b4051c7804bdee5, type: 2}
+  baseCastClip: {fileID: 7400000, guid: 2339c21bd5cb2da45b4051c7804bdee5, type: 2}
 --- !u!1 &3392797227227496391
 GameObject:
   m_ObjectHideFlags: 0
