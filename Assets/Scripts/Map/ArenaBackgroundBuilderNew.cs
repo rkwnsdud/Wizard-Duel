@@ -13,11 +13,16 @@ public class ArenaBackgroundBuilderNew : MonoBehaviour
     [SerializeField] GameObject[] pillarVariants;
     [SerializeField] GameObject[] torchVariants;
     [SerializeField] GameObject[] extraDecorVariants;
-    [SerializeField] float cellSize = 2f;
-    [SerializeField] int rimOffsetCells = 2;
-    [SerializeField] int decoOffsetCells = 4;
+    [Tooltip("맵 한 칸의 월드 크기. ProceduralMap/GridMap의 cellSize(1m)와 같아야 배경이 맵 가장자리에 붙는다.")]
+    [SerializeField] float cellSize = 1f;
+    [Tooltip("맵 가장자리에서 몇 칸까지 바닥을 채울지. 바닥 타일 기준으로 세며 4~5칸을 권장한다.")]
+    [SerializeField] int rimOffsetCells = 5;
+    [Tooltip("맵 가장자리에서 몇 칸까지 장식을 둘지. 바닥보다 넓게 6~7칸을 권장한다.")]
+    [SerializeField] int decoOffsetCells = 7;
     [SerializeField] float farGroundY = -0.15f;
     [SerializeField] float farGroundSize = 240f;
+    // CreatePrimitive 평면의 빌트인 머티리얼은 URP 빌드에서 마젠타로 보일 수 있어, URP Lit으로 직접 만든다.
+    static Material sharedGroundMaterial;
     public enum BackgroundYawMode { Fixed, Random90, Random360 }
     [System.Serializable]
     public struct BackgroundRotationSettings
@@ -49,7 +54,10 @@ public class ArenaBackgroundBuilderNew : MonoBehaviour
 
     void Start()
     {
-        if (map == null) map = FindFirstObjectByType<ProceduralMap>();
+        // 씬에 맵이 하나뿐인 구형 NetworkDemo 호환: 부모에서 먼저 찾고, 그래도 없으면 하나일 때만 자동 연결한다.
+        // Main처럼 맵이 둘(타이틀/전투)이면 자동 연결하지 않는다. 인스펙터에서 map을 직접 지정해야 한다.
+        if (map == null) map = GetComponentInParent<ProceduralMap>();
+        if (map == null) map = FindSingleMap();
         if (backgroundRoot == null) backgroundRoot = transform;
         Rebuild();
     }
@@ -64,7 +72,8 @@ public class ArenaBackgroundBuilderNew : MonoBehaviour
 
     public void Rebuild()
     {
-        if (map == null) map = FindFirstObjectByType<ProceduralMap>();
+        if (map == null) map = GetComponentInParent<ProceduralMap>();
+        if (map == null) map = FindSingleMap();
         if (backgroundRoot == null) backgroundRoot = transform;
         for (int i = backgroundRoot.childCount - 1; i >= 0; i--)
         {
@@ -79,20 +88,23 @@ public class ArenaBackgroundBuilderNew : MonoBehaviour
         int seed = 12345 ^ (layout.Width * 390451) ^ (layout.Height * 606347);
         seed = seed ^ (layout.SpawnA.x * 73856093) ^ (layout.SpawnB.y * 297121507);
         var rand = new System.Random(seed);
-        bool[,] outerVoid = ComputeOuterVoid(layout);
-        List<Vector2Int> rimCells = CollectRimCells(layout, rimOffsetCells, outerVoid);
-        List<Vector2Int> decoCells = CollectRimCells(layout, decoOffsetCells, outerVoid);
+        // 플레이 영역 근처 빈칸은 바깥/안쪽(도넛 구멍 등) 구분 없이 전부 채운다.
+        // 예전에는 맵 바깥에서 닿는 칸만 골라서 일부 모양에서 한쪽이 비어 보였다.
+        // 바닥(rim)은 360도 전체를 빠짐없이 두르고, 장식(deco)은 대칭으로만 놓는다.
+        List<Vector2Int> rimCells = CollectRimCells(layout, rimOffsetCells);
+        List<Vector2Int> decoCells = CollectRimCells(layout, decoOffsetCells);
         bool hasFloor = floorFillVariants != null && floorFillVariants.Length > 0;
-        var rimSet = new HashSet<Vector2Int>(rimCells);
-        var handledRim = new HashSet<Vector2Int>();
         foreach (Vector2Int c in rimCells)
         {
-            if (!handledRim.Add(c)) continue;
-            Vector2Int m = MirrorCell(c, layout);
-            handledRim.Add(m);
-            // 180도 대칭 맵에서는 미러도 rim이지만, 안전하게 포함 여부로 분기한다.
-            bool mirrored = rimSet.Contains(m);
-            PlaceMirroredApron(c, m, layout, rand, hasFloor, mirrored);
+            GameObject prefab = null;
+            if (hasFloor)
+            {
+                prefab = floorFillVariants[rand.Next(floorFillVariants.Length)];
+                if (prefab == null) continue;
+            }
+            BackgroundRotationSettings placement = ApplyOverride(prefab, floorRotation);
+            float yaw = RollYaw(rand, placement.yawMode);
+            PlaceApronAt(c, layout, yaw, prefab, hasFloor, placement);
         }
         var decoSet = new HashSet<Vector2Int>(decoCells);
         var handledDeco = new HashSet<Vector2Int>();
@@ -110,21 +122,11 @@ public class ArenaBackgroundBuilderNew : MonoBehaviour
     {
         return new Vector2Int(layout.Width - 1 - c.x, layout.Height - 1 - c.y);
     }
-    void PlaceMirroredApron(Vector2Int a, Vector2Int m, MapLayout layout, System.Random rand, bool hasFloor, bool mirrored)
+    // 맵 바깥은 플레이 영역이 아니라서 배경을 둘 수 있다. 맵 안이면 빈칸일 때만 둔다.
+    static bool IsVoidOrOutside(MapLayout layout, Vector2Int c)
     {
-        // 미러쌍당 1회만 굴려서 양쪽에 같은 프리팹을 180도 회전 대칭으로 놓는다.
-        GameObject prefab = null;
-        if (hasFloor)
-        {
-            if (floorFillVariants == null || floorFillVariants.Length == 0) return;
-            prefab = floorFillVariants[rand.Next(floorFillVariants.Length)];
-            if (prefab == null) return;
-        }
-        BackgroundRotationSettings settings = ApplyOverride(prefab, floorRotation);
-        float yaw = RollYaw(rand, settings.yawMode);
-        float yawM = (yaw + 180f) % 360f;
-        PlaceApronAt(a, layout, yaw, prefab, hasFloor, settings);
-        if (mirrored && m != a) PlaceApronAt(m, layout, yawM, prefab, hasFloor, settings);
+        if (c.x < 0 || c.y < 0 || c.x >= layout.Width || c.y >= layout.Height) return true;
+        return layout[c.x, c.y] == MapCell.Void;
     }
     void PlaceApronAt(Vector2Int c, MapLayout layout, float yaw, GameObject prefab, bool hasFloor, BackgroundRotationSettings settings)
     {
@@ -146,7 +148,7 @@ public class ArenaBackgroundBuilderNew : MonoBehaviour
             float s = cellSize / 10f;
             go.transform.localScale = new Vector3(s, 1f, s);
             var r2 = go.GetComponent<Renderer>();
-            if (r2 != null) r2.material.color = new Color(0.19f, 0.18f, 0.20f);
+            if (r2 != null) r2.sharedMaterial = GroundMaterial();
         }
         go.name = "Apron_" + c.x + "_" + c.y;
         StripColliders(go);
@@ -154,8 +156,9 @@ public class ArenaBackgroundBuilderNew : MonoBehaviour
     void PlaceMirroredDeco(Vector2Int a, Vector2Int m, MapLayout layout, System.Random rand)
     {
         // 미러쌍당 장식 유무/종류/방향을 1회만 굴린다. 양쪽이 다르면 공정성이 깨진다.
-        bool aValid = layout[a.x, a.y] == MapCell.Void;
-        bool mValid = m.x == a.x && m.y == a.y ? aValid : layout[m.x, m.y] == MapCell.Void;
+        // 맵 바깥 좌표도 배경 후보라 인덱스 접근 전에 범위를 검사한다.
+        bool aValid = IsVoidOrOutside(layout, a);
+        bool mValid = m.x == a.x && m.y == a.y ? aValid : IsVoidOrOutside(layout, m);
         if (!aValid && !mValid) return;
         double r = rand.NextDouble();
         GameObject prefab = null;
@@ -224,55 +227,23 @@ public class ArenaBackgroundBuilderNew : MonoBehaviour
         }
         return settings;
     }
-    List<Vector2Int> CollectRimCells(MapLayout layout, int offset, bool[,] outerVoid)
+    List<Vector2Int> CollectRimCells(MapLayout layout, int offset)
     {
         var list = new List<Vector2Int>();
-        for (int y = 0; y < layout.Height; y++)
-            for (int x = 0; x < layout.Width; x++)
+        // 맵 바깥까지 확장해서 둘러싼다. 예전에는 0~Width 안에서만 골라서
+        // 전장 가장자리에서 잘렸다. 바깥 좌표도 CellToWorld로 배치된다.
+        for (int y = -offset; y < layout.Height + offset; y++)
+            for (int x = -offset; x < layout.Width + offset; x++)
             {
-                if (layout[x, y] != MapCell.Void) continue;
-                if (outerVoid != null && !outerVoid[x, y]) continue;
+                if (x >= 0 && y >= 0 && x < layout.Width && y < layout.Height
+                    && layout[x, y] != MapCell.Void) continue;
                 if (IsNearPlayable(layout, x, y, offset)) list.Add(new Vector2Int(x, y));
             }
         return list;
     }
-    bool[,] ComputeOuterVoid(MapLayout layout)
-    {
-        bool[,] outer = new bool[layout.Width, layout.Height];
-        var queue = new Queue<Vector2Int>();
-        for (int x = 0; x < layout.Width; x++)
-        {
-            TryEnqueueOuter(layout, outer, queue, new Vector2Int(x, 0));
-            TryEnqueueOuter(layout, outer, queue, new Vector2Int(x, layout.Height - 1));
-        }
-        for (int y = 0; y < layout.Height; y++)
-        {
-            TryEnqueueOuter(layout, outer, queue, new Vector2Int(0, y));
-            TryEnqueueOuter(layout, outer, queue, new Vector2Int(layout.Width - 1, y));
-        }
-        Vector2Int[] dirs = { Vector2Int.left, Vector2Int.right, Vector2Int.up, Vector2Int.down };
-        while (queue.Count > 0)
-        {
-            Vector2Int cur = queue.Dequeue();
-            foreach (Vector2Int d in dirs)
-            {
-                Vector2Int n = cur + d;
-                if (n.x < 0 || n.y < 0 || n.x >= layout.Width || n.y >= layout.Height) continue;
-                TryEnqueueOuter(layout, outer, queue, n);
-            }
-        }
-        return outer;
-    }
-    static void TryEnqueueOuter(MapLayout layout, bool[,] outer, Queue<Vector2Int> queue, Vector2Int c)
-    {
-        if (c.x < 0 || c.y < 0 || c.x >= layout.Width || c.y >= layout.Height) return;
-        if (outer[c.x, c.y]) return;
-        if (layout[c.x, c.y] != MapCell.Void) return;
-        outer[c.x, c.y] = true;
-        queue.Enqueue(c);
-    }
     bool IsNearPlayable(MapLayout layout, int x, int y, int offset)
     {
+        // (x, y)는 맵 바깥일 수 있다. 주변 offset 안에 플레이 영역이 있으면 true.
         for (int dy = -offset; dy <= offset; dy++)
             for (int dx = -offset; dx <= offset; dx++)
             {
@@ -321,7 +292,18 @@ public class ArenaBackgroundBuilderNew : MonoBehaviour
             else DestroyImmediate(col);
         }
         var rend = plane.GetComponent<Renderer>();
-        if (rend != null) rend.material.color = new Color(0.12f, 0.11f, 0.13f);
+        if (rend != null) rend.sharedMaterial = GroundMaterial();
+    }
+
+    // URP Lit 머티리얼을 코드로 만든다. CreatePrimitive 기본 머티리얼은 URP 빌드에서
+    // 셰이더가 걷혀 마젠타(보라색)로 보이는 원인이 된다. 카메라 배경색/포그색과 맞춤.
+    static Material GroundMaterial()
+    {
+        if (sharedGroundMaterial != null) return sharedGroundMaterial;
+        Shader shader = Shader.Find("Universal Render Pipeline/Lit");
+        sharedGroundMaterial = new Material(shader != null ? shader : Shader.Find("Standard"));
+        sharedGroundMaterial.color = new Color(0.05490196f, 0.07450981f, 0.12156863f);
+        return sharedGroundMaterial;
     }
     static void StripColliders(GameObject go)
     {
@@ -330,5 +312,16 @@ public class ArenaBackgroundBuilderNew : MonoBehaviour
             if (Application.isPlaying) Destroy(col);
             else DestroyImmediate(col);
         }
+    }
+
+    // 맵이 하나뿐인 씬(NetworkDemo) 호환용. Main처럼 맵이 둘이면 null을 돌려준다.
+    static ProceduralMap FindSingleMap()
+    {
+#if UNITY_2022_2_OR_NEWER
+        ProceduralMap[] maps = FindObjectsByType<ProceduralMap>(FindObjectsSortMode.None);
+#else
+        ProceduralMap[] maps = FindObjectsOfType<ProceduralMap>();
+#endif
+        return maps != null && maps.Length == 1 ? maps[0] : null;
     }
 }

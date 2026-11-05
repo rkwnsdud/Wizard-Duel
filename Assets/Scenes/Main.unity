@@ -12681,6 +12681,7 @@ MonoBehaviour:
   symmetry: 1
   noiseStrength: 0.5
   noiseScale: 0.75
+  background: {fileID: 1500475751}
 --- !u!114 &1500475748
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -12718,9 +12719,97 @@ Transform:
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
-  m_Children: []
+  m_Children:
+  - {fileID: 1500475750}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!4 &1500475750
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1500475752}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1500475749}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1500475751
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1500475752}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3b8cbf9fea6224b4eae5bf22a39548fa, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ArenaBackgroundBuilderNew
+  map: {fileID: 1500475747}
+  backgroundRoot: {fileID: 1500475750}
+  farGroundPrefab: {fileID: 0}
+  floorFillVariants:
+  - {fileID: 2998160536925107046, guid: 986326ec0bfd8f7429656c1d39ddcd2d, type: 3}
+  - {fileID: 2419551078304039022, guid: cc96f872f659b7149be488c8b6ab806a, type: 3}
+  - {fileID: 1956404662427341329, guid: d70230f6be575094d92601966232ed68, type: 3}
+  - {fileID: 252410984658201186, guid: 71e913f2dbf37f74d8694f53a993f571, type: 3}
+  apronY: -0.02
+  pillarVariants:
+  - {fileID: 919132149155446097, guid: 6dbea1667d2618b4c8e82b487c43e44a, type: 3}
+  - {fileID: 919132149155446097, guid: a2e821eec0bd3e6438417b75a79e5a6d, type: 3}
+  - {fileID: 919132149155446097, guid: 7741c8a56619ced40a685641c4886a2c, type: 3}
+  torchVariants:
+  - {fileID: 919132149155446097, guid: f3c7ff72d64c4c24ab46bb4c04e628f5, type: 3}
+  extraDecorVariants: []
+  cellSize: 1
+  rimOffsetCells: 5
+  decoOffsetCells: 7
+  farGroundY: -0.15
+  farGroundSize: 240
+  floorRotation:
+    yawMode: 1
+    forceUpright: 0
+    eulerOffset: {x: 0, y: 0, z: 0}
+    yOffset: 0
+  pillarRotation:
+    yawMode: 1
+    forceUpright: 1
+    eulerOffset: {x: 0, y: 0, z: 0}
+    yOffset: 0
+  torchRotation:
+    yawMode: 1
+    forceUpright: 0
+    eulerOffset: {x: 0, y: 0, z: 0}
+    yOffset: 0
+  extraRotation:
+    yawMode: 1
+    forceUpright: 1
+    eulerOffset: {x: 0, y: 0, z: 0}
+    yOffset: 0
+  decoGroundY: 0
+  rotationOverrides: []
+--- !u!1 &1500475752
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1500475750}
+  - component: {fileID: 1500475751}
+  m_Layer: 0
+  m_Name: Preview Background
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
 --- !u!1 &1515314052
 GameObject:
   m_ObjectHideFlags: 0
@@ -13279,7 +13368,7 @@ Camera:
   m_GameObject: {fileID: 1557303528}
   m_Enabled: 1
   serializedVersion: 2
-  m_ClearFlags: 2
+  m_ClearFlags: 1
   m_BackGroundColor: {r: 0.05490196, g: 0.07450981, b: 0.12156863, a: 1}
   m_projectionMatrixMode: 1
   m_GateFitMode: 2
@@ -13398,7 +13487,7 @@ MonoBehaviour:
   m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 87a5a5697a098f14fa8320523c8fc602, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CameraFollow
   player: {fileID: 0}
   height: 10
@@ -14805,6 +14894,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TitleBackdrop
   map: {fileID: 1500475747}
+  background: {fileID: 1500475751}
   viewCamera: {fileID: 1557303529}
   ground: {fileID: 177177990}
   regenerateInterval: 12
@@ -14856,9 +14946,9 @@ MonoBehaviour:
   orbitSpeed: 3
   pitch: 52
   screenAnchor: {x: 0.67, y: 0.42}
-  distanceScale: 3.8
+  distanceScale: 2.5
   previewAnchor: {x: 0.34375, y: 0.5}
-  previewExtent: {x: 0.46, y: 0.55}
+  previewExtent: {x: 0.68, y: 0.8}
   previewSway: 2.5
   viewSharpness: 2.2
   battleFieldOfView: 60
@@ -15861,9 +15951,10 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 1650d58d57168244594e2fc57e9165c5, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DuelArena
   map: {fileID: 1787997947}
+  background: {fileID: 1787997951}
   playerPrefabs:
   - {fileID: 4760838517846775089, guid: 902e0f01f8488be408e2ba4f863b2e6e, type: 3}
   - {fileID: 7265209467207546497, guid: 11be34856f0c18648be46d1282272402, type: 3}
@@ -15878,7 +15969,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: ff6a83c9313be934cbbfc5abee4338e2, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ProceduralMap
   generateOnAwake: 0
   seed: 7301
@@ -15889,6 +15980,7 @@ MonoBehaviour:
   symmetry: 1
   noiseStrength: 0.5
   noiseScale: 0.75
+  background: {fileID: 1787997951}
 --- !u!114 &1787997948
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -15899,7 +15991,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 948515391d62fae449b67dfc0f274619, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BlockFactory
   floorBlocks:
   - {fileID: 1995253096088471428, guid: 986326ec0bfd8f7429656c1d39ddcd2d, type: 3}
@@ -15926,9 +16018,97 @@ Transform:
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
-  m_Children: []
+  m_Children:
+  - {fileID: 1787997950}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!4 &1787997950
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1787997952}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1787997949}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1787997951
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1787997952}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3b8cbf9fea6224b4eae5bf22a39548fa, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ArenaBackgroundBuilderNew
+  map: {fileID: 1787997947}
+  backgroundRoot: {fileID: 1787997950}
+  farGroundPrefab: {fileID: 0}
+  floorFillVariants:
+  - {fileID: 2998160536925107046, guid: 986326ec0bfd8f7429656c1d39ddcd2d, type: 3}
+  - {fileID: 2419551078304039022, guid: cc96f872f659b7149be488c8b6ab806a, type: 3}
+  - {fileID: 1956404662427341329, guid: d70230f6be575094d92601966232ed68, type: 3}
+  - {fileID: 252410984658201186, guid: 71e913f2dbf37f74d8694f53a993f571, type: 3}
+  apronY: -0.02
+  pillarVariants:
+  - {fileID: 919132149155446097, guid: 6dbea1667d2618b4c8e82b487c43e44a, type: 3}
+  - {fileID: 919132149155446097, guid: a2e821eec0bd3e6438417b75a79e5a6d, type: 3}
+  - {fileID: 919132149155446097, guid: 7741c8a56619ced40a685641c4886a2c, type: 3}
+  torchVariants:
+  - {fileID: 919132149155446097, guid: f3c7ff72d64c4c24ab46bb4c04e628f5, type: 3}
+  extraDecorVariants: []
+  cellSize: 1
+  rimOffsetCells: 7
+  decoOffsetCells: 10
+  farGroundY: -0.15
+  farGroundSize: 240
+  floorRotation:
+    yawMode: 1
+    forceUpright: 0
+    eulerOffset: {x: 0, y: 0, z: 0}
+    yOffset: 0
+  pillarRotation:
+    yawMode: 1
+    forceUpright: 1
+    eulerOffset: {x: 0, y: 0, z: 0}
+    yOffset: 0
+  torchRotation:
+    yawMode: 1
+    forceUpright: 0
+    eulerOffset: {x: 0, y: 0, z: 0}
+    yOffset: 0
+  extraRotation:
+    yawMode: 1
+    forceUpright: 1
+    eulerOffset: {x: 0, y: 0, z: 0}
+    yOffset: 0
+  decoGroundY: 0
+  rotationOverrides: []
+--- !u!1 &1787997952
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1787997950}
+  - component: {fileID: 1787997951}
+  m_Layer: 0
+  m_Name: Battle Background
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 0
 --- !u!1 &1800006829
 GameObject:
   m_ObjectHideFlags: 0
@@ -17619,7 +17799,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 1858988d4d2b4d428faf50bbd61e4a1b, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LobbyNetwork
   manager: {fileID: 2056890471}
   transport: {fileID: 2056890472}
@@ -17648,7 +17828,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 593a2fe42fa9d37498c96f9a383b6521, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.NetworkManager
   NetworkManagerExpanded: 0
   NetworkConfig:
@@ -17661,7 +17841,7 @@ MonoBehaviour:
     TickRate: 30
     ClientConnectionBufferTimeout: 10
     ConnectionApproval: 1
-    ConnectionData:
+    ConnectionData: 
     EnableTimeResync: 0
     TimeResyncInterval: 30
     EnsureNetworkVariableLengthSafety: 0
@@ -17690,7 +17870,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 6960e84d07fb87f47956e7a81d71c4e6, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.Transports.UTP.UnityTransport
   m_ProtocolType: 0
   m_UseWebSockets: 0
@@ -17705,7 +17885,7 @@ MonoBehaviour:
     Address: 127.0.0.1
     Port: 7777
     WebSocketPath: /
-    ServerListenAddress:
+    ServerListenAddress: 
     ClientBindPort: 0
   DebugSimulator:
     PacketDelayMS: 0

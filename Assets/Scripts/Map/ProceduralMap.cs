@@ -16,6 +16,8 @@ public class ProceduralMap : MonoBehaviour, ISpawnPointProvider
     [SerializeField] MapSymmetry symmetry = MapSymmetry.Rotate180;
     [SerializeField, Range(0f, 1f)] float noiseStrength = 0.5f;
     [SerializeField, Range(0.25f, 2f)] float noiseScale = 0.75f;
+    [Tooltip("이 맵이 갱신되면 같이 갱신할 배경. 같은 오브젝트 하위에 두면 자동으로 찾는다.")]
+    [SerializeField] ArenaBackgroundBuilderNew background;
 
     const float cellSize = 1f;
     readonly List<IBlock> blocks = new List<IBlock>();
@@ -70,8 +72,12 @@ public class ProceduralMap : MonoBehaviour, ISpawnPointProvider
         blocks.AddRange(blockFactory.CreateSpawns(transform));
         // 맵 블록을 다 깔고 나서 배경을 갱신한다. (서버/클라 모두 map.Generate를
         // 거치므로 NetworkDemo에서 따로 호출할 필요가 없다.)
-        ArenaBackgroundBuilderNew background = FindFirstObjectByType<ArenaBackgroundBuilderNew>();
+        // 같은 오브젝트에 붙은 배경(=자식)만 갱신한다. 같은 씬의 다른 맵(타이틀/전투) 배경을 건드리지 않는다.
+        // TitleBackdrop.HideMap처럼 맵이 꺼진 뒤 첫 생성이라면 자식이 비활성일 수 있으니 비활성 포함으로 찾는다.
+        if (background == null) background = GetComponentInChildren<ArenaBackgroundBuilderNew>(true);
         if (background != null) background.Rebuild();
+        // 배경 오브젝트 자체가 꺼져 있으면(HideMap) 다음에 켜질 때 Rebuild하도록 표시만 해 둔다.
+        // Rebuild는 자식 파괴/생성이라 비활성 상태에서도 안전하게 돈다.
     }
 
     // 맵을 비운다. 다음 Generate 전까지 레이아웃과 스폰 지점도 없다.
