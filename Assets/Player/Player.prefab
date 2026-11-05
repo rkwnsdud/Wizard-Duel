@@ -15,6 +15,8 @@ GameObject:
   - component: {fileID: 5254161001047520911}
   - component: {fileID: 5861356721983838770}
   - component: {fileID: 6880158743967379202}
+  - component: {fileID: 7930000000000000001}
+  - component: {fileID: 7930000000000000002}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -500,3 +502,27 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6603f066e23843c5bc44622674594772, type: 3}
   m_Name:
   m_EditorClassIdentifier: Assembly-CSharp::LightningWeapon
+--- !u!114 &7930000000000000001
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 368348533957044283}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b67ff30b801848249ba8d2bdfe2aa3e6, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerCombatStats
+--- !u!114 &7930000000000000002
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 368348533957044283}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9ed78601ed114d2cad15d0e2d85f1f27, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerWeaponPassiveController

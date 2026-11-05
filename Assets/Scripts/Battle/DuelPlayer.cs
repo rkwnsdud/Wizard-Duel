@@ -88,7 +88,7 @@ public sealed class DuelPlayer : NetworkBehaviour, IAttackAuthority, IShotSink
     [Rpc(SendTo.NotOwner, InvokePermission = RpcInvokePermission.Owner)]
     void PlayAttackRpc(float chargeRatio)
     {
-        if (IsClient) attack.PlayAttack(chargeRatio);
+        if (IsClient) attack.PlayReplicatedAttack(chargeRatio);
     }
 
     void IAttackAuthority.FireMagic(float chargeRatio)
@@ -125,6 +125,7 @@ public sealed class DuelPlayer : NetworkBehaviour, IAttackAuthority, IShotSink
             !player.combat.TryTakeHit(slot, attackId, hitIndex, damage, out bool defeatedNow)) return;
         Debug.Log($"[Combat] Hit slot={player.slot} attacker={slot} id={attackId} hit={hitIndex} health={player.combat.Health:F3}");
         player.health.Value = player.combat.Health;
+        PlayerWeaponPassiveController.NotifyServerHit(attack.Weapon, this, player);
         if (defeatedNow) player.Defeated?.Invoke(player);
     }
 
