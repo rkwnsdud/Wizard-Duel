@@ -10,6 +10,7 @@ public class BlockFactory : MonoBehaviour
     [SerializeField] Block[] spawnBlocks = new Block[0];
 
     System.Random random;
+    readonly List<Vector3>[] spawnCells = { new List<Vector3>(), new List<Vector3>() };
 
     public Transform[] SpawnPoints { get; private set; }
 
@@ -18,6 +19,7 @@ public class BlockFactory : MonoBehaviour
         ValidateConfiguration();
         random = new System.Random(seed);
         SpawnPoints = new Transform[2];
+        foreach (List<Vector3> cells in spawnCells) cells.Clear();
     }
 
     public void ValidateConfiguration()
@@ -46,31 +48,39 @@ public class BlockFactory : MonoBehaviour
                 throw new InvalidOperationException($"BlockFactory {label} element {i} is not assigned.");
     }
 
-    // . = 바닥, # = 바닥과 벽, B/O = 파랑/주황 스폰, 공백 = 빈 공간
+    // . = 바닥, # = 바닥과 벽, B/O = 파랑/주황 스폰 영역, 공백 = 빈 공간
+    // 스폰 칸은 모아 두었다가 CreateSpawns에서 영역 가운데에 스폰 타일 하나로 깐다.
     public IEnumerable<IBlock> CreateCell(char cell, Vector3 position, Transform parent)
     {
         int spawnIndex = cell == 'B' ? 0 : cell == 'O' ? 1 : -1;
-        if (cell != '.' && cell != '#' && spawnIndex < 0) yield break;
+        if (spawnIndex >= 0) spawnCells[spawnIndex].Add(position);
+        if (cell != '.' && cell != '#') yield break;
 
-        IBlock floor = CreateBlock(floorBlocks, position, parent, spawnIndex);
-        if (spawnIndex >= 0)
-            SpawnPoints[spawnIndex] = floor.Transform.Find("Spawn Position");
-        yield return floor;
-
+        yield return CreateBlock(floorBlocks, position, parent);
         if (cell == '#')
             yield return CreateBlock(wallBlocks, position, parent);
     }
 
-    IBlock CreateBlock(Block[] variants, Vector3 position, Transform parent, int spawnIndex = -1)
+    // 모든 칸을 깐 뒤 부른다. 스폰 타일 프리팹은 스폰 영역 전체를 덮는 크기다.
+    public IEnumerable<IBlock> CreateSpawns(Transform parent)
+    {
+        for (int i = 0; i < spawnCells.Length; i++)
+        {
+            if (spawnCells[i].Count == 0) continue;
+            Vector3 center = Vector3.zero;
+            foreach (Vector3 position in spawnCells[i]) center += position;
+            center /= spawnCells[i].Count;
+
+            IBlock spawn = spawnBlocks[i].Create(parent, center, Quaternion.identity);
+            SpawnPoints[i] = spawn.Transform.Find("Spawn Position");
+            yield return spawn;
+        }
+    }
+
+    IBlock CreateBlock(Block[] variants, Vector3 position, Transform parent)
     {
         Block block = variants[random.Next(variants.Length)];
         Quaternion rotation = Quaternion.Euler(0f, random.Next(4) * 90f, 0f);
-        if (spawnIndex >= 0)
-        {
-            block = spawnBlocks[spawnIndex];
-            rotation = Quaternion.identity;
-        }
-
         return block.Create(parent, position, rotation);
     }
 }

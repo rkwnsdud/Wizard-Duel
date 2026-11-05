@@ -4,7 +4,7 @@
 
 ## 수정
 
-- PlayerTest의 Player/Dummy Player에 따로 추가된 LightningWeapon·LightOrbWeapon 4개에 기존 StaffCast 공격 클립을 연결했다. 씬 참조 검사에서도 이 연결을 확인한다.
+- PlayerTest의 Player/Dummy Player에 따로 추가된 LightningWeapon·LightOrbWeapon 4개에 기존 공통 Cast 공격 클립을 연결했다. 씬 참조 검사에서도 이 연결을 확인한다.
 - 기본 LightningStaff 프리팹에 ChargePreview, LineRenderer와 LightningPreview 참조를 추가했다. 기존 온라인 지팡이와 같은 프리뷰 설정을 사용한다.
 - LightningWeapon은 Inspector의 프리뷰 참조를 유지하고, 미지정이면 자식에서 찾는다. LineRenderer 없이 LightningPreview만 런타임에 추가하던 동작은 제거했다.
 - PlayerAttack 비활성화 시 입력 객체 생성 여부와 무관하게 충전·공격·발사 대기 상태를 정리하고 임시 공격 컨트롤러를 복원한다.
@@ -24,4 +24,8 @@
 
 팔 각도는 #35의 초기 90~100도 목표 범위에 들어가므로 이번 점검에서 Idle·공격 곡선이나 무기 장착 Transform을 재제작하지 않았다. 이 수치는 기본 Player의 클립 샘플이며 PlayerTest의 개별 Transform override, 모든 벽 근처의 자세나 최종 외형까지 보장하지 않는다.
 
-이번 검증은 편집 모드에서 수행했다. 전체 Play Mode 회귀 테스트, OS 입력, 두 클라이언트 네트워크 실플레이, 새 Arcane Bolt 구현과의 통합 테스트는 수행하지 않았다. 코드·프리팹 수정은 로컬에 있으며 아직 커밋·푸시하지 않았다.
+이번 검증은 편집 모드에서 수행했다. 전체 Play Mode 회귀 테스트, OS 입력, 두 클라이언트 네트워크 실플레이, 새 Arcane Bolt 구현과의 통합 테스트는 수행하지 않았다. 위 결과는 당시 편집 모드 검증 기록이다.
+
+## 2026-11-05 PR 통합
+
+점검 도구를 현재 씬의 Lightning·Light Orb·Basic Wand 각 2개, 총 6개 무기 구성에 맞췄다. Basic Wand의 투사체 참조와 Player·Wall·Obstacle 충돌 마스크 검사도 추가했다. 이번 통합에서는 도구 실행 없이 Unity 내장 Roslyn으로 런타임 및 에디터 컴파일을 확인했다. 실제 Unity 임포트와 플레이 검증은 별도다.

@@ -34,8 +34,8 @@ public static class WeaponSetupReview
                     CheckWeapon(weapon);
                     weapons++;
                 }
-                Require(weapons == 4, "PlayerTest must have two Lightning and two Orb weapons.");
-                report.AppendLine("PASS: four scene weapons have clips, owned FirePoints and projectile references.");
+                Require(weapons == 6, "PlayerTest must have two Lightning, two Orb and two Basic Wand weapons.");
+                report.AppendLine("PASS: six scene weapons have clips, owned FirePoints and projectile references.");
             }
             finally { EditorSceneManager.ClosePreviewScene(scene); }
 
@@ -119,6 +119,14 @@ public static class WeaponSetupReview
         Require(point && point.IsChildOf(weapon.transform), weapon.name + " owned FirePoint");
         if (weapon is LightningWeapon)
             Require(Reference<LightningBolt>(weapon, "boltPrefab"), weapon.name + " bolt prefab");
+        if (weapon is BasicWandWeapon)
+        {
+            var projectile = Reference<ArcaneBoltProjectile>(weapon, "projectilePrefab");
+            Require(projectile, weapon.name + " projectile");
+            int mask = new SerializedObject(projectile).FindProperty("mask").intValue;
+            int required = LayerMask.GetMask("Player", "Wall", "Obstacle");
+            Require((mask & required) == required, "Arcane Bolt detects players, walls and obstacles");
+        }
         if (weapon is LightOrbWeapon)
         {
             var projectile = Reference<LightOrbProjectile>(weapon, "lightAttackPrefab");
