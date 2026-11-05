@@ -6,8 +6,10 @@ public class BasicWandWeapon : WeaponBase
     [SerializeField] private ArcaneBoltProjectile projectilePrefab;
     [SerializeField] private Transform firePoint;
 
-    public override void Fire(float chargeRatio)
+    public override void Fire()
     {
-        Instantiate(projectilePrefab, firePoint.position, firePoint.rotation);
+        PlayerHealth owner = GetComponentInParent<PlayerHealth>();
+        ArcaneBoltProjectile bolt = Instantiate(projectilePrefab, firePoint.position, firePoint.rotation);
+        bolt.Initialize(owner);
     }
 }

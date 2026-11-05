@@ -85,8 +85,10 @@ public static class BasicWandAnimatorReview
                     typeof(PlayerAttack).GetMethod("Awake", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic).Invoke(attack, null);
                     var wand = Find(actor, "BasicWand"); var owner = wand.GetComponent<BasicWandIdlePose>(); owner.enabled = true;
                     var renderer = wand.GetComponentInChildren<MeshRenderer>(true); renderer.enabled = true;
-                    if (attack.IsWeaponPoseActive(orb)) throw new Exception("Orb pose still owns the visible wand");
-                    report.AppendLine("PASS: visible wand rejects selected Orb's procedural pose.");
+                    var wandWeapon = wand.GetComponent<WeaponBase>();
+                    if (!attack.TryEquipWeapon(wandWeapon)) throw new Exception("Could not equip wand for review");
+                    if (attack.IsWeaponPoseActive(orb)) throw new Exception("Unequipped Orb still owns the pose");
+                    report.AppendLine("PASS: equipped wand rejects unequipped Orb's procedural pose.");
                     // Enabling components can reset Animator state in edit mode.
                     // Evaluate the wand again before comparing the restored bones.
                     animator.runtimeAnimatorController = controller;
@@ -101,8 +103,13 @@ public static class BasicWandAnimatorReview
                     renderer.enabled = true;
                     Render(actor, "after-wand-idle");
                     renderer.enabled = false;
-                    if (!attack.IsWeaponPoseActive(orb)) throw new Exception("Hiding wand did not restore Orb pose authority");
-                    report.AppendLine("PASS: hidden wand restores selected Orb's procedural pose authority.");
+                    if (!attack.IsWeaponPoseActive(wandWeapon) || attack.IsWeaponPoseActive(orb))
+                        throw new Exception("Renderer visibility changed equipment pose ownership");
+                    if (!attack.TryEquipWeapon(orb) || !attack.IsWeaponPoseActive(orb))
+                        throw new Exception("Equipping Orb did not transfer pose ownership");
+                    if (!attack.TryEquipWeapon(null) || attack.IsWeaponPoseActive(orb))
+                        throw new Exception("Unequipping did not release pose ownership");
+                    report.AppendLine("PASS: visibility does not equip a weapon; equip/unequip transfers pose ownership.");
                 }
             }
             finally { if (graph.IsValid()) graph.Destroy(); UnityEngine.Object.DestroyImmediate(actor); }

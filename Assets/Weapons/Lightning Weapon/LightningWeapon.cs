@@ -1,10 +1,8 @@
 using UnityEngine;
 using UnityEngine.Serialization;
 
-public sealed class LightningWeapon : WeaponBase
+public sealed class LightningWeapon : WeaponBase, IChargeableWeapon
 {
-    public override bool UsesCharge => true;
-
     [FormerlySerializedAs("projectilePrefab")]
     [SerializeField] private LightningBolt boltPrefab;
     [SerializeField] private Transform firePoint;
@@ -28,7 +26,7 @@ public sealed class LightningWeapon : WeaponBase
         return direction.sqrMagnitude < 0.0001f ? Vector3.forward : direction.normalized;
     }
 
-    public override void ShowChargePreview(float chargeRatio)
+    public void ShowChargePreview(float chargeRatio)
     {
         if (preview == null || boltPrefab == null || firePoint == null) return;
         Vector3 start = firePoint.position;
@@ -37,7 +35,7 @@ public sealed class LightningWeapon : WeaponBase
             direction, boltPrefab.GetHitWidth(chargeRatio));
     }
 
-    public override void HideChargePreview()
+    public void HideChargePreview()
     {
         if (preview != null) preview.HidePreview();
     }
@@ -46,7 +44,9 @@ public sealed class LightningWeapon : WeaponBase
     {
         HideChargePreview();
     }
-    public override void Fire(float chargeRatio)
+    public override void Fire() => FireCharged(0f);
+
+    public void FireCharged(float chargeRatio)
     {
         HideChargePreview();
         if (boltPrefab == null || firePoint == null)

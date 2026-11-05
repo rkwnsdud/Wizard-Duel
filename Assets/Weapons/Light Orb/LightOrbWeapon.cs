@@ -88,13 +88,12 @@ public class LightOrbWeapon : WeaponBase
 
     public void ApplyPalmUpPose()
     {
-        // Editor captures may explicitly preview a pose; during gameplay the
-        // attack system's pose owner is the authority, including the visible
-        // animation-only wand that can coexist with an old WeaponBase reference.
+        // Editor captures may explicitly preview a pose. Gameplay follows the
+        // equipped weapon, including on remote players whose input is disabled.
         if (Application.isPlaying)
         {
             if (!poseOwner) poseOwner=GetComponentInParent<PlayerAttack>();
-            if (!poseOwner || !poseOwner.isActiveAndEnabled || !poseOwner.IsWeaponPoseActive(this))
+            if (!poseOwner || !poseOwner.IsWeaponPoseActive(this))
             {
                 RestorePalmPose();
                 return;
@@ -178,7 +177,7 @@ public class LightOrbWeapon : WeaponBase
         playerAim = GetComponentInParent<PlayerAim>(true);
     }
 
-    public override void Fire(float chargeRatio)
+    public override void Fire()
     {
         // A serialized weapon can be called before its inactive object's Awake.
         // Resolve the actual owner again instead of dropping the attack.
