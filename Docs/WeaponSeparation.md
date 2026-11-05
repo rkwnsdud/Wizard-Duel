@@ -1,4 +1,4 @@
-﻿# 무기 발사·애니메이션 구조
+# 무기 발사·애니메이션 구조
 
 Player는 WeaponSocket 아래의 무기를 `PlayerAttack.CurrentWeapon`으로 참조한다. 장착 위치, 모델, 기존 애니메이션 클립과 GUID를 유지한다.
 
@@ -59,7 +59,7 @@ BasicWandIdlePose는 자신의 WeaponBase와 부모 PlayerAttack을 기존 계�
 
 - 소유자 투사체는 공격 ID와 sink를 유지하며 sink.Hit으로만 피해를 보고해야 한다. 단일 투사체는 hitIndex 0으로 한 번만 타격하고 자신을 제외한다.
 - Present는 양쪽에서 연출만 생성/갱신한다. 오프라인 피해 투사체를 그대로 생성해 원격 충돌/피해를 중복 실행하면 안 된다.
-- Arcane Bolt에는 시작 위치·방향·속도·공통 시각 또는 경과 시간, 충돌/종료 이벤트, 지연 수신 보정과 캐릭터 피해 구현이 필요하다.
+- Arcane Bolt에는 시작 위치·방향·속도·공통 시각 또는 경과 시간, 충돌/종료 이벤트, 지연 수신 보정과 서버 피해 보고 구현이 필요하다.
 - Light Orb는 소유자가 결정한 반사 지점·구간 순서·진행 시각과 종료를 전달하고 원격에서 해당 경로를 재생해야 한다.
 - ShotEvent/ShotRpc에 시간·속도·경로 정보를 추가해야 한다. Charge에 다른 의미를 넣어 우회하지 않는다.
 - 현재 연출 라우팅은 장착 중인 IWeapon을 사용한다. 이동 투사체 도입 전 공격 ID와 발사 무기/연출을 연결해 장비 교체 후 늦은 이벤트를 올바르게 처리해야 한다.
@@ -67,9 +67,11 @@ BasicWandIdlePose는 자신의 WeaponBase와 부모 PlayerAttack을 기존 계�
 
 ## PR 범위와 검증
 
-발사·차징 계약과 장착 기반 애니메이션 처리를 최신 main의 패시브·쿨다운 기능과 통합했다. 기본 완드가 실제 WeaponBase가 되기 위해 필요한 발사 코드·프리팹은 기존 6bb1593 커밋에서 가져왔으며 GUID를 유지했다.
+이번 PR은 Arcane Bolt의 오프라인 벽·플레이어 충돌을 추가한다. 이동 구간을 SphereCastAll로 검색하고 거리순으로 소유자를 제외한 첫 충돌을 처리한다. 플레이어에게 10의 피해를 주고 투사체를 제거하며, 벽·장애물에서도 제거한다. 프리팹의 mask는 Player, Wall, Obstacle 레이어를 포함한다. BasicWandWeapon은 발사 시 소유자의 PlayerHealth를 전달한다. 온라인 Basic Wand 발사는 아직 지원하지 않는다.
 
-개발 중인 Arcane Bolt의 소유자 전달/Initialize, 벽 SphereCast와 레이어/반지름 설정, 미커밋 PlayerTest 씬 및 폰트 변경은 PR에 포함하지 않았다. 해당 작업들은 원래 로컬 작업 폴더에 보존되어 있다. 이 PR의 Arcane Bolt는 기존 커밋의 단순 이동 구현이다. 씬, 모델, 애니메이션 클립·곡선, VFX는 변경하지 않는다.
+공통 Cast 클립은 GUID·곡선·이벤트를 유지한 채 BaseCast.anim / WizardBaseCast로 이름을 변경했다. PlayerAttack의 교체 기준 필드는 baseCastClip으로 정리하고 FormerlySerializedAs로 기존 attackAnimationSlot 참조를 보존한다. 무기별 실제 모션은 각 무기의 Attack Animation에서 지정한다.
+
+PlayerTest의 완드 발사 참조와 무기·캐릭터 활성 상태, 번개 프리팹 및 Light Orb 이동·반사의 검증용 단계 분리, WeaponSetupReview 검증 도구를 포함한다. Basic Wand의 Textures 폴더는 Light Orb 아래로 이동했으며 파일 내용과 GUID를 보존한다. 최신 main의 패시브·쿨다운·맵 변경은 유지한다.
 
 사용자는 1차 로컬 작업에서 완드 발사/벽 충돌, 번개 차징/공격, Light Orb 발사/반사, 온라인 번개의 애니메이션/연출/피해 동기화를 확인했다. 이는 로컬 진행 코드가 포함된 검증이며 이 PR 통합본이나 2차 애니메이션 변경의 실행 검증이 아니다.
 
@@ -84,3 +86,5 @@ Unity 내장 Roslyn을 통한 통합본 컴파일 및 정적 비교 결과는 PR
 - 두 클라이언트의 번개 애니메이션/연출 및 한 번의 서버 체력 감소
 
 기존 WeaponSeparationSetup.Apply는 명시적 마이그레이션 도구이며 재실행할 필요가 없다. 기존 테스트 소스의 컴파일 확인과 실제 테스트 통과는 구분한다.
+
+2026-11-05 통합본 검증: Unity 6000.3.24f1 내장 Roslyn과 캐시 참조로 WizardDuel.MapGeneration, Assembly-CSharp, Assembly-CSharp-Editor를 모두 컴파일했다. 종료 코드 0, 진단 출력 없음. Unity 임포트·Netcode 후처리와 EditMode/PlayMode 테스트는 실행하지 않았다.

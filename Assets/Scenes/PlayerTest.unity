@@ -131,6 +131,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: BasicWand
       objectReference: {fileID: 0}
+    - target: {fileID: 1501417940360527516, guid: a797a62da8b406b42ad029f43ef9cd46, type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 3759419378231829450, guid: a797a62da8b406b42ad029f43ef9cd46, type: 3}
       propertyPath: m_LocalScale.x
       value: 1.3
@@ -183,6 +187,18 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 5918805252675816218, guid: a797a62da8b406b42ad029f43ef9cd46, type: 3}
+      propertyPath: firePoint
+      value: 
+      objectReference: {fileID: 1971336741}
+    - target: {fileID: 5918805252675816218, guid: a797a62da8b406b42ad029f43ef9cd46, type: 3}
+      propertyPath: attackAnimation
+      value: 
+      objectReference: {fileID: 7400000, guid: e81993474fd65134e8f3db5ebae0389b, type: 2}
+    - target: {fileID: 5918805252675816218, guid: a797a62da8b406b42ad029f43ef9cd46, type: 3}
+      propertyPath: projectilePrefab
+      value: 
+      objectReference: {fileID: 6994755997327410476, guid: 04f79de036033c242a92428d90709764, type: 3}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -522,7 +538,7 @@ PrefabInstance:
     - target: {fileID: 1368801574419400665, guid: 1ab917ea557eca240adc7d8b8a4aff86, type: 3}
       propertyPath: currentWeapon
       value: 
-      objectReference: {fileID: 1388327597}
+      objectReference: {fileID: 962945635}
     - target: {fileID: 1756057421786608166, guid: 1ab917ea557eca240adc7d8b8a4aff86, type: 3}
       propertyPath: m_LocalPosition.x
       value: -6
@@ -653,7 +669,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 2943215095341684036, guid: 1ab917ea557eca240adc7d8b8a4aff86, type: 3}
       propertyPath: m_IsActive
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 3101920563417186516, guid: 1ab917ea557eca240adc7d8b8a4aff86, type: 3}
       propertyPath: m_LocalRotation.w
@@ -909,7 +925,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6136212304544980682, guid: 1ab917ea557eca240adc7d8b8a4aff86, type: 3}
       propertyPath: m_Enabled
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 6346000514874377939, guid: 1ab917ea557eca240adc7d8b8a4aff86, type: 3}
       propertyPath: m_LocalRotation.w
@@ -1890,6 +1906,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 739c3faa52f75ff4598a91019c6e0a45, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LightOrbWeapon
+  attackAnimation: {fileID: 7400000, guid: 2339c21bd5cb2da45b4051c7804bdee5, type: 2}
   coreFlashDuration: 0.18
   palmUpPose: 1
   palmInwardRoll: 20
@@ -2301,6 +2318,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6603f066e23843c5bc44622674594772, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LightningWeapon
+  attackAnimation: {fileID: 7400000, guid: 2339c21bd5cb2da45b4051c7804bdee5, type: 2}
   boltPrefab: {fileID: 3518806986799842853, guid: 85f5f47d4e14e8043bca515fdfecfe64, type: 3}
   firePoint: {fileID: 376847392}
   audioSource: {fileID: 129268499}
@@ -2327,7 +2345,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &1388327596
 Transform:
   m_ObjectHideFlags: 0
@@ -2357,6 +2375,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 739c3faa52f75ff4598a91019c6e0a45, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LightOrbWeapon
+  attackAnimation: {fileID: 7400000, guid: 2339c21bd5cb2da45b4051c7804bdee5, type: 2}
   coreFlashDuration: 0.18
   palmUpPose: 1
   palmInwardRoll: 20
@@ -2468,7 +2487,7 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 436200003134221108, guid: c676c1e9b96fa5741a6f6bfe6f0a71e0, type: 3}
       propertyPath: m_Enabled
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 554204523568698419, guid: c676c1e9b96fa5741a6f6bfe6f0a71e0, type: 3}
       propertyPath: m_Name
@@ -2476,7 +2495,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 2040366618846499985, guid: c676c1e9b96fa5741a6f6bfe6f0a71e0, type: 3}
       propertyPath: m_Enabled
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 3819030435032106526, guid: c676c1e9b96fa5741a6f6bfe6f0a71e0, type: 3}
       propertyPath: m_LocalPosition.x
@@ -2520,15 +2539,15 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4098781815917328494, guid: c676c1e9b96fa5741a6f6bfe6f0a71e0, type: 3}
       propertyPath: m_Enabled
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 4546622405728770772, guid: c676c1e9b96fa5741a6f6bfe6f0a71e0, type: 3}
       propertyPath: m_Enabled
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 4652534163212424413, guid: c676c1e9b96fa5741a6f6bfe6f0a71e0, type: 3}
       propertyPath: m_Enabled
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -2696,6 +2715,11 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!4 &1971336741 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 7750225885826842543, guid: a797a62da8b406b42ad029f43ef9cd46, type: 3}
+  m_PrefabInstance: {fileID: 1396498}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &1993162810 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 1742620719641163539, guid: 4b4b7037726d3c5429c6497442d51b10, type: 3}
@@ -2864,7 +2888,7 @@ PrefabInstance:
     - target: {fileID: 2661832515632644238, guid: 4b4b7037726d3c5429c6497442d51b10, type: 3}
       propertyPath: m_Mesh
       value: 
-      objectReference: {fileID: -6734620852318575487, guid: 6e2d4b76077f6c748ba2eee93b7725d4, type: 3}
+      objectReference: {fileID: 4300000, guid: 63c3bbf5c786e0a49b1ff8d66e290809, type: 2}
     - target: {fileID: 2842516403249972836, guid: 4b4b7037726d3c5429c6497442d51b10, type: 3}
       propertyPath: m_LocalRotation.w
       value: 0.746537
@@ -3111,7 +3135,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6490081788458831385, guid: 4b4b7037726d3c5429c6497442d51b10, type: 3}
       propertyPath: m_IsActive
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 6575046785978527210, guid: 4b4b7037726d3c5429c6497442d51b10, type: 3}
       propertyPath: m_Enabled
@@ -3853,6 +3877,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6603f066e23843c5bc44622674594772, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LightningWeapon
+  attackAnimation: {fileID: 7400000, guid: 2339c21bd5cb2da45b4051c7804bdee5, type: 2}
   boltPrefab: {fileID: 3518806986799842853, guid: 85f5f47d4e14e8043bca515fdfecfe64, type: 3}
   firePoint: {fileID: 2003209117}
   audioSource: {fileID: 2003209121}

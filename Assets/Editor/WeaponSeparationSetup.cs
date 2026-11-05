@@ -9,7 +9,7 @@ public static class WeaponSeparationSetup
 {
     const string PlayerPath = "Assets/Player/Player.prefab";
     const string StaffPath = "Assets/Weapons/Lightning Weapon/LightningStaff.prefab";
-    const string CastPath = "Assets/Weapons/Common/StaffCast.anim";
+    const string CastPath = "Assets/Weapons/Common/BaseCast.anim";
 
     public static void Apply()
     {
@@ -24,7 +24,7 @@ public static class WeaponSeparationSetup
         try
         {
             var attack = player.GetComponent<PlayerAttack>();
-            SetReference(attack, "attackAnimationSlot", clip);
+            SetReference(attack, "baseCastClip", clip);
             var staff = attack.CurrentWeapon;
             SetReference(staff, "attackAnimation", clip);
             if (PrefabUtility.GetPrefabAssetPathOfNearestInstanceRoot(staff.gameObject) != StaffPath)
@@ -92,6 +92,8 @@ public static class WeaponSeparationSetup
             {
                 Require(attack.CurrentWeapon != null, attack.name + " scene weapon reference");
                 Require(attack.CurrentWeapon.transform.IsChildOf(attack.transform), attack.name + " scene weapon owner");
+                foreach (var weapon in attack.GetComponentsInChildren<WeaponBase>(true))
+                    Require(weapon.AttackAnimation != null, attack.name + "/" + weapon.name + " scene attack clip");
                 var wizard = attack.transform.Find("Wizard");
                 Require(wizard && wizard.GetComponent<Animator>(), attack.name + " scene Animator");
                 foreach (var pose in attack.GetComponentsInChildren<BasicWandIdlePose>(true))

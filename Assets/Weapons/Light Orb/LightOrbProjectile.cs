@@ -58,7 +58,13 @@ public class LightOrbProjectile : MonoBehaviour
 
     private void Update()
     {
-        float moveDistance = beamSpeed * Time.deltaTime;
+        Advance(Time.deltaTime);
+    }
+
+    // Keep one movement step deterministic for editor combat verification.
+    private void Advance(float deltaTime)
+    {
+        float moveDistance = beamSpeed * deltaTime;
         float spareDistance = maxDistance - currentDistance;
 
         if (moveDistance > spareDistance)
