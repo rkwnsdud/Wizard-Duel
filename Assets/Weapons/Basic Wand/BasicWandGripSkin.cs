@@ -14,6 +14,8 @@ public sealed class BasicWandGripSkin : MonoBehaviour
     bool previewWhenWandHiddenInEditor;
     static readonly int IdleState = Animator.StringToHash("Idle");
     static readonly int CastState = Animator.StringToHash("Cast");
+    WeaponBase weapon;
+    PlayerAttack attackOwner;
 
     public Mesh OriginalMesh => originalMesh;
     public Mesh GripMesh => gripMesh;
@@ -36,6 +38,8 @@ public sealed class BasicWandGripSkin : MonoBehaviour
         wandRenderer = wand;
         targetAnimator = animator;
         idleController = controller;
+        weapon = null;
+        attackOwner = null;
         RefreshSkin();
     }
 
@@ -54,8 +58,13 @@ public sealed class BasicWandGripSkin : MonoBehaviour
 #endif
         if (Application.isPlaying)
         {
-            useGrip = useGrip && targetAnimator && targetAnimator.isInitialized &&
-                targetAnimator.runtimeAnimatorController == idleController;
+            if (!weapon && wandRenderer) weapon = wandRenderer.GetComponentInParent<WeaponBase>(true);
+            if (!attackOwner && targetAnimator) attackOwner = targetAnimator.GetComponentInParent<PlayerAttack>(true);
+            // The equipped weapon owns the grip even while its Cast override is
+            // installed. Renderer visibility and disabled remote input do not equip it.
+            useGrip = attackOwner && attackOwner.IsWeaponPoseActive(weapon) &&
+                targetAnimator && targetAnimator.isInitialized &&
+                attackOwner.AnimationSourceController == idleController;
             if (useGrip)
             {
                 int current = targetAnimator.GetCurrentAnimatorStateInfo(0).shortNameHash;
