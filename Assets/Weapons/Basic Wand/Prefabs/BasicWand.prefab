@@ -46,9 +46,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 23e8bdbba6a2e3e43894e0951db70f68, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BasicWandWeapon
-  attackAnimation: {fileID: 0}
-  projectilePrefab: {fileID: 0}
-  firePoint: {fileID: 0}
+  attackAnimation: {fileID: 7400000, guid: e81993474fd65134e8f3db5ebae0389b, type: 2}
+  projectilePrefab: {fileID: 6994755997327410476, guid: 04f79de036033c242a92428d90709764, type: 3}
+  firePoint: {fileID: 7750225885826842543}
 --- !u!1 &8460028576429235645
 GameObject:
   m_ObjectHideFlags: 0
