@@ -19,6 +19,7 @@ public class LightningBolt : MonoBehaviour
 
     private float damage;
     [SerializeField] private LightningEffect mainLightning;
+    [SerializeField] private GameObject hitEffectPrefab;
     private PlayerHealth ownerHealth;
 
     private void Awake()
@@ -80,6 +81,7 @@ public class LightningBolt : MonoBehaviour
                 continue;
             }
 
+            WeaponHitEffect.Spawn(hitEffectPrefab, hitCollider.ClosestPoint(center));
             playerHealth.TakeDamage(damage);
             break;
         }

@@ -3,13 +3,17 @@ using UnityEngine;
 public class ArcaneBoltProjectile : MonoBehaviour
 {
     [SerializeField] private float speed = 18f;
+    [SerializeField] private float maxRange = 10f;
     [SerializeField] private LayerMask mask;
     [SerializeField] private float hitRadius = 0.12f;
+    [SerializeField] private GameObject hitEffectPrefab;
 
     private PlayerHealth ownerHealth;
+    private float distanceTraveled = 0f;
+
     void Update()
     {
-        float moveDistance = speed * Time.deltaTime;
+        float moveDistance = Mathf.Min(speed * Time.deltaTime, maxRange - distanceTraveled);
 
         RaycastHit[] hits = Physics.SphereCastAll(transform.position, hitRadius, transform.forward,
                             moveDistance, mask, QueryTriggerInteraction.Ignore);
@@ -26,6 +30,7 @@ public class ArcaneBoltProjectile : MonoBehaviour
             }
             if (target != null)
             {
+                WeaponHitEffect.Spawn(hitEffectPrefab, hit.point);
                 target.TakeDamage(10f);
             }
 
@@ -35,6 +40,12 @@ public class ArcaneBoltProjectile : MonoBehaviour
         }
 
         transform.position += transform.forward * moveDistance;
+        distanceTraveled += moveDistance;
+
+        if (distanceTraveled >= maxRange)
+        {
+            Destroy(gameObject);
+        }
     }
 
     public void Initialize(PlayerHealth owner)

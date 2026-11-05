@@ -15,6 +15,7 @@ public class LightOrbProjectile : MonoBehaviour
     [SerializeField] private float damage = 10f;
     [SerializeField, Min(0f)] private float damageIncreaseRate = 0.5f; // 데미지 증가율
     [SerializeField] private AudioClip reflectSound;
+    [SerializeField] private GameObject hitEffectPrefab;
 
     private float currentDistance;
     private Vector3 currentPoint;
@@ -104,6 +105,7 @@ public class LightOrbProjectile : MonoBehaviour
             if (targetHealth != null)
             {
                 float finalDamage = damage * (1f + damageIncreaseRate * reflectionCount);
+                WeaponHitEffect.Spawn(hitEffectPrefab, hit.point);
                 targetHealth.TakeDamage(finalDamage);
                 Destroy(gameObject);
                 return;

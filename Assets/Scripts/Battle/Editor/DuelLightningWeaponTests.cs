@@ -98,7 +98,9 @@ public class DuelLightningWeaponTests
         var sink = new ShotSink();
         ((IWeapon)weapon).Fire(1, Vector3.right, 1f, sink);
 
-        Assert.That(sink.Order, Is.EqualTo(new[] { "present", "hit" }));
+        Assert.That(sink.Order, Is.EqualTo(new[] { "present", "present", "hit" }));
+        Assert.That(sink.Shots[1].Kind, Is.EqualTo(1));
+        Assert.That(Vector3.Distance(sink.Shots[1].Point, target.transform.position), Is.LessThan(1f));
         Assert.That(sink.Hits, Is.EqualTo(1));
         Assert.That(sink.Target, Is.SameAs(target));
         Assert.That(sink.AttackId, Is.EqualTo(1u));
@@ -118,7 +120,7 @@ public class DuelLightningWeaponTests
         Physics.SyncTransforms();
         var sink = new ShotSink();
         ((IWeapon)weapon).Fire(9, Vector3.right, charge, sink);
-        Assert.That(sink.Shots.Count, Is.EqualTo(1));
+        Assert.That(sink.Shots.Count, Is.EqualTo(2));
         Assert.That(sink.Shots[0].AttackId, Is.EqualTo(9));
         Assert.That(sink.Shots[0].Start, Is.EqualTo(Origin));
         Assert.That(sink.Shots[0].Point, Is.EqualTo(Origin + Vector3.right * range));
