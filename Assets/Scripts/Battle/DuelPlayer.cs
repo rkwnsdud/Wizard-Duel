@@ -69,6 +69,8 @@ public sealed class DuelPlayer : NetworkBehaviour, IAttackAuthority, IShotSink
         combatEnabled.OnValueChanged -= OnCombatEnabledChanged;
         health.OnValueChanged -= OnHealthChanged;
         // Authority는 그대로 둔다. 디스폰 뒤 Destroy 전에 남은 애니메이션 이벤트가 오프라인 공격으로 빠지지 않고 아래에서 무시된다.
+        ApplyCombatState(false);
+        attack.CancelAttack();
         SpawnEffectController.Stop(slot);
         // 파괴될 플레이어를 계속 따라가지 않도록 카메라 추적을 끈다.
         if (cameraFollow != null) cameraFollow.enabled = false;
@@ -82,7 +84,8 @@ public sealed class DuelPlayer : NetworkBehaviour, IAttackAuthority, IShotSink
 
     void IAttackAuthority.StartAttack(float chargeRatio)
     {
-        if (IsSpawned && IsOwner) PlayAttackRpc(chargeRatio);
+        if (IsSpawned && IsOwner && combatEnabled.Value && !playerHealth.IsDead)
+            PlayAttackRpc(chargeRatio);
     }
 
     [Rpc(SendTo.NotOwner, InvokePermission = RpcInvokePermission.Owner)]
@@ -94,8 +97,16 @@ public sealed class DuelPlayer : NetworkBehaviour, IAttackAuthority, IShotSink
     void IAttackAuthority.FireMagic(float chargeRatio)
     {
         if (!IsSpawned || !IsOwner || !combatEnabled.Value || playerHealth.IsDead) return;
+        // Use the attack-start snapshot, just like the offline path. Unsupported
+        // online weapons must not fall back to local damage/projectile logic.
+        IWeapon weapon = attack.AttackingWeapon as IWeapon;
+        if (weapon == null)
+        {
+            Debug.LogWarning("DuelPlayer: attacking weapon does not implement online IWeapon; shot skipped.", this);
+            return;
+        }
         Physics.SyncTransforms();
-        Weapon?.Fire(++attackId, Vector3.ProjectOnPlane(transform.forward, Vector3.up).normalized, chargeRatio, this);
+        weapon.Fire(++attackId, Vector3.ProjectOnPlane(transform.forward, Vector3.up).normalized, chargeRatio, this);
     }
 
     void IShotSink.Broadcast(ShotEvent shot)
@@ -132,7 +143,11 @@ public sealed class DuelPlayer : NetworkBehaviour, IAttackAuthority, IShotSink
     void OnHealthChanged(float previous, float current) => ApplyHealth(current);
 
     // 체력은 줄기만 하므로 서버 체력과의 차이만큼 깎는다. 0이 되면 PlayerHealth가 이동·조준·공격과 애니메이터를 멈춘다.
-    void ApplyHealth(float value) => playerHealth.TakeDamage(playerHealth.CurrentHealth - value);
+    void ApplyHealth(float value)
+    {
+        playerHealth.TakeDamage(playerHealth.CurrentHealth - value);
+        if (playerHealth.IsDead) attack.CancelAttack();
+    }
 
     void PlaySpawnEffect()
     {

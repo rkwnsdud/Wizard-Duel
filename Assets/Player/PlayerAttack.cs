@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -23,19 +24,26 @@ public class PlayerAttack : MonoBehaviour
     private AnimatorOverrideController weaponController;
     private RuntimeAnimatorController sourceController;
     private WeaponBase attackingWeapon;
-    private BasicWandIdlePose[] wandPoses;
-    private bool animationOnlyWandAttack;
+    public WeaponBase AttackingWeapon => attackingWeapon;
 
-    private bool HasActiveWand()
+    // Pose components can apply/release their controller synchronously on equip,
+    // including when the new weapon was already active in the hierarchy.
+    public event System.Action EquippedWeaponChanged;
+
+    // A temporary Cast override still belongs to the pose controller it wraps.
+    // Reading this property never changes the Animator.
+    public RuntimeAnimatorController AnimationSourceController
     {
-        foreach (var pose in wandPoses)
-            if (pose != null && pose.IsActiveFor(animator)) return true;
-        return false;
+        get
+        {
+            if (animator == null) return null;
+            return weaponController != null && animator.runtimeAnimatorController == weaponController
+                ? sourceController : animator.runtimeAnimatorController;
+        }
     }
 
-    // PlayerTest keeps its previous WeaponBase reference while the animation-only
-    // wand is visible. Procedural weapon poses must honor the visible pose owner.
-    public bool IsWeaponPoseActive(WeaponBase weapon) => currentWeapon == weapon && !HasActiveWand();
+    // Remote players keep their poses even though their input component is disabled.
+    public bool IsWeaponPoseActive(WeaponBase weapon) => weapon != null && currentWeapon == weapon;
 
     private float pendingChargeRatio;
     private bool hasFired;
@@ -63,24 +71,35 @@ public class PlayerAttack : MonoBehaviour
         if (currentWeapon != null && currentWeapon != weapon)
         {
             passiveController?.Unequip(currentWeapon);
-            currentWeapon.HideChargePreview();
+            HideChargePreview(currentWeapon);
             currentWeapon.gameObject.SetActive(false);
         }
         currentWeapon = weapon;
         if (weapon != null) weapon.gameObject.SetActive(true);
         passiveController?.Equip(weapon);
+        EquippedWeaponChanged?.Invoke();
         return true;
     }
 
     private void ApplyWeaponAnimation()
     {
         RestoreWeaponController();
-        if (animationOnlyWandAttack || currentWeapon == null ||
-            currentWeapon.AttackAnimation == null || attackAnimationSlot == null) return;
+        if (attackingWeapon == null ||
+            attackingWeapon.AttackAnimation == null || attackAnimationSlot == null) return;
         sourceController = animator.runtimeAnimatorController;
         if (sourceController == null) return;
-        weaponController = new AnimatorOverrideController(sourceController);
-        weaponController[attackAnimationSlot] = currentWeapon.AttackAnimation;
+        // Copy existing Idle/Grip mappings onto the same underlying controller.
+        // Do not rely on nesting an override controller to preserve those mappings.
+        var poseOverride = sourceController as AnimatorOverrideController;
+        weaponController = new AnimatorOverrideController(
+            poseOverride != null ? poseOverride.runtimeAnimatorController : sourceController);
+        if (poseOverride != null)
+        {
+            var overrides = new List<KeyValuePair<AnimationClip, AnimationClip>>(poseOverride.overridesCount);
+            poseOverride.GetOverrides(overrides);
+            weaponController.ApplyOverrides(overrides);
+        }
+        weaponController[attackAnimationSlot] = attackingWeapon.AttackAnimation;
         animator.runtimeAnimatorController = weaponController;
     }
 
@@ -108,17 +127,23 @@ public class PlayerAttack : MonoBehaviour
 
         Transform character = transform.Find("Wizard");
         animator = character.GetComponent<Animator>();
-        wandPoses = GetComponentsInChildren<BasicWandIdlePose>(true);
         combatStats ??= GetComponent<PlayerCombatStats>();
+        EquippedWeaponChanged?.Invoke();
     }
 
     private float ChargeRatio => maxChargeTime > 0f ? Mathf.Clamp01((Time.time - chargeStartedAt) / maxChargeTime) : 1f;
 
+    private static void HideChargePreview(WeaponBase weapon)
+    {
+        if (weapon != null && weapon is IChargeableWeapon chargeable)
+            chargeable.HideChargePreview();
+    }
+
     private void LateUpdate()
     {
         // PlayerAim updates first so the preview follows this frame's aim.
-        if (isCharging && currentWeapon != null)
-            currentWeapon.ShowChargePreview(ChargeRatio);
+        if (isCharging && currentWeapon != null && currentWeapon is IChargeableWeapon chargeable)
+            chargeable.ShowChargePreview(ChargeRatio);
     }
     private void OnEnable()
     {
@@ -132,21 +157,29 @@ public class PlayerAttack : MonoBehaviour
 
     private void OnDisable()
     {
-        if (inputActions == null)
+        if (inputActions != null)
         {
-            return;
+            inputActions.Player.Attack.started -= AttackStarted;
+            inputActions.Player.Attack.canceled -= Attack;
+            inputActions.Disable();
         }
 
-        inputActions.Player.Attack.started -= AttackStarted;
-        inputActions.Player.Attack.canceled -= Attack;
+        CancelAttack();
+    }
 
-        inputActions.Disable();
-
-        if (currentWeapon != null) currentWeapon.HideChargePreview();
+    // Also called explicitly on network despawn/death: remote PlayerAttack is
+    // already disabled for input, so OnDisable cannot be relied on there.
+    public void CancelAttack()
+    {
+        HideChargePreview(currentWeapon);
+        if (attackingWeapon != currentWeapon) HideChargePreview(attackingWeapon);
         isCharging = false;
+        chargeStartedAt = 0f;
         IsAttacking = false;
         hasFired = false;
+        pendingChargeRatio = 0f;
         attackingWeapon = null;
+        RestoreWeaponController();
 
         if (animator != null)
         {
@@ -157,12 +190,13 @@ public class PlayerAttack : MonoBehaviour
     // 공격 버튼을 누른 순간 차징 시작
     private void AttackStarted(InputAction.CallbackContext context)
     {
-        if (IsAttacking || IsOnCooldown || (playerHealth != null && playerHealth.IsDead))
+        if (currentWeapon == null || IsAttacking || isCharging || IsOnCooldown ||
+            (playerHealth != null && playerHealth.IsDead))
         {
             return;
         }
 
-        if (HasActiveWand() || currentWeapon == null || !currentWeapon.UsesCharge)
+        if (!(currentWeapon is IChargeableWeapon))
         {
             CommitAttack(0f);
             return;
@@ -170,7 +204,7 @@ public class PlayerAttack : MonoBehaviour
 
         isCharging = true;
         chargeStartedAt = Time.time;
-        currentWeapon.ShowChargePreview(ChargeRatio);
+        ((IChargeableWeapon)currentWeapon).ShowChargePreview(ChargeRatio);
     }
 
     // 공격 버튼을 뗀 순간 공격 애니메이션 시작
@@ -184,7 +218,7 @@ public class PlayerAttack : MonoBehaviour
         isCharging = false;
 
         float chargeRatio = ChargeRatio;
-        if (currentWeapon != null) currentWeapon.HideChargePreview();
+        HideChargePreview(currentWeapon);
 
         CommitAttack(chargeRatio);
     }
@@ -210,15 +244,12 @@ public class PlayerAttack : MonoBehaviour
 
     private void TryPlayAttack(float chargeRatio, bool respectCooldown)
     {
-        if (IsAttacking || (respectCooldown && IsOnCooldown) ||
-            (playerHealth != null && playerHealth.IsDead) ||
-            (currentWeapon == null && !HasActiveWand()))
+        if (currentWeapon == null || IsAttacking || (respectCooldown && IsOnCooldown) ||
+            (playerHealth != null && playerHealth.IsDead))
             return;
 
         pendingChargeRatio = chargeRatio;
-        // Capture the visual weapon at attack start; do not fire the old WeaponBase
-        // still serialized on PlayerTest while previewing the animation-only wand.
-        animationOnlyWandAttack = HasActiveWand();
+        // Animation events and online authority use this same attack-start weapon.
         attackingWeapon = currentWeapon;
         ApplyWeaponAnimation();
         hasFired = false;
@@ -248,8 +279,6 @@ public class PlayerAttack : MonoBehaviour
 
         hasFired = true;
 
-        if (animationOnlyWandAttack) return;
-
         // 온라인 명중은 공격한 클라이언트가 판정하고 체력은 서버가 반영한다.
         if (Authority != null)
         {
@@ -257,7 +286,10 @@ public class PlayerAttack : MonoBehaviour
         }
         else if (attackingWeapon != null)
         {
-            attackingWeapon.Fire(pendingChargeRatio);
+            if (attackingWeapon is IChargeableWeapon chargeable)
+                chargeable.FireCharged(pendingChargeRatio);
+            else
+                attackingWeapon.Fire();
         }
         else
         {
@@ -269,6 +301,8 @@ public class PlayerAttack : MonoBehaviour
     public void EndAttack()
     {
         IsAttacking = false;
+        attackingWeapon = null;
+        pendingChargeRatio = 0f;
         // Release the cast override so idle/visual pose owners can take over.
         RestoreWeaponController();
     }

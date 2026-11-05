@@ -1,8 +1,8 @@
 using UnityEngine;
 
-// Temporary IWeapon implementation for the online duel prefabs.
+// Online duel lightning: IWeapon reports hits, while Fire/FireCharged are local.
 // The original LightningWeapon and LightningBolt remain independent.
-public sealed class DuelLightningWeapon : WeaponBase, IWeapon
+public sealed class DuelLightningWeapon : WeaponBase, IChargeableWeapon, IWeapon
 {
     [SerializeField] private LightningEffect effectPrefab;
     [SerializeField] private Transform firePoint;
@@ -18,11 +18,9 @@ public sealed class DuelLightningWeapon : WeaponBase, IWeapon
     [SerializeField] private float hitHeight = 2f;
     [SerializeField] private LayerMask blockerMask = (1 << 9) | (1 << 10);
 
-    public override bool UsesCharge => true;
-
     private Vector3 AimDirection => GetComponentInParent<PlayerAim>().transform.forward;
 
-    public override void ShowChargePreview(float chargeRatio)
+    public void ShowChargePreview(float chargeRatio)
     {
         if (preview == null) return;
         Vector3 direction = AimDirection;
@@ -30,14 +28,14 @@ public sealed class DuelLightningWeapon : WeaponBase, IWeapon
             Mathf.Lerp(minHitWidth, maxHitWidth, chargeRatio));
     }
 
-    public override void HideChargePreview()
+    public void HideChargePreview()
     {
         if (preview != null) preview.HidePreview();
     }
 
     private void OnDisable() => HideChargePreview();
 
-    public void Fire(uint attackId, Vector3 direction, float charge, IShotSink sink)
+    void IWeapon.Fire(uint attackId, Vector3 direction, float charge, IShotSink sink)
     {
         HideChargePreview();
         ShotEvent shot = Trace(attackId, direction, charge, out PlayerHealth target);
@@ -59,8 +57,10 @@ public sealed class DuelLightningWeapon : WeaponBase, IWeapon
         effect.SetChargeRatio(shot.Charge);
     }
 
-    // WeaponBase compatibility for this new weapon only.
-    public override void Fire(float chargeRatio)
+    public override void Fire() => FireCharged(0f);
+
+    // Offline only. The online IWeapon implementation above never calls this.
+    public void FireCharged(float chargeRatio)
     {
         chargeRatio = Mathf.Clamp01(chargeRatio);
         ShotEvent shot = Trace(0, AimDirection, chargeRatio, out PlayerHealth target);
