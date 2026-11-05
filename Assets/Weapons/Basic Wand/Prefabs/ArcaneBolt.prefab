@@ -46,9 +46,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ArcaneBoltProjectile
   speed: 18
-  wallMask:
+  mask:
     serializedVersion: 2
-    m_Bits: 1536
+    m_Bits: 1544
   hitRadius: 0.12
 --- !u!1001 &4168171904380769093
 PrefabInstance:
