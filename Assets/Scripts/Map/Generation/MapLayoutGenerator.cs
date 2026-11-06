@@ -375,6 +375,15 @@ public static class MapLayoutGenerator
 
             cells[cell.x, cell.y] = MapCell.Wall;
             cells[opposite.x, opposite.y] = MapCell.Wall;
+            // 대각선으로 벽이 맞닿는 배치는 캐릭터가 못 지나가는 틈이 되므로 거부한다.
+            // FloodFill은 대각선을 연결로 치지만, 반경 0.35m 캐릭터도 대각선 틈(0m)은 못 지난다.
+            if (CreatesDiagonalPinch(cells, size, cell) ||
+                (opposite != cell && CreatesDiagonalPinch(cells, size, opposite)))
+            {
+                cells[cell.x, cell.y] = MapCell.Floor;
+                cells[opposite.x, opposite.y] = MapCell.Floor;
+                continue;
+            }
             if (FloodFill(cells, spawnA, distances, queue) == floorCount - placed - count)
                 placed += count;
             else
@@ -390,6 +399,28 @@ public static class MapLayoutGenerator
     static Vector2Int MirrorSpawn(Vector2Int spawn, Vector2Int size)
     {
         return Mirror(spawn, size) - Vector2Int.one * (MapLayout.SpawnSize - 1);
+    }
+
+    // (x, y)에 둔 벽이 대각선 이웃 벽과 맞닿아 캐릭터가 못 지나가는 틈을 만드는지 검사한다.
+    // wall-wall 대각선 + floor-floor 직교 = 가운데 틈 너비 0m. 반경 0.35m 캐릭터도 못 지난다.
+    static bool CreatesDiagonalPinch(MapCell[,] cells, Vector2Int size, Vector2Int cell)
+    {
+        int width = size.x, height = size.y;
+        int[] dx = { 1, 1, -1, -1 };
+        int[] dy = { 1, -1, 1, -1 };
+        for (int i = 0; i < 4; i++)
+        {
+            int nx = cell.x + dx[i], ny = cell.y + dy[i];
+            if (nx < 0 || ny < 0 || nx >= width || ny >= height) continue;
+            if (cells[nx, ny] != MapCell.Wall) continue;
+            // 대각선이 벽이면 나머지 두 직교칸이 모두 바닥일 때 핀치가 된다.
+            int ox1 = cell.x + dx[i], oy1 = cell.y;
+            int ox2 = cell.x, oy2 = cell.y + dy[i];
+            bool floor1 = ox1 >= 0 && oy1 >= 0 && ox1 < width && oy1 < height && cells[ox1, oy1] == MapCell.Floor;
+            bool floor2 = ox2 >= 0 && oy2 >= 0 && ox2 < width && oy2 < height && cells[ox2, oy2] == MapCell.Floor;
+            if (floor1 && floor2) return true;
+        }
+        return false;
     }
 
     static bool SpawnsOverlap(Vector2Int a, Vector2Int b)

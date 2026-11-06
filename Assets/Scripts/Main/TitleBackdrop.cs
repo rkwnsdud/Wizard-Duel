@@ -15,6 +15,8 @@ public class TitleBackdrop : MonoBehaviour
     static readonly MapShape[] Shapes = { MapShape.Circle, MapShape.Donut, MapShape.Rectangle };
 
     [SerializeField] ProceduralMap map;
+    [Tooltip("시작/대기실 미리보기 맵이 갱신되면 같이 갱신할 배경. Title Map(또는 Duel Arena의 자식 배경)과 연결한다.")]
+    [SerializeField] ArenaBackgroundBuilderNew background;
     [SerializeField] Camera viewCamera;
     [Tooltip("맵 아래에 깔리는 바닥 빛. 맵 크기에 맞춰 늘어난다.")]
     [SerializeField] Transform ground;
@@ -32,14 +34,14 @@ public class TitleBackdrop : MonoBehaviour
     [SerializeField, Range(20f, 80f)] float pitch = 52f;
     [Tooltip("맵 중심이 놓일 화면 위치. (0, 0)은 왼쪽 아래, (1, 1)은 오른쪽 위.")]
     [SerializeField] Vector2 screenAnchor = new Vector2(0.67f, 0.42f);
-    [Tooltip("카메라 거리는 맵 반지름에 이 값을 곱한 만큼이다.")]
-    [SerializeField] float distanceScale = 3.8f;
+    [Tooltip("카메라 거리는 맵 반지름에 이 값을 곱한 만큼이다. 값이 작을수록 시작 화면 맵이 크게 보인다.")]
+    [SerializeField] float distanceScale = 3f;
 
     [Header("대기실 미리보기")]
     [Tooltip("대기실에서 맵 중심이 놓일 화면 위치.")]
     [SerializeField] Vector2 previewAnchor = new Vector2(0.34f, 0.5f);
-    [Tooltip("대기실에서 맵이 차지할 크기. 맵 중심에서 가장자리까지를 화면 절반에 대한 비율로 적는다.")]
-    [SerializeField] Vector2 previewExtent = new Vector2(0.46f, 0.55f);
+    [Tooltip("대기실에서 맵이 차지할 크기. 맵 중심에서 가장자리까지를 화면 절반에 대한 비율로 적는다. 값이 클수록 카메라가 가까워진다.")]
+    [SerializeField] Vector2 previewExtent = new Vector2(0.68f, 0.8f);
     [Tooltip("대기실에서 카메라가 좌우로 천천히 흔들리는 각도.")]
     [SerializeField] float previewSway = 2.5f;
     [Tooltip("시작 화면과 대기실 사이에서 카메라가 넘어가는 빠르기.")]
@@ -77,6 +79,9 @@ public class TitleBackdrop : MonoBehaviour
 
     void OnEnable()
     {
+        if (map == null) return;
+        // 미리보기 배경은 Title Map 하위(또는 Duel Arena 하위)에 둔다. TitleBackdrop 하위가 아니다.
+        if (background == null) background = map.GetComponentInChildren<ArenaBackgroundBuilderNew>(true);
         center = map.transform.position;
         yaw = Random.Range(0f, 360f);
         anchor = screenAnchor;
@@ -102,12 +107,14 @@ public class TitleBackdrop : MonoBehaviour
     {
         titleSettings = settings.Clone();
         preview = false;
+        if (map == null) return;
         // 전투에서 돌아오면 감췄던 맵 자리에 새 맵을 솟게 하고, 카메라는 시작 화면 거리로 바로 옮긴다.
         if (released || !map.gameObject.activeSelf) keepMap = false;
         if (released) viewCamera.fieldOfView = originalFieldOfView;
         snapDistance |= released;
         released = false;
         map.gameObject.SetActive(true);
+        if (background != null) background.gameObject.SetActive(true);
         StopAllCoroutines();
         StartCoroutine(Cycle(keepMap));
     }
@@ -161,7 +168,8 @@ public class TitleBackdrop : MonoBehaviour
     public void HideMap()
     {
         StopAllCoroutines();
-        map.gameObject.SetActive(false);
+        if (map != null) map.gameObject.SetActive(false);
+        if (background != null) background.gameObject.SetActive(false);
     }
 
     // 내 플레이어가 소환되면 카메라를 넘긴다. 렌즈 이동과 늘려 둔 그림자 거리를 되돌리고 시야와 안개를 전투에 맞춘다.
@@ -230,6 +238,9 @@ public class TitleBackdrop : MonoBehaviour
     // 맵을 새로 만들고 카메라 거리, 바닥, 그림자와 물결 순서를 맵 크기에 맞춘다.
     void Rebuild(MapGenerationSettings settings)
     {
+        // 미리보기 배경을 먼저 켠다. 꺼진 채로 map.Generate가 Rebuild하면 자식이 비활성으로 만들어진다.
+        if (background != null && !background.gameObject.activeInHierarchy)
+            background.gameObject.SetActive(true);
         map.Generate(settings);
         Current = settings;
 

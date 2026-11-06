@@ -443,9 +443,9 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 3b8cbf9fea6224b4eae5bf22a39548fa, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::ArenaBackgroundBuilder
-  map: {fileID: 0}
-  backgroundRoot: {fileID: 0}
+  m_EditorClassIdentifier: Assembly-CSharp::ArenaBackgroundBuilderNew
+  map: {fileID: 1420519222}
+  backgroundRoot: {fileID: 925030559}
   farGroundPrefab: {fileID: 0}
   floorFillVariants:
   - {fileID: 2998160536925107046, guid: 986326ec0bfd8f7429656c1d39ddcd2d, type: 3}
@@ -460,9 +460,9 @@ MonoBehaviour:
   torchVariants:
   - {fileID: 919132149155446097, guid: f3c7ff72d64c4c24ab46bb4c04e628f5, type: 3}
   extraDecorVariants: []
-  cellSize: 2
-  rimOffsetCells: 2
-  decoOffsetCells: 4
+  cellSize: 1
+  rimOffsetCells: 5
+  decoOffsetCells: 5
   farGroundY: -0.15
   farGroundSize: 240
   floorRotation:
@@ -665,6 +665,7 @@ MonoBehaviour:
   symmetry: 1
   noiseStrength: 0.5
   noiseScale: 0.75
+  background: {fileID: 925030560}
 --- !u!114 &1420519223
 MonoBehaviour:
   m_ObjectHideFlags: 0
