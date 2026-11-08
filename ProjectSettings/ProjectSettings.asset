@@ -936,7 +936,7 @@ PlayerSettings:
   cloudProjectId: 00c6f30f-e75e-49d1-ae7d-1eb593f427f3
   framebufferDepthMemorylessMode: 0
   qualitySettingsNames: []
-  projectName: WizardDuel
+  projectName: PotterySimulator
   organizationId: unity_12dfgr4
   cloudEnabled: 0
   legacyClampBlendShapeWeights: 0

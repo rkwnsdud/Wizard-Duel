@@ -31,7 +31,13 @@ public class PlayerHealth : MonoBehaviour
             isDead = true;
             StopPlayerAfterDeath();
         }
-        
+
+        PlayerHitEffect hitEffect = GetComponent<PlayerHitEffect>();
+
+        if (hitEffect != null)
+        {
+            hitEffect.ChangeToRed();
+        }
     }
 
     private void StopPlayerAfterDeath()

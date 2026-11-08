@@ -17,6 +17,7 @@ GameObject:
   - component: {fileID: 6880158743967379202}
   - component: {fileID: 7930000000000000001}
   - component: {fileID: 7930000000000000002}
+  - component: {fileID: 6799076728177123932}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -51,7 +52,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 4c2925f1c346d8e44be69045a80d318d, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerMovement
 --- !u!114 &1358605598620480326
 MonoBehaviour:
@@ -63,7 +64,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 2320a9a7155b7524b9f80e1b0b91857f, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerAim
 --- !u!114 &4389389708427508982
 MonoBehaviour:
@@ -75,7 +76,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: f2e8b5f08d1c02945aaa1b6206709c9b, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerHealth
   maxHealth: 100
 --- !u!143 &5254161001047520911
@@ -210,11 +211,49 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: f1ac26d11de8fb64085f709d8f7cb224, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerAttack
   currentWeapon: {fileID: 4100219137000000001}
   maxChargeTime: 2
   baseCastClip: {fileID: 7400000, guid: 2339c21bd5cb2da45b4051c7804bdee5, type: 2}
+--- !u!114 &7930000000000000001
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 368348533957044283}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b67ff30b801848249ba8d2bdfe2aa3e6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerCombatStats
+--- !u!114 &7930000000000000002
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 368348533957044283}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9ed78601ed114d2cad15d0e2d85f1f27, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerWeaponPassiveController
+--- !u!114 &6799076728177123932
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 368348533957044283}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4cf6ff41bf9deee4fa1491ff101799fe, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerHitEffect
+  characterRenderer: {fileID: 8934436442198238892}
+  hitMaterial: {fileID: 2100000, guid: e15d62164f52c494daa9b2387939b84f, type: 2}
 --- !u!1 &1569551498346581771
 GameObject:
   m_ObjectHideFlags: 0
@@ -270,7 +309,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
@@ -363,7 +402,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 0cd44c1031e13a943bb63640046fad76, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.CanvasScaler
   m_UiScaleMode: 0
   m_ReferencePixelsPerUnit: 100
@@ -386,7 +425,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: dc42784cf147c0c48a680349fa168899, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.GraphicRaycaster
   m_IgnoreReversedGraphics: 1
   m_BlockingObjects: 0
@@ -403,7 +442,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 296a45c9029bbbc43bb89102de5da3e7, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::HealthBarBillboard
   fillImage: {fileID: 7133220438908402863}
   damageTrailImage: {fileID: 6229066437333607203}
@@ -507,7 +546,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 6747ef9fa5cb4a44aa9c9f399ab1d9bb, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::WizardAnimationEvent
 --- !u!1 &5737207472214867385
 GameObject:
@@ -564,7 +603,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
@@ -641,7 +680,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
@@ -771,6 +810,11 @@ Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 6e2d4b76077f6c748ba2eee93b7725d4, type: 3}
   m_PrefabInstance: {fileID: 824065685839173446}
   m_PrefabAsset: {fileID: 0}
+--- !u!137 &8934436442198238892 stripped
+SkinnedMeshRenderer:
+  m_CorrespondingSourceObject: {fileID: 8111781155169087978, guid: 6e2d4b76077f6c748ba2eee93b7725d4, type: 3}
+  m_PrefabInstance: {fileID: 824065685839173446}
+  m_PrefabAsset: {fileID: 0}
 --- !u!4 &8966862318787425356 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -639763325267172598, guid: 6e2d4b76077f6c748ba2eee93b7725d4, type: 3}
@@ -847,29 +891,5 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 6603f066e23843c5bc44622674594772, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LightningWeapon
---- !u!114 &7930000000000000001
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 368348533957044283}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b67ff30b801848249ba8d2bdfe2aa3e6, type: 3}
-  m_Name:
-  m_EditorClassIdentifier: Assembly-CSharp::PlayerCombatStats
---- !u!114 &7930000000000000002
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 368348533957044283}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 9ed78601ed114d2cad15d0e2d85f1f27, type: 3}
-  m_Name:
-  m_EditorClassIdentifier: Assembly-CSharp::PlayerWeaponPassiveController
