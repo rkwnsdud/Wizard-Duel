@@ -137,7 +137,39 @@ public sealed class DuelPlayer : NetworkBehaviour, IAttackAuthority, IShotSink
         Debug.Log($"[Combat] Hit slot={player.slot} attacker={slot} id={attackId} hit={hitIndex} health={player.combat.Health:F3}");
         player.health.Value = player.combat.Health;
         PlayerWeaponPassiveController.NotifyServerHit(attack.Weapon, this, player);
-        if (defeatedNow) player.Defeated?.Invoke(player);
+        if (defeatedNow)
+        {
+            player.ClearServerStatusEffects();
+            player.Defeated?.Invoke(player);
+        }
+    }
+
+    /// <summary>서버에서 상태이상 틱 피해를 넣는다. 공격자 보고가 없어 서버가 직접 굴린다.</summary>
+    public void ServerApplyStatusTick(int attackerSlot, uint dotAttackId, int tickIndex, float damage)
+    {
+        if (!IsServer || !IsSpawned || combat == null) return;
+        if (!combat.TryTakeHit(attackerSlot, dotAttackId, tickIndex, damage, out bool defeatedNow)) return;
+        Debug.Log($"[Combat] DoT slot={slot} attacker={attackerSlot} id={dotAttackId} tick={tickIndex} health={combat.Health:F3}");
+        health.Value = combat.Health;
+        if (defeatedNow)
+        {
+            ClearServerStatusEffects();
+            Defeated?.Invoke(this);
+        }
+    }
+
+    /// <summary>서버에서 적중 패시브가 상태이상을 건다. 공격자 슬롯을 그대로 쓴다.</summary>
+    public void ServerInflictStatus(PlayerStatusEffects target, float tickDamage, int tickCount, float duration,
+        float slowMultiplier, float slowDuration)
+    {
+        if (!IsServer || target == null) return;
+        if (slowDuration > 0f) target.ServerApplySlow(slowMultiplier, slowDuration);
+        if (tickCount > 0) target.ServerApplyBurn(Slot, tickDamage, tickCount, duration);
+    }
+
+    void ClearServerStatusEffects()
+    {
+        if (TryGetComponent(out PlayerStatusEffects status)) status.ServerClearAll();
     }
 
     void OnHealthChanged(float previous, float current) => ApplyHealth(current);
