@@ -8,6 +8,9 @@ public sealed class LightningWeapon : WeaponBase, IChargeableWeapon
     [SerializeField] private Transform firePoint;
     [SerializeField] private AudioSource audioSource;
     [SerializeField] private AudioClip thunderSound;
+    // The clip is normalized on import, so scale it here instead of the
+    // player's AudioSource, which other weapons share.
+    [SerializeField, Range(0f, 1f)] private float thunderVolume = 0.3f;
 
     [SerializeField] private LightningPreview preview;
     private PlayerAim playerAim;
@@ -56,7 +59,7 @@ public sealed class LightningWeapon : WeaponBase, IChargeableWeapon
         }
 
         if (audioSource != null && thunderSound != null)
-            audioSource.PlayOneShot(thunderSound);
+            audioSource.PlayOneShot(thunderSound, thunderVolume);
 
         // PlayerAim rotates the player root on the ground plane. The staff and
         // FirePoint rotate with the cast animation, so only use their position.
