@@ -16,7 +16,6 @@ public static class BasicWandArmRelaxation
     static Transform Find(GameObject g,string n)=>g.GetComponentsInChildren<Transform>(true).Single(t=>t.name==n);
     static bool RotationBinding(EditorCurveBinding b)=>b.propertyName.Contains("Rotation")||b.propertyName.Contains("Euler");
 
-    [MenuItem("Tools/Basic Wand/Restore Natural Forearm Roll")]
     public static void Apply()
     {
         if(EditorApplication.isPlayingOrWillChangePlaymode)throw new Exception("Edit mode only. No Play Mode is started.");

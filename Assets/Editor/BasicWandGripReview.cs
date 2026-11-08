@@ -36,7 +36,6 @@ public static class BasicWandGripReview
         }
     }
 
-    [MenuItem("Tools/Basic Wand/Review Both Hands")]
     public static void Run()
     {
         if(EditorApplication.isPlayingOrWillChangePlaymode)throw new Exception("Edit mode only; Play Mode is never started or stopped by this tool.");

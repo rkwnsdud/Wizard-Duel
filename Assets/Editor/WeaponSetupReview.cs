@@ -14,7 +14,6 @@ public static class WeaponSetupReview
 {
     const string Output = "Logs/WeaponSetupReview.txt";
 
-    [MenuItem("Tools/Weapons/Review Setup %#&F9")]
     public static void Review()
     {
         if (EditorApplication.isPlayingOrWillChangePlaymode)

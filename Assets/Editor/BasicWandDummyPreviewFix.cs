@@ -8,7 +8,6 @@ using UnityEngine;
 
 public static class BasicWandDummyPreviewFix
 {
-    [MenuItem("Tools/Basic Wand/Fix Dummy Hand Preview")]
     public static void Apply()
     {
         if(EditorApplication.isPlayingOrWillChangePlaymode)throw new Exception("Edit mode only; no automatic Play Mode.");

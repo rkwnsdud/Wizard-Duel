@@ -13,7 +13,6 @@ public static class BasicWandAnimatorReview
     const string Folder = "Assets/Weapons/Basic Wand/Animations/";
     static Transform Find(GameObject g, string name) => g.GetComponentsInChildren<Transform>(true).Single(t => t.name == name);
 
-    [MenuItem("Tools/Basic Wand/Review Animator Pose %&#l")]
     public static void Review()
     {
         var report = new StringBuilder();

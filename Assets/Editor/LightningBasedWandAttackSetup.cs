@@ -33,7 +33,6 @@ public static class LightningBasedWandAttackSetup
             return BitConverter.ToString(sha.ComputeHash(File.ReadAllBytes(path))).Replace("-", "");
     }
 
-    [MenuItem("Tools/Basic Wand/Rebuild Attack From Lightning")]
     public static void Build()
     {
         if (EditorApplication.isPlayingOrWillChangePlaymode)

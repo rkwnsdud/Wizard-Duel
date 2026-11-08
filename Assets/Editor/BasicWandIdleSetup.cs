@@ -18,7 +18,6 @@ public static class BasicWandIdleSetup
     [Serializable] public class Point { public string bone; public Vector3 p; }
     [Serializable] public class Inspection { public List<Point> hand = new List<Point>(); public List<Vector3> wand = new List<Vector3>(); }
 
-    [MenuItem("Tools/Basic Wand/Inspect Idle Contact %#i")]
     public static void Inspect()
     {
         if (EditorApplication.isPlaying) throw new InvalidOperationException("Edit mode only");
@@ -206,7 +205,6 @@ public static class BasicWandIdleSetup
         for(int i=0;i<4;i++)AnimationUtility.SetEditorCurve(clip,EditorCurveBinding.FloatCurve(path,typeof(Transform),"m_LocalRotation."+"xyzw"[i]),AnimationCurve.Constant(0,clip.length,bone.localRotation[i]));
     }
 
-    [MenuItem("Tools/Basic Wand/Apply Idle Only %#j")]
     public static void Apply()
     {
         if(EditorApplication.isPlaying)throw new InvalidOperationException("Edit mode only");
@@ -267,7 +265,6 @@ public static class BasicWandIdleSetup
         finally { if(copy)UnityEngine.Object.DestroyImmediate(copy); }
     }
 
-    [MenuItem("Tools/Basic Wand/Validate Idle Only")]
     public static void Validate()
     {
         var source=AssetDatabase.LoadAssetAtPath<AnimationClip>(Source);

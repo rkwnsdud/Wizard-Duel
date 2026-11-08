@@ -13,7 +13,6 @@ public static class BasicWandSkinRepair
     static readonly int[] Corners={2,2089,2184};
     static Transform Find(GameObject root,string name)=>root.GetComponentsInChildren<Transform>(true).Single(t=>t.name==name);
 
-    [MenuItem("Tools/Basic Wand/Apply Approved Skin Repair")]
     public static void Apply()
     {
         if(EditorApplication.isPlayingOrWillChangePlaymode)throw new InvalidOperationException("Edit mode only; no Play Mode is started.");

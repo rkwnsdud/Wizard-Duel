@@ -10,7 +10,6 @@ public static class BasicWandGripSetup
 {
     const string Folder="Assets/Weapons/Basic Wand/Animations";
     static Transform Find(GameObject g,string n)=>g.GetComponentsInChildren<Transform>(true).First(t=>t.name==n);
-    [MenuItem("Tools/Basic Wand/Inspect Arm")]
     public static void InspectArm()
     {
         var scene=EditorSceneManager.GetActiveScene();
@@ -47,9 +46,7 @@ public static class BasicWandGripSetup
         BasicWandIdleSetup.Apply();
     }
     public static void RefineAndPreview(){Apply();Preview();}
-    [MenuItem("Tools/Basic Wand/Apply Relaxed Grip")]
     public static void ApplyMenu(){Apply();}
-    [MenuItem("Tools/Basic Wand/Preview Grip")]
     public static void PreviewMenu(){Preview();}
     public static void Preview()
     {
@@ -96,9 +93,7 @@ public static class BasicWandGripSetup
     {
         BasicWandIdleSetup.Validate();
     }
-    [MenuItem("Tools/Basic Wand/Validate Grip %#g")]
     public static void ValidateMenu(){Validate();}
-    [MenuItem("Tools/Basic Wand/Diagnose Grip")]
     public static void DiagnoseGrip()
     {
         var scene=EditorSceneManager.GetActiveScene();
