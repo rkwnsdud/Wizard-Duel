@@ -12,11 +12,13 @@ public class PlayerMovement : MonoBehaviour
     Vector3 velocity;
     Transform cameraTransform;
     PlayerAttack playerAttack;
+    PlayerCombatStats combatStats;
 
     void Start()
     {
         controller = GetComponent<CharacterController>();
         playerAttack = GetComponent<PlayerAttack>();
+        combatStats = GetComponent<PlayerCombatStats>();
 
         Transform character = transform.Find("Wizard");
         character.localRotation = Quaternion.identity;
@@ -63,12 +65,13 @@ public class PlayerMovement : MonoBehaviour
             moveDirection.Normalize();
         }
 
+        float effectiveSpeed = combatStats != null ? combatStats.GetMoveSpeed(moveSpeed) : moveSpeed;
         float directionDampTime = animator.GetFloat("MoveSpeed") > 0f ? 0.1f : 0f;
-        animator.SetFloat("MoveSpeed", moveDirection.sqrMagnitude > 0f ? moveSpeed : 0f);
+        animator.SetFloat("MoveSpeed", moveDirection.sqrMagnitude > 0f ? effectiveSpeed : 0f);
         Vector3 localDirection = transform.InverseTransformDirection(moveDirection);
         animator.SetFloat("MoveX", localDirection.x, directionDampTime, Time.deltaTime);
         animator.SetFloat("MoveZ", localDirection.z, directionDampTime, Time.deltaTime);
-        controller.Move(moveDirection * moveSpeed * Time.deltaTime);
+        controller.Move(moveDirection * effectiveSpeed * Time.deltaTime);
 
         if (isGrounded && velocity.y < 0f)
         {
