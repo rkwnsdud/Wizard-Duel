@@ -6,7 +6,7 @@ public sealed class DuelSettings
     // 고정 크기로 고를 수 있는 한 변의 칸 수. 이 범위면 어떤 형태든 생성기가 받는다.
     public const int MinSize = 25;
     public const int MaxSize = 61;
-    public const float MaxObstacleDensity = 0.35f;
+    public const float MaxObstacleDensity = 0.25f;
 
     // 노이즈는 강도만 고른다. 스케일은 강도에 따라 변형이 가장 고르게 커지는 생성기 기본값(0.75)을 그대로 쓴다.
     public MapGenerationSettings Map = new MapGenerationSettings();

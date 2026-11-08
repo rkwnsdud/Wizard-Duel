@@ -7,6 +7,22 @@ public static class MapLayoutGenerator
 {
     const int maxAttempts = 32;
 
+    // 장애물 구조물 튜닝 값. 바꾸면 같은 시드의 맵이 달라지므로 LobbyJoinRequest.CurrentVersion도 올린다.
+    const float coverShare = 0.4f;     // 장애물 예산 중 독립 엄폐물(기둥, 짧은 벽)에 쓰는 몫
+    const float growChance = 0.5f;     // 벽 단계에서 새 벽 대신 세운 벽의 끝을 늘릴 확률
+    const float turnChance = 0.35f;    // 벽 끝을 늘릴 때 직각으로 꺾을 확률
+    const float bentWallChance = 0.4f; // 새 벽이 곧은 벽 대신 L자 벽일 확률
+    const float pillarChance = 0.5f;   // 엄폐물이 짧은 벽 대신 2×2 기둥일 확률
+    const int minWallLength = 3, maxWallLength = 6;
+    const int minArmLength = 2, maxArmLength = 4;
+    const int minGrowLength = 2, maxGrowLength = 5;
+    const int minCoverLength = 2, maxCoverLength = 4;
+    const int maxRunLength = 7;        // 한 방향으로 곧게 이어지는 벽의 최대 길이
+    const int maxCorridorLength = 2;   // 양옆이 벽인 1칸 폭 바닥이 곧게 이어질 수 있는 최대 길이
+    const int wallClearance = 2;       // 새 벽 둘레로 비어 있어야 하는 바닥 칸 수 (벽 단계 시도의 앞쪽 절반)
+    const int coverClearance = 1;      // 새 엄폐물 둘레로 비어 있어야 하는 바닥 칸 수
+    const int placementTries = 4000;   // 단계마다 구조물 자리를 찾는 최대 시도 횟수
+
     static readonly Vector2Int[] directions =
     {
         Vector2Int.left, Vector2Int.right, Vector2Int.up, Vector2Int.down
@@ -282,17 +298,18 @@ public static class MapLayoutGenerator
         }
     }
 
-    // 스폰 영역이 모두 바닥인 자리를 영역의 최소 좌표 칸으로 모은다.
+    // 스폰 안전 구역이 모두 바닥인 자리를 스폰 영역의 최소 좌표 칸으로 모은다.
     static List<Vector2Int> GetSpawnCandidates(MapCell[,] cells)
     {
+        const int clearance = MapLayout.SpawnClearance;
         var candidates = new List<Vector2Int>();
-        for (int y = 0; y <= cells.GetLength(1) - MapLayout.SpawnSize; y++)
+        for (int y = clearance; y <= cells.GetLength(1) - MapLayout.SpawnSize - clearance; y++)
         {
-            for (int x = 0; x <= cells.GetLength(0) - MapLayout.SpawnSize; x++)
+            for (int x = clearance; x <= cells.GetLength(0) - MapLayout.SpawnSize - clearance; x++)
             {
                 bool safe = true;
-                for (int dy = 0; dy < MapLayout.SpawnSize; dy++)
-                    for (int dx = 0; dx < MapLayout.SpawnSize; dx++)
+                for (int dy = -clearance; dy < MapLayout.SpawnSize + clearance; dy++)
+                    for (int dx = -clearance; dx < MapLayout.SpawnSize + clearance; dx++)
                         if (cells[x + dx, y + dy] != MapCell.Floor) safe = false;
                 if (safe) candidates.Add(new Vector2Int(x, y));
             }
@@ -344,55 +361,232 @@ public static class MapLayoutGenerator
         int target = (int)Math.Floor((double)density * floorCount);
         if (target == 0) return 0;
 
-        var size = new Vector2Int(cells.GetLength(0), cells.GetLength(1));
-        var candidates = new List<Vector2Int>();
-        for (int y = 0; y < size.y; y++)
+        var placer = new ObstaclePlacer(cells, spawnA, spawnB, floorCount, symmetry, random, distances, queue);
+        // 이어진 벽을 먼저 세우고, 남은 예산으로 그 사이에 독립 엄폐물을 흩어 둔다.
+        placer.PlaceWalls((int)Math.Round(target * (1 - coverShare)));
+        placer.PlaceCover(target);
+        return placer.Placed;
+    }
+
+    // 장애물을 한 칸씩이 아니라 벽·기둥 같은 구조물 단위로 세운다.
+    // 대칭 맵에서는 구조물과 그 180도 짝을 함께 세우거나 함께 거부한다.
+    sealed class ObstaclePlacer
+    {
+        readonly MapCell[,] cells;
+        readonly Vector2Int size;
+        readonly Vector2Int spawnA;
+        readonly Vector2Int spawnB;
+        readonly int floorCount;
+        readonly MapSymmetry symmetry;
+        readonly Random random;
+        readonly int[,] distances;
+        readonly Queue<Vector2Int> queue;
+        readonly List<Vector2Int> anchors = new List<Vector2Int>();
+        readonly List<Vector2Int> wallCells = new List<Vector2Int>();
+        readonly List<Vector2Int> shape = new List<Vector2Int>();
+        readonly List<Vector2Int> group = new List<Vector2Int>();
+
+        public int Placed { get; private set; }
+
+        public ObstaclePlacer(MapCell[,] cells, Vector2Int spawnA, Vector2Int spawnB, int floorCount,
+            MapSymmetry symmetry, Random random, int[,] distances, Queue<Vector2Int> queue)
         {
-            for (int x = 0; x < size.x; x++)
+            this.cells = cells;
+            size = new Vector2Int(cells.GetLength(0), cells.GetLength(1));
+            this.spawnA = spawnA;
+            this.spawnB = spawnB;
+            this.floorCount = floorCount;
+            this.symmetry = symmetry;
+            this.random = random;
+            this.distances = distances;
+            this.queue = queue;
+            for (int y = 0; y < size.y; y++)
             {
-                var cell = new Vector2Int(x, y);
-                if (cells[x, y] != MapCell.Floor || MapLayout.InSpawn(cell, spawnA) || MapLayout.InSpawn(cell, spawnB)) continue;
-                Vector2Int opposite = Mirror(cell, size);
-                if (symmetry == MapSymmetry.Rotate180 && y * size.x + x > opposite.y * size.x + opposite.x) continue;
-                candidates.Add(cell);
+                for (int x = 0; x < size.x; x++)
+                {
+                    var cell = new Vector2Int(x, y);
+                    if (IsFloor(cell) && !InSpawnZone(cell)) anchors.Add(cell);
+                }
             }
-        }
-        for (int i = candidates.Count - 1; i > 0; i--)
-        {
-            int j = random.Next(i + 1);
-            Vector2Int temp = candidates[i];
-            candidates[i] = candidates[j];
-            candidates[j] = temp;
         }
 
-        int placed = 0;
-        foreach (Vector2Int cell in candidates)
+        // 곧은 벽과 L자 벽을 세우고, 세운 벽의 끝을 늘이거나 꺾어 긴 벽과 T자 벽을 만든다.
+        public void PlaceWalls(int budget)
         {
-            if (placed == target) break;
-            Vector2Int opposite = symmetry == MapSymmetry.Rotate180 ? Mirror(cell, size) : cell;
-            int count = opposite == cell ? 1 : 2;
-            if (placed + count > target) continue;
+            for (int i = 0; i < placementTries && Placed < budget && anchors.Count > 0; i++)
+            {
+                shape.Clear();
+                if (wallCells.Count > 0 && random.NextDouble() < growChance)
+                {
+                    if (TryGrow(wallCells[random.Next(wallCells.Count)], out Vector2Int side)
+                        && TryPlace(budget, side, 0)) wallCells.AddRange(group);
+                    continue;
+                }
 
-            cells[cell.x, cell.y] = MapCell.Wall;
-            cells[opposite.x, opposite.y] = MapCell.Wall;
-            // 대각선으로 벽이 맞닿는 배치는 캐릭터가 못 지나가는 틈이 되므로 거부한다.
-            // FloodFill은 대각선을 연결로 치지만, 반경 0.35m 캐릭터도 대각선 틈(0m)은 못 지난다.
-            if (CreatesDiagonalPinch(cells, size, cell) ||
-                (opposite != cell && CreatesDiagonalPinch(cells, size, opposite)))
-            {
-                cells[cell.x, cell.y] = MapCell.Floor;
-                cells[opposite.x, opposite.y] = MapCell.Floor;
-                continue;
-            }
-            if (FloodFill(cells, spawnA, distances, queue) == floorCount - placed - count)
-                placed += count;
-            else
-            {
-                cells[cell.x, cell.y] = MapCell.Floor;
-                cells[opposite.x, opposite.y] = MapCell.Floor;
+                Vector2Int anchor = anchors[random.Next(anchors.Count)];
+                Vector2Int direction = directions[random.Next(directions.Length)];
+                if (random.NextDouble() < bentWallChance)
+                {
+                    Vector2Int turn = random.Next(2) == 0
+                        ? new Vector2Int(-direction.y, direction.x) : new Vector2Int(direction.y, -direction.x);
+                    AddLine(anchor, direction, random.Next(minArmLength, maxArmLength + 1));
+                    AddLine(anchor + turn, turn, random.Next(minArmLength, maxArmLength + 1) - 1);
+                }
+                else
+                    AddLine(anchor, direction, random.Next(minWallLength, maxWallLength + 1));
+                // 벽끼리는 넉넉히 띄우되, 좁은 맵에서 자리가 없으면 남은 시도는 엄폐물만큼만 띄운다.
+                int clearance = i < placementTries / 2 ? wallClearance : coverClearance;
+                if (TryPlace(budget, Vector2Int.zero, clearance)) wallCells.AddRange(group);
             }
         }
-        return placed;
+
+        // 둘레가 비어 있는 2×2 기둥과 짧은 벽을 벽 사이사이에 따로 세운다.
+        public void PlaceCover(int budget)
+        {
+            for (int i = 0; i < placementTries && Placed < budget && anchors.Count > 0; i++)
+            {
+                shape.Clear();
+                Vector2Int anchor = anchors[random.Next(anchors.Count)];
+                if (random.NextDouble() < pillarChance)
+                {
+                    AddLine(anchor, Vector2Int.right, 2);
+                    AddLine(anchor + Vector2Int.up, Vector2Int.right, 2);
+                }
+                else
+                    AddLine(anchor, directions[random.Next(directions.Length)],
+                        random.Next(minCoverLength, maxCoverLength + 1));
+                TryPlace(budget, Vector2Int.zero, coverClearance);
+            }
+        }
+
+        void AddLine(Vector2Int start, Vector2Int direction, int length)
+        {
+            for (int i = 0; i < length; i++) shape.Add(start + direction * i);
+        }
+
+        // 직교 이웃 벽이 하나뿐인 벽 끝에서 바깥으로 벽을 늘린다. side는 늘린 벽의 옆면 방향이다.
+        bool TryGrow(Vector2Int end, out Vector2Int side)
+        {
+            side = default;
+            Vector2Int forward = default;
+            int neighbors = 0;
+            foreach (Vector2Int direction in directions)
+            {
+                if (!IsWall(end + direction)) continue;
+                neighbors++;
+                forward = -direction;
+            }
+            if (neighbors != 1) return false;
+
+            int run = 0;
+            for (Vector2Int cell = end; IsWall(cell); cell -= forward) run++;
+            int length = random.Next(minGrowLength, maxGrowLength + 1);
+            // 곧게만 늘리면 맵을 가로지르는 긴 막대가 되므로 일정 길이를 넘으면 꺾는다.
+            if (random.NextDouble() < turnChance || run + length > maxRunLength)
+                forward = random.Next(2) == 0
+                    ? new Vector2Int(-forward.y, forward.x) : new Vector2Int(forward.y, -forward.x);
+            AddLine(end + forward, forward, length);
+            side = new Vector2Int(forward.y, forward.x);
+            return true;
+        }
+
+        // shape과 그 대칭 짝을 벽으로 세워 보고, 규칙을 하나라도 어기면 되돌린다.
+        // side가 0이면 새 구조물이라 둘레 clearance칸이 비어 있어야 하고, 아니면 늘린 벽이라 옆면만 비어 있으면 된다.
+        bool TryPlace(int budget, Vector2Int side, int clearance)
+        {
+            group.Clear();
+            group.AddRange(shape);
+            if (symmetry == MapSymmetry.Rotate180)
+            {
+                foreach (Vector2Int cell in shape)
+                {
+                    Vector2Int opposite = Mirror(cell, size);
+                    if (!group.Contains(opposite)) group.Add(opposite);
+                }
+            }
+            if (Placed + group.Count > budget) return false;
+            foreach (Vector2Int cell in shape)
+                if (!IsFloor(cell) || InSpawnZone(cell)) return false;
+            if (side == Vector2Int.zero && !HasClearance(clearance)) return false;
+
+            foreach (Vector2Int cell in group) cells[cell.x, cell.y] = MapCell.Wall;
+            if (BreaksRules(side) || FloodFill(cells, spawnA, distances, queue) != floorCount - Placed - group.Count)
+            {
+                foreach (Vector2Int cell in group) cells[cell.x, cell.y] = MapCell.Floor;
+                return false;
+            }
+            Placed += group.Count;
+            return true;
+        }
+
+        // 새 구조물 둘레 clearance칸이 모두 바닥이고, 대칭 짝과도 그만큼 떨어져 있는지.
+        // 형태 단계의 맵은 대칭이므로 짝의 둘레는 따로 볼 필요가 없다.
+        bool HasClearance(int clearance)
+        {
+            foreach (Vector2Int cell in shape)
+            {
+                for (int dy = -clearance; dy <= clearance; dy++)
+                {
+                    for (int dx = -clearance; dx <= clearance; dx++)
+                    {
+                        Vector2Int next = cell + new Vector2Int(dx, dy);
+                        if (!shape.Contains(next) && !IsFloor(next)) return false;
+                    }
+                }
+            }
+            for (int i = shape.Count; i < group.Count; i++)
+                foreach (Vector2Int cell in shape)
+                    if (Math.Abs(group[i].x - cell.x) <= clearance
+                        && Math.Abs(group[i].y - cell.y) <= clearance) return false;
+            return true;
+        }
+
+        bool BreaksRules(Vector2Int side)
+        {
+            foreach (Vector2Int cell in group)
+            {
+                // 늘린 벽은 끝 칸만 다른 벽에 닿을 수 있다. 옆면이 붙으면 두꺼운 덩어리가 된다.
+                if (side != Vector2Int.zero && (IsWall(cell + side) || IsWall(cell - side))) return true;
+                if (CreatesDiagonalPinch(cells, size, cell) || CreatesSolidBlock(cells, size, cell)
+                    || CreatesLongCorridor(cell)) return true;
+            }
+            return false;
+        }
+
+        // cell 옆 바닥이 벽 사이에 끼어 1칸 폭 복도가 길게 이어지는지. 짧은 1칸 틈은 문처럼 쓰이므로 허용한다.
+        bool CreatesLongCorridor(Vector2Int cell)
+        {
+            foreach (Vector2Int across in directions)
+            {
+                Vector2Int floor = cell + across;
+                if (IsFloor(floor) && CorridorLength(floor, across) > maxCorridorLength) return true;
+            }
+            return false;
+        }
+
+        // start에서 across 축 양옆이 벽인 바닥이 그 수직 방향으로 몇 칸 이어지는지.
+        int CorridorLength(Vector2Int start, Vector2Int across)
+        {
+            var along = new Vector2Int(across.y, across.x);
+            int length = 0;
+            for (Vector2Int cell = start; IsPinched(cell, across); cell += along) length++;
+            for (Vector2Int cell = start - along; IsPinched(cell, across); cell -= along) length++;
+            return length;
+        }
+
+        bool IsPinched(Vector2Int cell, Vector2Int across)
+        {
+            return IsFloor(cell) && IsWall(cell + across) && IsWall(cell - across);
+        }
+
+        bool InSpawnZone(Vector2Int cell)
+        {
+            return MapLayout.InSpawnZone(cell, spawnA) || MapLayout.InSpawnZone(cell, spawnB);
+        }
+
+        bool IsFloor(Vector2Int cell) => InBounds(cell) && cells[cell.x, cell.y] == MapCell.Floor;
+        bool IsWall(Vector2Int cell) => InBounds(cell) && cells[cell.x, cell.y] == MapCell.Wall;
+        bool InBounds(Vector2Int cell) => cell.x >= 0 && cell.y >= 0 && cell.x < size.x && cell.y < size.y;
     }
 
     // 180도 돌리면 영역의 최소 좌표 칸은 반대편 영역의 최대 좌표 칸이 된다.
@@ -401,8 +595,9 @@ public static class MapLayoutGenerator
         return Mirror(spawn, size) - Vector2Int.one * (MapLayout.SpawnSize - 1);
     }
 
-    // (x, y)에 둔 벽이 대각선 이웃 벽과 맞닿아 캐릭터가 못 지나가는 틈을 만드는지 검사한다.
-    // wall-wall 대각선 + floor-floor 직교 = 가운데 틈 너비 0m. 반경 0.35m 캐릭터도 못 지난다.
+    // (x, y)에 둔 벽이 대각선 이웃 벽과 모서리만 맞닿는지 검사한다.
+    // wall-wall 대각선 + floor-floor 직교 = 가운데 틈 너비 0m. FloodFill은 상하좌우만 세므로 막힌 길로 보지만,
+    // 화면에서는 지나갈 수 있는 틈처럼 보이고 거친 벽 메시가 서로 겹치므로 만들지 않는다.
     static bool CreatesDiagonalPinch(MapCell[,] cells, Vector2Int size, Vector2Int cell)
     {
         int width = size.x, height = size.y;
@@ -419,6 +614,23 @@ public static class MapLayoutGenerator
             bool floor1 = ox1 >= 0 && oy1 >= 0 && ox1 < width && oy1 < height && cells[ox1, oy1] == MapCell.Floor;
             bool floor2 = ox2 >= 0 && oy2 >= 0 && ox2 < width && oy2 < height && cells[ox2, oy2] == MapCell.Floor;
             if (floor1 && floor2) return true;
+        }
+        return false;
+    }
+
+    // cell을 포함하는 3×3 창 중 모두 벽인 곳이 있는지. 두꺼운 벽 덩어리는 엄폐물이 아니라 막힌 땅처럼 보인다.
+    static bool CreatesSolidBlock(MapCell[,] cells, Vector2Int size, Vector2Int cell)
+    {
+        for (int cy = cell.y - 1; cy <= cell.y + 1; cy++)
+        {
+            for (int cx = cell.x - 1; cx <= cell.x + 1; cx++)
+            {
+                bool solid = true;
+                for (int y = cy - 1; y <= cy + 1 && solid; y++)
+                    for (int x = cx - 1; x <= cx + 1 && solid; x++)
+                        solid = x >= 0 && y >= 0 && x < size.x && y < size.y && cells[x, y] == MapCell.Wall;
+                if (solid) return true;
+            }
         }
         return false;
     }

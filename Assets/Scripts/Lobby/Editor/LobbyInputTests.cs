@@ -154,8 +154,8 @@ public class LobbyInputTests
         panel.Changed += changed => edits.Add(changed.Clone());
         yield return Focus(seed);
         seed.text = "222";
-        density.value = 29;
-        density.value = 30;
+        density.value = 19;
+        density.value = 20;
         Assert.That(edits.Count, Is.EqualTo(2));
         Assert.That(edits.TrueForAll(edit => edit.Map.Seed == 7301), Is.True);
         Assert.That(seed.text, Is.EqualTo("222"));
@@ -173,7 +173,7 @@ public class LobbyInputTests
         yield return Focus(seed);
         seed.text = "333";
         InvokeFlow("OnSnapshot", Snapshot(1, 111));
-        density.value = 31;
+        density.value = 21;
         Assert.That(edits[3].Map.Seed, Is.EqualTo(222));
         Assert.That(seed.text, Is.EqualTo("333"));
 
@@ -184,7 +184,7 @@ public class LobbyInputTests
         seed.DeactivateInputField();
         Assert.That(edits.Count, Is.EqualTo(5));
         Assert.That(edits[4].Map.Seed, Is.EqualTo(333));
-        Assert.That(edits[4].Map.ObstacleDensity, Is.EqualTo(0.3f));
+        Assert.That(edits[4].Map.ObstacleDensity, Is.EqualTo(0.2f));
     }
 
     [UnityTest]
@@ -223,7 +223,7 @@ public class LobbyInputTests
         seed.DeactivateInputField();
         seed.onEndEdit.Invoke(seed.text);
         Assert.That(edits.Count, Is.EqualTo(1), "Blur must not restore the old draft after rolling.");
-        Field<Slider>(panel, "density").value = 29;
+        Field<Slider>(panel, "density").value = 19;
         Assert.That(edits[1].Map.Seed, Is.EqualTo(rolledSeed));
     }
 
@@ -317,13 +317,13 @@ public class LobbyInputTests
         lobby.RequestStart();
         Assert.That(requests, Is.EqualTo(1), "Pressing again while starting must not send another request.");
         Assert.That(button.interactable, Is.False);
-        Field<Slider>(panel, "density").value = 29;
+        Field<Slider>(panel, "density").value = 19;
         Assert.That(edits, Is.Zero, "Settings are locked once the duel starts.");
 
         // 시작이 거절되면 다시 누를 수 있고 설정도 바꿀 수 있다.
         lobby.SetStarting(false);
         Assert.That(button.interactable, Is.True);
-        Field<Slider>(panel, "density").value = 30;
+        Field<Slider>(panel, "density").value = 20;
         Assert.That(edits, Is.EqualTo(1));
 
         OpenLobby(false);
@@ -459,7 +459,7 @@ public class LobbyInputTests
             Map = new MapGenerationSettings
             {
                 Size = new Vector2Int(35, 29), Shape = MapShape.Rectangle,
-                ObstacleDensity = 0.27f, Symmetry = MapSymmetry.None,
+                ObstacleDensity = 0.22f, Symmetry = MapSymmetry.None,
                 NoiseStrength = 0.65f, NoiseScale = 1.25f
             }
         }, false);
@@ -469,7 +469,7 @@ public class LobbyInputTests
     NetworkLobbySnapshot Snapshot(uint revision, int seed) => new NetworkLobbySnapshot
     {
         Code = "123456", HostClientId = manager.LocalClientId, SettingsRevision = revision,
-        Settings = new NetworkMapSettings(new MapGenerationSettings { Seed = seed, ObstacleDensity = 0.3f })
+        Settings = new NetworkMapSettings(new MapGenerationSettings { Seed = seed, ObstacleDensity = 0.2f })
     };
 
     static void AssertMapEqual(MapGenerationSettings expected, MapGenerationSettings actual)
