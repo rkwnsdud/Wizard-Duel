@@ -176,7 +176,7 @@ public class LobbySessionTests
         DuelSettings beforeInvalidUpdates = new DuelSettings { Map = session.Snapshot.Settings.ToSettings() };
         var invalidSettings = new[]
         {
-            new DuelSettings { Map = new MapGenerationSettings { ObstacleDensity = 0.36f } },
+            new DuelSettings { Map = new MapGenerationSettings { ObstacleDensity = 0.26f } },
             new DuelSettings { Map = new MapGenerationSettings { NoiseStrength = float.NaN } }
         };
         foreach (DuelSettings invalid in invalidSettings)

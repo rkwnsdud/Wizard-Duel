@@ -170,6 +170,39 @@ public class MapLayoutGeneratorTests
         if (density == 0f) Assert.That(obstacles, Is.Zero);
         if (density == 1f) Assert.That(map.ActualObstacleDensity, Is.GreaterThan(0f).And.LessThan(1f));
         Assert.That(CountEnclosedVoids(map), Is.EqualTo(map.Shape == MapShape.Donut ? 1 : 0));
+
+        foreach (List<Vector2Int> piece in ObstaclePieces(map, empty))
+        {
+            Assert.That(piece.Count, Is.GreaterThan(1), $"Single-cell obstacle at {piece[0]}.");
+            foreach (Vector2Int cell in piece)
+                Assert.That(InSolidBlock(map, cell), Is.False, $"Obstacle at {cell} is part of a solid 3x3 wall block.");
+        }
+        Assert.That(LongestObstacleCorridor(map, empty), Is.LessThanOrEqualTo(2),
+            "Obstacles must not form long one-cell corridors.");
+    }
+
+    [TestCase(MapShape.Circle)]
+    [TestCase(MapShape.Rectangle)]
+    [TestCase(MapShape.Elongated)]
+    [TestCase(MapShape.Donut)]
+    public void Generate_MixesConnectedWallsWithStandaloneCover(MapShape shape)
+    {
+        for (int seed = 0; seed < 8; seed++)
+        {
+            var settings = new MapGenerationSettings { Seed = seed, Shape = shape, ObstacleDensity = 0.2f };
+            MapLayout map = MapLayoutGenerator.Generate(settings);
+            settings.ObstacleDensity = 0f;
+            MapLayout empty = MapLayoutGenerator.Generate(settings);
+
+            int walls = 0, cover = 0;
+            foreach (List<Vector2Int> piece in ObstaclePieces(map, empty))
+            {
+                if (piece.Count >= 5) walls++;
+                else if (IsStandaloneCover(map, piece)) cover++;
+            }
+            Assert.That(walls, Is.GreaterThan(0), $"Seed {seed} has no connected wall.");
+            Assert.That(cover, Is.GreaterThan(0), $"Seed {seed} has no standalone pillar or short wall.");
+        }
     }
 
     [TestCase(MapShape.Random)]
@@ -442,8 +475,8 @@ public class MapLayoutGeneratorTests
     static void AssertValid(MapLayout map, MapSymmetry symmetry)
     {
         Assert.That(map.SpawnA, Is.Not.EqualTo(map.SpawnB));
-        Assert.That(SafeSpawn(map, map.SpawnA), Is.True, "Spawn A must have a clear 2x2 area.");
-        Assert.That(SafeSpawn(map, map.SpawnB), Is.True, "Spawn B must have a clear 2x2 area.");
+        Assert.That(SafeSpawn(map, map.SpawnA), Is.True, "Spawn A must have a clear 4x4 safe zone.");
+        Assert.That(SafeSpawn(map, map.SpawnB), Is.True, "Spawn B must have a clear 4x4 safe zone.");
         int[,] distances = Distances(map, map.SpawnA);
         int reachable = 0;
         for (int y = 0; y < map.Height; y++)
@@ -462,6 +495,14 @@ public class MapLayoutGeneratorTests
             }
             if (symmetry == MapSymmetry.Rotate180)
                 Assert.That(map[x, y], Is.EqualTo(map[map.Width - 1 - x, map.Height - 1 - y]));
+            if (x + 1 < map.Width && y + 1 < map.Height)
+            {
+                bool falling = map[x, y] == MapCell.Wall && map[x + 1, y + 1] == MapCell.Wall
+                    && map[x + 1, y] == MapCell.Floor && map[x, y + 1] == MapCell.Floor;
+                bool rising = map[x + 1, y] == MapCell.Wall && map[x, y + 1] == MapCell.Wall
+                    && map[x, y] == MapCell.Floor && map[x + 1, y + 1] == MapCell.Floor;
+                Assert.That(falling || rising, Is.False, $"Walls touch only diagonally at {x},{y}.");
+            }
         }
         Assert.That(reachable, Is.EqualTo(CountFloors(map)), "All floor cells must be connected.");
         Assert.That(distances[map.SpawnB.x, map.SpawnB.y], Is.GreaterThan(0));
@@ -469,15 +510,124 @@ public class MapLayoutGeneratorTests
             Assert.That(map.SpawnB, Is.EqualTo(Opposite(map, map.SpawnA)));
     }
 
-    // spawn은 스폰 영역의 최소 좌표 칸이다.
+    // spawn은 스폰 영역의 최소 좌표 칸이다. 스폰 영역과 둘레 SpawnClearance칸이 모두 바닥이어야 한다.
     static bool SafeSpawn(MapLayout map, Vector2Int spawn)
     {
-        if (spawn.x < 0 || spawn.y < 0 || spawn.x > map.Width - MapLayout.SpawnSize
-            || spawn.y > map.Height - MapLayout.SpawnSize) return false;
-        for (int dy = 0; dy < MapLayout.SpawnSize; dy++)
-        for (int dx = 0; dx < MapLayout.SpawnSize; dx++)
+        const int clearance = MapLayout.SpawnClearance;
+        if (spawn.x < clearance || spawn.y < clearance || spawn.x > map.Width - MapLayout.SpawnSize - clearance
+            || spawn.y > map.Height - MapLayout.SpawnSize - clearance) return false;
+        for (int dy = -clearance; dy < MapLayout.SpawnSize + clearance; dy++)
+        for (int dx = -clearance; dx < MapLayout.SpawnSize + clearance; dx++)
             if (map[spawn.x + dx, spawn.y + dy] != MapCell.Floor) return false;
         return true;
+    }
+
+    // 밀도 0 맵에서 바닥이던 벽 칸을 8방향으로 이어 장애물 덩어리로 묶는다.
+    static List<List<Vector2Int>> ObstaclePieces(MapLayout map, MapLayout empty)
+    {
+        var pieces = new List<List<Vector2Int>>();
+        var visited = new bool[map.Width, map.Height];
+        for (int y = 0; y < map.Height; y++)
+        for (int x = 0; x < map.Width; x++)
+        {
+            if (visited[x, y] || !IsObstacle(map, empty, x, y)) continue;
+            var piece = new List<Vector2Int>();
+            var queue = new Queue<Vector2Int>();
+            queue.Enqueue(new Vector2Int(x, y));
+            visited[x, y] = true;
+            while (queue.Count > 0)
+            {
+                Vector2Int cell = queue.Dequeue();
+                piece.Add(cell);
+                for (int dy = -1; dy <= 1; dy++)
+                for (int dx = -1; dx <= 1; dx++)
+                {
+                    int nx = cell.x + dx, ny = cell.y + dy;
+                    if (nx < 0 || ny < 0 || nx >= map.Width || ny >= map.Height
+                        || visited[nx, ny] || !IsObstacle(map, empty, nx, ny)) continue;
+                    visited[nx, ny] = true;
+                    queue.Enqueue(new Vector2Int(nx, ny));
+                }
+            }
+            pieces.Add(piece);
+        }
+        return pieces;
+    }
+
+    static bool IsObstacle(MapLayout map, MapLayout empty, int x, int y)
+    {
+        return empty[x, y] == MapCell.Floor && map[x, y] == MapCell.Wall;
+    }
+
+    // 둘레가 모두 바닥인 2x2 기둥이나 1xn(n <= 4) 벽인지.
+    static bool IsStandaloneCover(MapLayout map, List<Vector2Int> piece)
+    {
+        int minX = int.MaxValue, minY = int.MaxValue, maxX = int.MinValue, maxY = int.MinValue;
+        foreach (Vector2Int cell in piece)
+        {
+            minX = Math.Min(minX, cell.x);
+            minY = Math.Min(minY, cell.y);
+            maxX = Math.Max(maxX, cell.x);
+            maxY = Math.Max(maxY, cell.y);
+        }
+        int width = maxX - minX + 1, height = maxY - minY + 1;
+        bool pillar = width == 2 && height == 2;
+        bool shortWall = Math.Min(width, height) == 1 && Math.Max(width, height) <= 4;
+        if (piece.Count != width * height || (!pillar && !shortWall)) return false;
+        for (int y = minY - 1; y <= maxY + 1; y++)
+        for (int x = minX - 1; x <= maxX + 1; x++)
+        {
+            bool inside = x >= minX && x <= maxX && y >= minY && y <= maxY;
+            if (!inside && map[x, y] != MapCell.Floor) return false;
+        }
+        return true;
+    }
+
+    // 양옆이 벽이고 그중 하나가 장애물인 1칸 폭 바닥이 곧게 이어지는 가장 긴 길이.
+    static int LongestObstacleCorridor(MapLayout map, MapLayout empty)
+    {
+        int longest = 0;
+        for (int y = 0; y < map.Height; y++)
+        for (int x = 0; x < map.Width; x++)
+        foreach (Vector2Int across in new[] { Vector2Int.right, Vector2Int.up })
+        {
+            var cell = new Vector2Int(x, y);
+            Vector2Int a = cell + across, b = cell - across;
+            if (!Pinched(map, cell, across) || (!IsObstacle(map, empty, a.x, a.y) && !IsObstacle(map, empty, b.x, b.y)))
+                continue;
+            var along = new Vector2Int(across.y, across.x);
+            int length = 0;
+            for (Vector2Int next = cell; Pinched(map, next, across); next += along) length++;
+            for (Vector2Int next = cell - along; Pinched(map, next, across); next -= along) length++;
+            longest = Math.Max(longest, length);
+        }
+        return longest;
+    }
+
+    static bool Pinched(MapLayout map, Vector2Int cell, Vector2Int across)
+    {
+        return IsCell(map, cell, MapCell.Floor) && IsCell(map, cell + across, MapCell.Wall)
+            && IsCell(map, cell - across, MapCell.Wall);
+    }
+
+    static bool IsCell(MapLayout map, Vector2Int cell, MapCell type)
+    {
+        return cell.x >= 0 && cell.y >= 0 && cell.x < map.Width && cell.y < map.Height && map[cell.x, cell.y] == type;
+    }
+
+    // cell을 포함하는 3x3 창 중 모두 벽인 곳이 있는지.
+    static bool InSolidBlock(MapLayout map, Vector2Int cell)
+    {
+        for (int cy = cell.y - 1; cy <= cell.y + 1; cy++)
+        for (int cx = cell.x - 1; cx <= cell.x + 1; cx++)
+        {
+            bool solid = true;
+            for (int y = cy - 1; y <= cy + 1; y++)
+            for (int x = cx - 1; x <= cx + 1; x++)
+                if (x < 0 || y < 0 || x >= map.Width || y >= map.Height || map[x, y] != MapCell.Wall) solid = false;
+            if (solid) return true;
+        }
+        return false;
     }
 
     // 180도 돌린 스폰 영역의 최소 좌표 칸.

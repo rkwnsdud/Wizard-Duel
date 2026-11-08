@@ -12,6 +12,9 @@ public sealed class MapLayout
     // 스폰 타일 하나가 차지하는 정사각형 영역의 한 변(칸 수). SpawnA/B는 그 영역의 최소 좌표 칸이다.
     public const int SpawnSize = 2;
 
+    // 스폰 영역 둘레로 장애물과 외곽 벽을 두지 않는 칸 수. 안전 구역은 SpawnSize + 2 * SpawnClearance칸 정사각형이다.
+    public const int SpawnClearance = 1;
+
     readonly MapCell[,] cells;
 
     public int Width => cells.GetLength(0);
@@ -61,5 +64,12 @@ public sealed class MapLayout
     {
         return cell.x >= spawn.x && cell.y >= spawn.y
             && cell.x < spawn.x + SpawnSize && cell.y < spawn.y + SpawnSize;
+    }
+
+    // cell이 spawn 영역과 그 둘레 SpawnClearance칸을 합친 안전 구역 안에 있는지.
+    public static bool InSpawnZone(Vector2Int cell, Vector2Int spawn)
+    {
+        return cell.x >= spawn.x - SpawnClearance && cell.y >= spawn.y - SpawnClearance
+            && cell.x < spawn.x + SpawnSize + SpawnClearance && cell.y < spawn.y + SpawnSize + SpawnClearance;
     }
 }

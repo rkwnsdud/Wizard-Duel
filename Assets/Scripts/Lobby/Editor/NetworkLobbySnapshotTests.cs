@@ -13,7 +13,7 @@ public class NetworkLobbySnapshotTests
             Seed = seed,
             Size = size,
             Shape = MapShape.Random,
-            ObstacleDensity = 0.27f,
+            ObstacleDensity = 0.22f,
             Symmetry = MapSymmetry.Rotate180,
             NoiseStrength = 0.65f,
             NoiseScale = 1.25f
@@ -213,7 +213,7 @@ public class NetworkLobbySnapshotTests
                 Seed = -321,
                 Size = new Vector2Int(41, 37),
                 Shape = MapShape.Donut,
-                ObstacleDensity = 0.33f,
+                ObstacleDensity = 0.24f,
                 Symmetry = MapSymmetry.None,
                 NoiseStrength = 0.9f,
                 NoiseScale = 1.8f
