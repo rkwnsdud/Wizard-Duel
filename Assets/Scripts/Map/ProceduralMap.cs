@@ -21,9 +21,13 @@ public class ProceduralMap : MonoBehaviour, ISpawnPointProvider
 
     const float cellSize = 1f;
     readonly List<IBlock> blocks = new List<IBlock>();
+    readonly List<Transform> pieces = new List<Transform>();
 
     public MapLayout GeneratedLayout { get; private set; }
     public IReadOnlyList<IBlock> Blocks => blocks;
+    // 맵을 이루는 조각 전체. 앞쪽은 Blocks와 같은 순서의 블록이고, 그 뒤에 배경이 깐 바닥 타일과 장식이 온다.
+    // 배경도 맵의 일부라서 시작 화면·로비 화면의 물결은 이 목록을 함께 움직인다.
+    public IReadOnlyList<Transform> Pieces => pieces;
     public Transform[] SpawnPoints { get; private set; }
 
     void Awake()
@@ -78,6 +82,9 @@ public class ProceduralMap : MonoBehaviour, ISpawnPointProvider
         if (background != null) background.Rebuild();
         // 배경 오브젝트 자체가 꺼져 있으면(HideMap) 다음에 켜질 때 Rebuild하도록 표시만 해 둔다.
         // Rebuild는 자식 파괴/생성이라 비활성 상태에서도 안전하게 돈다.
+
+        foreach (IBlock block in blocks) pieces.Add(block.Transform);
+        if (background != null) pieces.AddRange(background.Pieces);
     }
 
     // 맵을 비운다. 다음 Generate 전까지 레이아웃과 스폰 지점도 없다.
@@ -99,5 +106,6 @@ public class ProceduralMap : MonoBehaviour, ISpawnPointProvider
             Destroy(instance.gameObject);
         }
         blocks.Clear();
+        pieces.Clear();
     }
 }
