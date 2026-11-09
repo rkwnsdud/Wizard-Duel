@@ -48,10 +48,8 @@ public class TitleBackdrop : MonoBehaviour
     [SerializeField] float viewSharpness = 2.2f;
 
     [Header("전투")]
-    [Tooltip("카메라를 내 플레이어에게 넘긴 뒤의 시야각. 배경용 좁은 시야각으로는 주변이 거의 안 보인다.")]
-    [SerializeField, Range(20f, 90f)] float battleFieldOfView = 60f;
-    [Tooltip("전투 중 안개가 시작되고 끝나는 거리. 가까운 곳은 맑고 맵 끝만 살짝 흐려진다.")]
-    [SerializeField] Vector2 battleFog = new Vector2(40f, 160f);
+    [Tooltip("카메라를 내 플레이어에게 넘긴 뒤의 시야각과 안개. DuelOfflineTest 씬과 같은 에셋(Assets/Settings/DuelCamera)을 쓴다.")]
+    [SerializeField] DuelCameraSettings battleCamera;
 
     public Transform[] SpawnPoints => map.SpawnPoints;
     // 지금 서 있는 맵을 만든 설정.
@@ -181,10 +179,8 @@ public class TitleBackdrop : MonoBehaviour
         released = true;
         StopAllCoroutines();
         if (pipeline != null) pipeline.shadowDistance = originalShadowDistance;
-        viewCamera.fieldOfView = battleFieldOfView;
+        battleCamera.Apply(viewCamera);
         viewCamera.ResetProjectionMatrix();
-        RenderSettings.fogStartDistance = battleFog.x;
-        RenderSettings.fogEndDistance = battleFog.y;
     }
 
     IEnumerator Cycle(bool keepMap)
