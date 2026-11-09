@@ -28,6 +28,7 @@ public sealed class DuelPlayer : NetworkBehaviour, IAttackAuthority, IShotSink
     Animator animator;
     PlayerAttack attack;
     PlayerHealth playerHealth;
+    PlayerKnockback knockback;
     CameraFollow cameraFollow;
     Vector3 previousPosition;
     // 서버에만 있다.
@@ -41,6 +42,7 @@ public sealed class DuelPlayer : NetworkBehaviour, IAttackAuthority, IShotSink
         animator = transform.Find("Wizard").GetComponent<Animator>();
         attack = GetComponent<PlayerAttack>();
         playerHealth = GetComponent<PlayerHealth>();
+        knockback = GetComponent<PlayerKnockback>();
     }
 
     public override void OnNetworkSpawn()
@@ -136,12 +138,30 @@ public sealed class DuelPlayer : NetworkBehaviour, IAttackAuthority, IShotSink
             !player.combat.TryTakeHit(slot, attackId, hitIndex, damage, out bool defeatedNow)) return;
         Debug.Log($"[Combat] Hit slot={player.slot} attacker={slot} id={attackId} hit={hitIndex} health={player.combat.Health:F3}");
         player.health.Value = player.combat.Health;
+        player.ServerKnockback(this);
         PlayerWeaponPassiveController.NotifyServerHit(attack.Weapon, this, player);
         if (defeatedNow)
         {
             player.ClearServerStatusEffects();
             player.Defeated?.Invoke(player);
         }
+    }
+
+    // 피해가 들어간 공격마다 공격자의 반대쪽으로 민다. 방향은 서버가 정하고, 위치 권한이 있는 소유자가 움직인다.
+    // 상태이상 틱 피해는 공격이 들어온 쪽이 없으므로 밀지 않는다.
+    void ServerKnockback(DuelPlayer attacker)
+    {
+        Vector3 away = transform.position - attacker.transform.position;
+        away.y = 0f;
+        // 겹쳐 서 있으면 공격자가 바라보는 쪽으로 민다.
+        if (away.sqrMagnitude < 0.0001f) away = attacker.transform.forward;
+        KnockbackRpc(away);
+    }
+
+    [Rpc(SendTo.Owner, InvokePermission = RpcInvokePermission.Server)]
+    void KnockbackRpc(Vector3 away)
+    {
+        if (knockback != null) knockback.Push(away);
     }
 
     /// <summary>서버에서 상태이상 틱 피해를 넣는다. 공격자 보고가 없어 서버가 직접 굴린다.</summary>
