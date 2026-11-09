@@ -93,7 +93,7 @@ public sealed class DuelOfflineTest : MonoBehaviour
 
     void OnDummyDefeated(DuelPlayer defeated) => dummyRespawnAt = Time.time + dummyRespawnDelay;
 
-    // Main에서 TitleBackdrop.ReleaseCamera가 하듯 전투 시야각·안개를 같은 에셋으로 맞추고 플레이어를 따라가게 한다.
+    // Main에서 TitleBackdrop.ReleaseCamera가 하듯 전투 투영·안개를 같은 에셋으로 맞추고 플레이어를 따라가게 한다.
     void FollowPlayer()
     {
         if (player == null || Camera.main == null || !Camera.main.TryGetComponent(out CameraFollow follow)) return;

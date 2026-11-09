@@ -12,6 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7830107e7bbe05246826b9a050e3933a, type: 3}
   m_Name: DuelCamera
   m_EditorClassIdentifier: Assembly-CSharp::DuelCameraSettings
+  orthographic: 1
+  viewDepth: 19
   fieldOfView: 60
   fog: {x: 40, y: 160}
   height: 10
