@@ -13490,6 +13490,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CameraFollow
   player: {fileID: 0}
+  settings: {fileID: 11400000, guid: 96eb4cb11cfeb284391c537d864506b3, type: 2}
   height: 10
   distance: 8
   lookHeight: 1
@@ -14951,8 +14952,7 @@ MonoBehaviour:
   previewExtent: {x: 0.68, y: 0.8}
   previewSway: 2.5
   viewSharpness: 2.2
-  battleFieldOfView: 60
-  battleFog: {x: 40, y: 160}
+  battleCamera: {fileID: 11400000, guid: 96eb4cb11cfeb284391c537d864506b3, type: 2}
 --- !u!4 &1688729993
 Transform:
   m_ObjectHideFlags: 0
