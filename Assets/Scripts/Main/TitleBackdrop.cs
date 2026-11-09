@@ -48,7 +48,7 @@ public class TitleBackdrop : MonoBehaviour
     [SerializeField] float viewSharpness = 2.2f;
 
     [Header("전투")]
-    [Tooltip("카메라를 내 플레이어에게 넘긴 뒤의 시야각과 안개. DuelOfflineTest 씬과 같은 에셋(Assets/Settings/DuelCamera)을 쓴다.")]
+    [Tooltip("카메라를 내 플레이어에게 넘긴 뒤의 투영과 안개. DuelOfflineTest 씬과 같은 에셋(Assets/Settings/DuelCamera)을 쓴다.")]
     [SerializeField] DuelCameraSettings battleCamera;
 
     public Transform[] SpawnPoints => map.SpawnPoints;
@@ -72,6 +72,8 @@ public class TitleBackdrop : MonoBehaviour
     UniversalRenderPipelineAsset pipeline;
     float originalShadowDistance;
     float originalFieldOfView;
+    // 전투 카메라가 직교일 수 있어서, 시작 화면으로 돌아오면 원래 투영으로 되돌린다.
+    bool originalOrthographic;
     // map.Pieces(블록과 배경 조각)의 제자리와 출발 시간. 순서는 map.Pieces와 같다.
     Vector3[] homes;
     float[] delays;
@@ -89,6 +91,7 @@ public class TitleBackdrop : MonoBehaviour
         pipeline = GraphicsSettings.currentRenderPipeline as UniversalRenderPipelineAsset;
         if (pipeline != null) originalShadowDistance = pipeline.shadowDistance;
         originalFieldOfView = viewCamera.fieldOfView;
+        originalOrthographic = viewCamera.orthographic;
         ShowTitle(titleSettings, false);
     }
 
@@ -99,7 +102,14 @@ public class TitleBackdrop : MonoBehaviour
         // 씬을 닫을 때는 카메라가 먼저 사라질 수 있다.
         if (viewCamera == null) return;
         viewCamera.ResetProjectionMatrix();
-        if (released) viewCamera.fieldOfView = originalFieldOfView;
+        if (released) RestoreProjection();
+    }
+
+    // 전투에 넘기면서 바꾼 시야각과 투영을 시작 화면 값으로 되돌린다.
+    void RestoreProjection()
+    {
+        viewCamera.orthographic = originalOrthographic;
+        viewCamera.fieldOfView = originalFieldOfView;
     }
 
     // 맵을 주기적으로 바꾸며 도는 시작 화면 배경으로 돌아간다. 새 맵은 settings로 만들고 시드와 형태만 랜덤으로 고른다.
@@ -111,7 +121,7 @@ public class TitleBackdrop : MonoBehaviour
         if (map == null) return;
         // 전투에서 돌아오면 감췄던 맵 자리에 새 맵을 솟게 하고, 카메라는 시작 화면 거리로 바로 옮긴다.
         if (released || !map.gameObject.activeSelf) keepMap = false;
-        if (released) viewCamera.fieldOfView = originalFieldOfView;
+        if (released) RestoreProjection();
         snapDistance |= released;
         released = false;
         map.gameObject.SetActive(true);
@@ -180,7 +190,7 @@ public class TitleBackdrop : MonoBehaviour
     {
         // 플레이어 디스폰이 늦게 와도 따라가던 카메라와 겹치지 않게 먼저 끈다.
         if (viewCamera.TryGetComponent(out CameraFollow follow)) follow.enabled = false;
-        if (released) viewCamera.fieldOfView = originalFieldOfView;
+        if (released) RestoreProjection();
         released = false;
         snapDistance = true;
         if (map == null) return;
@@ -188,7 +198,7 @@ public class TitleBackdrop : MonoBehaviour
         if (background != null) background.gameObject.SetActive(true);
     }
 
-    // 내 플레이어가 소환되면 카메라를 넘긴다. 렌즈 이동과 늘려 둔 그림자 거리를 되돌리고 시야와 안개를 전투에 맞춘다.
+    // 내 플레이어가 소환되면 카메라를 넘긴다. 렌즈 이동과 늘려 둔 그림자 거리를 되돌리고 투영과 안개를 전투에 맞춘다.
     public void ReleaseCamera()
     {
         released = true;
