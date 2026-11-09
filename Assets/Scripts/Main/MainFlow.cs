@@ -3,8 +3,12 @@ using UnityEngine;
 
 // 서버의 대기실 상태를 화면에 반영한다. 전환 중에 받은 최신 상태도 전환이 끝난 뒤 적용한다.
 // 서버가 전투 준비를 알리면 대기실을 잠그고, 내 플레이어가 소환되면 대기실을 걷고 카메라를 넘긴다.
+// 승부가 나면 승자를 띄우고, 서버가 다음 판 로비를 알리면 같은 방의 대기실로 돌아온다.
 public class MainFlow : MonoBehaviour
 {
+    // 다음 판 로비를 받은 뒤 내 플레이어가 디스폰되기를 기다리는 최대 시간.
+    const float DespawnWait = 2f;
+
     [SerializeField] StartScreen startScreen;
     [SerializeField] ScreenTransition startTransition;
     [SerializeField] LobbyScreen lobby;
@@ -12,6 +16,7 @@ public class MainFlow : MonoBehaviour
     [SerializeField] LobbyStage stage;
     [SerializeField] TitleBackdrop backdrop;
     [SerializeField] Toast toast;
+    [SerializeField] ResultBanner resultBanner;
     [SerializeField] LobbyNetwork network;
 
     DuelSettings settings = new DuelSettings();
@@ -91,7 +96,7 @@ public class MainFlow : MonoBehaviour
         if (network.RequestStart()) lobby.SetStarting(true);
     }
 
-    // 서버가 전투 준비를 알렸다. 내 플레이어가 소환되면 battleVisible도 맞춘다.
+    // 서버가 전투 준비를 알렸고 아직 다음 판 로비로 돌아오지 않았다. 내 플레이어가 소환되면 battleVisible도 맞춘다.
     bool WantsBattle => wantsLobby && latest.Phase != LobbyPhase.Lobby;
 
     void OnSnapshot(NetworkLobbySnapshot snapshot)
@@ -101,6 +106,8 @@ public class MainFlow : MonoBehaviour
         wantsLobby = true;
         exitNotice = null;
         startScreen.FinishConnection();
+        // 결과는 두 화면에 같은 때 떠야 하므로 화면 전환을 기다리지 않는다.
+        if (snapshot.Phase == LobbyPhase.Result) resultBanner.Show(snapshot.WinnerSlot);
         if (transition != null) return;
         if (lobbyVisible && !battleVisible) ApplySnapshot();
         Reconcile();
@@ -145,6 +152,7 @@ public class MainFlow : MonoBehaviour
         wantsLobby = false;
         exitNotice = string.IsNullOrEmpty(reason) ? reason : ConnectionNotice(reason);
         if (battleVisible && reason == RoomClosed) exitNotice = "상대가 나가서 전투가 끝났어요.";
+        resultBanner.Hide();
         startScreen.FinishConnection();
         Reconcile();
     }
@@ -155,7 +163,8 @@ public class MainFlow : MonoBehaviour
         {
             if (wantsLobby && lobbyVisible)
             {
-                yield return EnterBattle();
+                if (WantsBattle) yield return EnterBattle();
+                else yield return ReturnToLobby();
             }
             else if (wantsLobby)
             {
@@ -210,6 +219,25 @@ public class MainFlow : MonoBehaviour
         stage.gameObject.SetActive(false);
         battleVisible = true;
         yield return lobbyTransition.Hide();
+    }
+
+    // 서버가 결과를 다 보여 주고 다음 판 로비를 알렸다. 방 코드·역할·설정은 그대로이고, 전투 맵은 LobbyNetwork가 이미 지웠다.
+    // 내 플레이어가 디스폰되어 카메라 추적이 끝나면 카메라를 되찾고, 같은 자리의 미리보기 맵 위로 대기실을 다시 올린다.
+    IEnumerator ReturnToLobby()
+    {
+        resultBanner.Hide();
+        float giveUp = Time.unscaledTime + DespawnWait;
+        while (wantsLobby && network.HasLocalPlayer && Time.unscaledTime < giveUp) yield return null;
+        if (!wantsLobby) yield break;
+        backdrop.RetakeCamera();
+        stage.gameObject.SetActive(true);
+        stage.Show(settings, latest.OpponentPresent);
+        lobby.gameObject.SetActive(true);
+        lobby.Open(network.IsHost, latest.Code, settings, latest.OpponentPresent);
+        stage.Reveal();
+        battleVisible = false;
+        yield return lobbyTransition.Show();
+        if (wantsLobby) ApplySnapshot();
     }
 
     // 미리보기는 서버가 확정한 스냅샷으로만 바꾼다.

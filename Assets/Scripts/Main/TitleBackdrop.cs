@@ -172,6 +172,21 @@ public class TitleBackdrop : MonoBehaviour
         if (background != null) background.gameObject.SetActive(false);
     }
 
+    // 결과를 보여 준 뒤 로비 화면으로 돌아올 때 부른다. 내 플레이어를 따라가던 카메라를 되찾고, HideMap으로 꺼 두었던
+    // 미리보기 맵을 다시 켠다. 전투 맵이 같은 설정으로 같은 자리에 서 있었으므로 바꿔 끼워도 티가 나지 않는다.
+    // 카메라를 대기실 자리로 옮기는 것은 이어서 부르는 LobbyStage.Show(HoldPreview)가 맡는다.
+    public void RetakeCamera()
+    {
+        // 플레이어 디스폰이 늦게 와도 따라가던 카메라와 겹치지 않게 먼저 끈다.
+        if (viewCamera.TryGetComponent(out CameraFollow follow)) follow.enabled = false;
+        if (released) viewCamera.fieldOfView = originalFieldOfView;
+        released = false;
+        snapDistance = true;
+        if (map == null) return;
+        map.gameObject.SetActive(true);
+        if (background != null) background.gameObject.SetActive(true);
+    }
+
     // 내 플레이어가 소환되면 카메라를 넘긴다. 렌즈 이동과 늘려 둔 그림자 거리를 되돌리고 시야와 안개를 전투에 맞춘다.
     public void ReleaseCamera()
     {

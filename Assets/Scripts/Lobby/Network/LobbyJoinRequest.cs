@@ -7,7 +7,8 @@ public struct LobbyJoinRequest : INetworkSerializable
     // 3: 스냅샷에 방 단계를 넣고 전투 시작·맵 준비 메시지를 추가했다.
     // 4: 전투 플레이어에 공격 요청·승인 RPC와 서버 체력을 추가했다.
     // 5: 장애물을 구조물 단위로 배치하고 스폰 안전 구역을 넓혀 같은 시드의 맵이 달라졌다.
-    public const int CurrentVersion = 5;
+    // 6: 스냅샷에 판 번호와 승자, 결과 단계를 넣어 전투가 끝나면 로비로 돌아간다.
+    public const int CurrentVersion = 6;
 
     public int Version;
     public bool CreateRoom;
