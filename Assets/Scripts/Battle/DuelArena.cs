@@ -17,6 +17,7 @@ public sealed class DuelArena : MonoBehaviour
     [SerializeField, Min(0f)] float combatDelayPadding = 0.15f;
 
     readonly List<NetworkObject> players = new List<NetworkObject>();
+    readonly List<DuelPlayer> duelists = new List<DuelPlayer>();
     Coroutine combat;
     Action<int> playerDefeated;
 
@@ -65,7 +66,11 @@ public sealed class DuelArena : MonoBehaviour
             player.SpawnAsPlayerObject(owners[slot]);
             players.Add(player);
             spawned[slot] = player.GetComponent<DuelPlayer>();
-            if (spawned[slot] != null) spawned[slot].Defeated += OnPlayerDefeated;
+            if (spawned[slot] != null)
+            {
+                spawned[slot].Defeated += OnPlayerDefeated;
+                duelists.Add(spawned[slot]);
+            }
             Debug.Log($"[Arena] Player-{slot + 1} owner={owners[slot]} position={spawn.position} rotation={spawn.rotation}");
         }
         combat = StartCoroutine(EnableCombat(spawned, combatEnabled));
@@ -90,12 +95,24 @@ public sealed class DuelArena : MonoBehaviour
         combatEnabled?.Invoke();
     }
 
-    // 소환한 플레이어와 맵을 정리한다. 방이 닫히면 서버는 연결을 끊기 전에, 클라이언트는 시작 화면으로 돌아갈 때 부른다.
+    // 서버에서 승부가 나면 부른다. 두 플레이어의 입력을 끄고 플레이어와 맵은 결과를 보여 주는 동안 그대로 둔다.
+    public void EndCombat()
+    {
+        if (combat != null) StopCoroutine(combat);
+        combat = null;
+        playerDefeated = null;
+        foreach (DuelPlayer player in duelists)
+            if (player != null) player.ServerDisableCombat();
+    }
+
+    // 소환한 플레이어와 맵을 정리한다. 서버는 방이 닫혀 연결을 끊기 전과 결과를 보여 준 뒤 다음 판으로 넘어갈 때,
+    // 클라이언트는 시작 화면이나 로비 화면으로 돌아갈 때 부른다.
     public void Clear()
     {
         if (combat != null) StopCoroutine(combat);
         combat = null;
         playerDefeated = null;
+        duelists.Clear();
         foreach (NetworkObject player in players)
         {
             if (player == null) continue;

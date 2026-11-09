@@ -15,6 +15,8 @@ public sealed class LobbyNetwork : MonoBehaviour
     [SerializeField] string serverAddress = "127.0.0.1";
     [SerializeField] ushort port = 7777;
     [SerializeField] GameObject[] clientPresentation;
+    [Tooltip("승부가 난 뒤 두 화면에 승자를 보여 주는 시간. 서버가 이 시간이 지나면 플레이어와 맵을 정리하고 로비로 돌려보낸다.")]
+    [SerializeField, Min(0f)] float resultDuration = 3f;
 
     const string SnapshotMessage = "WizardDuel.LobbySnapshot";
     const string SettingsMessage = "WizardDuel.LobbySettings";
@@ -49,6 +51,8 @@ public sealed class LobbyNetwork : MonoBehaviour
     // 방장이 보낸 마지막 시작 요청 번호. 거절 응답은 같은 번호일 때만 받아들인다.
     uint requestedStart;
     bool startPending;
+    // 서버: 결과 단계를 끝내고 다음 판 로비로 돌아갈 시각.
+    float resultDeadline;
 
     public event Action<NetworkLobbySnapshot> SnapshotChanged;
     public event Action<string> Failed;
@@ -94,7 +98,11 @@ public sealed class LobbyNetwork : MonoBehaviour
     void Update()
     {
         if (manager == null) return;
-        if (serverMode && manager.IsListening && !closing) ExpireReservations();
+        if (serverMode && manager.IsListening && !closing)
+        {
+            ExpireReservations();
+            if (session.Phase == LobbyPhase.Result && Time.realtimeSinceStartup >= resultDeadline) ReturnToLobby();
+        }
         if (connecting && !closing && Time.realtimeSinceStartup >= snapshotDeadline)
             StopClient("The connection timed out.", false);
         if (!closing || manager.IsListening || manager.ShutdownInProgress) return;
@@ -290,7 +298,8 @@ public sealed class LobbyNetwork : MonoBehaviour
                 NetworkDelivery.ReliableSequenced);
         }
         Debug.Log($"[Lobby] Snapshot code={snapshot.Code} host={snapshot.HostClientId} " +
-            $"members={(snapshot.OpponentPresent ? 2 : 1)} phase={snapshot.Phase} revision={snapshot.SettingsRevision} " +
+            $"members={(snapshot.OpponentPresent ? 2 : 1)} round={snapshot.Round} phase={snapshot.Phase} " +
+            $"winner={(snapshot.Phase == LobbyPhase.Result ? snapshot.WinnerSlot.ToString() : "none")} revision={snapshot.SettingsRevision} " +
             $"seed={snapshot.Settings.Seed} settings={JsonUtility.ToJson(snapshot.Settings)} " +
             $"playerobjects={manager.SpawnManager.PlayerObjects.Count} mapgenerated={MapGenerated}");
     }
@@ -300,17 +309,16 @@ public sealed class LobbyNetwork : MonoBehaviour
         if (serverMode || closing || (!connecting && !inLobby) || senderId != NetworkManager.ServerClientId) return;
         NetworkLobbySnapshot snapshot;
         LobbyPhase previousPhase = currentSnapshot.Phase;
+        uint previousRound = currentSnapshot.Round;
         try
         {
             if (reader.Length - reader.Position > BufferSize) throw new InvalidOperationException(InvalidRequest);
             reader.ReadNetworkSerializable(out snapshot);
             bool isHost = snapshot.HostClientId == manager.LocalClientId;
-            // 시작된 방에는 새로 들어갈 수 없고, 한 방 안에서 단계는 되돌아가지 않는다.
+            // 시작된 방에는 새로 들어갈 수 없다. 한 판 안에서 단계는 되돌아가지 않고, 결과 뒤에만 다음 판 로비로 돌아간다.
             bool matchesRequest = createdRoom == isHost && (createdRoom || snapshot.Code == requestedCode) &&
                 snapshot.Phase == LobbyPhase.Lobby;
-            bool matchesCurrentRoom = snapshot.Code == currentSnapshot.Code &&
-                snapshot.HostClientId == currentSnapshot.HostClientId && snapshot.SettingsRevision >= currentSnapshot.SettingsRevision &&
-                snapshot.Phase >= currentSnapshot.Phase;
+            bool matchesCurrentRoom = snapshot.Follows(currentSnapshot);
             if (reader.Position != reader.Length || !snapshot.IsValidFor(manager.LocalClientId) ||
                 !(inLobby ? matchesCurrentRoom : matchesRequest) || (isHost && snapshot.SettingsRevision > requestedSettingsRevision))
                 throw new InvalidOperationException(InvalidRequest);
@@ -320,9 +328,10 @@ public sealed class LobbyNetwork : MonoBehaviour
             settledSettingsRevision = Math.Max(settledSettingsRevision, snapshot.SettingsRevision);
             if (snapshot.Phase != LobbyPhase.Lobby) startPending = false;
             Debug.Log($"[Lobby] Joined code={snapshot.Code} host={IsHost} " +
-                $"members={(snapshot.OpponentPresent ? 2 : 1)} phase={snapshot.Phase} revision={snapshot.SettingsRevision} " +
-                $"seed={snapshot.Settings.Seed} playerobjects={manager.SpawnManager?.PlayerObjects.Count ?? 0} " +
-                $"mapgenerated={MapGenerated}");
+                $"members={(snapshot.OpponentPresent ? 2 : 1)} round={snapshot.Round} phase={snapshot.Phase} " +
+                $"winner={(snapshot.Phase == LobbyPhase.Result ? snapshot.WinnerSlot.ToString() : "none")} " +
+                $"revision={snapshot.SettingsRevision} seed={snapshot.Settings.Seed} " +
+                $"playerobjects={manager.SpawnManager?.PlayerObjects.Count ?? 0} mapgenerated={MapGenerated}");
         }
         catch (Exception exception)
         {
@@ -330,6 +339,8 @@ public sealed class LobbyNetwork : MonoBehaviour
             StopClient(InvalidRequest, false);
             return;
         }
+        // 다음 판 로비로 돌아왔다. 플레이어는 서버가 디스폰하므로 여기서는 이번 판의 전투 맵만 지운다.
+        if (snapshot.Round != previousRound && arena != null) arena.Clear();
         if (previousPhase == LobbyPhase.Lobby && snapshot.Phase != LobbyPhase.Lobby && !SendMapReady(snapshot)) return;
         SnapshotChanged?.Invoke(snapshot);
     }
@@ -443,7 +454,7 @@ public sealed class LobbyNetwork : MonoBehaviour
         readyClients.Clear();
         NetworkLobbySnapshot snapshot = session.Snapshot;
         bool built = arena != null && arena.Build(snapshot.Settings.ToSettings());
-        Debug.Log($"[Lobby] Battle preparing code={snapshot.Code} revision={serverSettingsRevision} " +
+        Debug.Log($"[Lobby] Battle preparing code={snapshot.Code} round={snapshot.Round} revision={serverSettingsRevision} " +
             $"seed={snapshot.Settings.Seed} mapgenerated={built} fingerprint={(built ? arena.Fingerprint : "none")}");
         return built;
     }
@@ -503,7 +514,8 @@ public sealed class LobbyNetwork : MonoBehaviour
         Debug.Log($"[Lobby] Client {senderId} map ready ({readyClients.Count}/2) fingerprint={fingerprint}");
         if (!readyClients.Contains(session.HostClientId) || !readyClients.Contains(session.GuestClientId)) return;
         arena.SpawnPlayers(session.HostClientId, session.GuestClientId, OnCombatEnabled, OnPlayerDefeated);
-        Debug.Log($"[Lobby] Players spawned code={session.RoomCode} playerobjects={manager.SpawnManager.PlayerObjects.Count}");
+        Debug.Log($"[Lobby] Players spawned code={session.RoomCode} round={session.Round} " +
+            $"playerobjects={manager.SpawnManager.PlayerObjects.Count}");
     }
 
     void OnCombatEnabled()
@@ -512,13 +524,28 @@ public sealed class LobbyNetwork : MonoBehaviour
         BroadcastSnapshot();
     }
 
-    // 먼저 쓰러진 플레이어 한 명만 온다. 승자 표시와 로비 화면 복귀는 #19 후속 작업에서 이 결과를 쓴다.
+    // 먼저 쓰러진 플레이어 한 명만 온다. 두 플레이어의 입력을 끄고 결과 단계를 알린다.
+    // 플레이어와 맵은 승자를 보여 주는 동안 그대로 두고, resultDuration 뒤 Update에서 정리한다.
     void OnPlayerDefeated(int slot)
     {
         if (closing) return;
         ulong loser = slot == 0 ? session.HostClientId : session.GuestClientId;
         ulong winner = slot == 0 ? session.GuestClientId : session.HostClientId;
-        Debug.Log($"[Lobby] Player defeated code={session.RoomCode} slot={slot} loser={loser} winner={winner} phase={session.Phase}");
+        Debug.Log($"[Lobby] Player defeated code={session.RoomCode} round={session.Round} slot={slot} loser={loser} " +
+            $"winner={winner} phase={session.Phase}");
+        if (!session.TryFinishBattle(slot)) return;
+        arena.EndCombat();
+        resultDeadline = Time.realtimeSinceStartup + resultDuration;
+        BroadcastSnapshot();
+    }
+
+    // 서버: 결과를 다 보여 주면 이번 판의 플레이어와 맵을 지우고, 방 코드·역할·설정을 그대로 둔 채 다음 판 로비로 돌아간다.
+    void ReturnToLobby()
+    {
+        arena.Clear();
+        readyClients.Clear();
+        session.ReturnToLobby();
+        BroadcastSnapshot();
     }
 
     void OnDisconnected(ulong clientId)

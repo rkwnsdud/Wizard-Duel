@@ -67,8 +67,10 @@ public class NetworkLobbySnapshotTests
     [TestCase(LobbyPhase.Lobby)]
     [TestCase(LobbyPhase.Preparing)]
     [TestCase(LobbyPhase.Battle)]
-    public void WireRoundTrip_PreservesPhase(LobbyPhase phase)
+    [TestCase(LobbyPhase.Result)]
+    public void WireRoundTrip_PreservesPhaseRoundAndWinner(LobbyPhase phase)
     {
+        byte winner = phase == LobbyPhase.Result ? (byte)1 : (byte)0;
         var snapshot = new NetworkLobbySnapshot
         {
             Code = "234567",
@@ -76,7 +78,9 @@ public class NetworkLobbySnapshotTests
             OpponentPresent = true,
             GuestClientId = 29,
             SettingsRevision = 4,
+            Round = 3,
             Phase = phase,
+            WinnerSlot = winner,
             Settings = new NetworkMapSettings(Settings().Map)
         };
 
@@ -87,6 +91,8 @@ public class NetworkLobbySnapshotTests
 
         Assert.That(reader.Position, Is.EqualTo(reader.Length));
         Assert.That(received.Phase, Is.EqualTo(phase));
+        Assert.That(received.Round, Is.EqualTo(3u));
+        Assert.That(received.WinnerSlot, Is.EqualTo(winner));
         Assert.That(received.SettingsRevision, Is.EqualTo(4u));
         Assert.That(received.IsValidFor(17), Is.True);
         Assert.That(received.IsValidFor(29), Is.True);
@@ -104,7 +110,7 @@ public class NetworkLobbySnapshotTests
         };
         Assert.That(snapshot.IsValidFor(17), Is.True);
 
-        foreach (LobbyPhase started in new[] { LobbyPhase.Preparing, LobbyPhase.Battle })
+        foreach (LobbyPhase started in new[] { LobbyPhase.Preparing, LobbyPhase.Battle, LobbyPhase.Result })
         {
             snapshot.Phase = started;
             Assert.That(snapshot.IsValidFor(17), Is.False);
@@ -112,10 +118,86 @@ public class NetworkLobbySnapshotTests
 
         snapshot.OpponentPresent = true;
         snapshot.GuestClientId = 29;
-        snapshot.Phase = (LobbyPhase)3;
+        snapshot.Phase = (LobbyPhase)4;
         Assert.That(snapshot.IsValidFor(17), Is.False);
         snapshot.Phase = (LobbyPhase)255;
         Assert.That(snapshot.IsValidFor(29), Is.False);
+    }
+
+    [Test]
+    public void OnlyResultCarriesAWinner_AndItMustBeBlueOrRed()
+    {
+        var snapshot = new NetworkLobbySnapshot
+        {
+            Code = "234567",
+            HostClientId = 17,
+            OpponentPresent = true,
+            GuestClientId = 29,
+            Phase = LobbyPhase.Result,
+            Settings = new NetworkMapSettings(Settings().Map)
+        };
+        snapshot.WinnerSlot = 0;
+        Assert.That(snapshot.IsValidFor(17), Is.True);
+        snapshot.WinnerSlot = 1;
+        Assert.That(snapshot.IsValidFor(29), Is.True);
+        snapshot.WinnerSlot = 2;
+        Assert.That(snapshot.IsValidFor(17), Is.False);
+
+        foreach (LobbyPhase phase in new[] { LobbyPhase.Lobby, LobbyPhase.Preparing, LobbyPhase.Battle })
+        {
+            snapshot.Phase = phase;
+            snapshot.WinnerSlot = 1;
+            Assert.That(snapshot.IsValidFor(17), Is.False, phase.ToString());
+            snapshot.WinnerSlot = 0;
+            Assert.That(snapshot.IsValidFor(17), Is.True, phase.ToString());
+        }
+    }
+
+    [Test]
+    public void Follows_MovesForwardWithinARound_AndBackToLobbyOnlyRightAfterResult()
+    {
+        NetworkLobbySnapshot At(uint round, LobbyPhase phase, uint revision = 4) => new NetworkLobbySnapshot
+        {
+            Code = "234567",
+            HostClientId = 17,
+            OpponentPresent = true,
+            GuestClientId = 29,
+            SettingsRevision = revision,
+            Round = round,
+            Phase = phase,
+            WinnerSlot = phase == LobbyPhase.Result ? (byte)1 : (byte)0,
+            Settings = new NetworkMapSettings(Settings().Map)
+        };
+
+        NetworkLobbySnapshot lobby = At(0, LobbyPhase.Lobby);
+        NetworkLobbySnapshot preparing = At(0, LobbyPhase.Preparing);
+        NetworkLobbySnapshot battle = At(0, LobbyPhase.Battle);
+        NetworkLobbySnapshot result = At(0, LobbyPhase.Result);
+        Assert.That(lobby.Follows(lobby), Is.True);
+        Assert.That(At(0, LobbyPhase.Lobby, 5).Follows(lobby), Is.True);
+        Assert.That(preparing.Follows(lobby), Is.True);
+        Assert.That(battle.Follows(preparing), Is.True);
+        Assert.That(result.Follows(battle), Is.True);
+        Assert.That(lobby.Follows(battle), Is.False);
+        Assert.That(battle.Follows(result), Is.False);
+
+        NetworkLobbySnapshot nextLobby = At(1, LobbyPhase.Lobby);
+        Assert.That(nextLobby.Follows(result), Is.True);
+        Assert.That(At(1, LobbyPhase.Preparing).Follows(nextLobby), Is.True);
+        // 결과 없이 다음 판으로 넘어가거나, 다음 판을 로비가 아닌 단계로 시작하거나, 판을 건너뛰지 않는다.
+        Assert.That(nextLobby.Follows(battle), Is.False);
+        Assert.That(At(1, LobbyPhase.Preparing).Follows(result), Is.False);
+        Assert.That(At(2, LobbyPhase.Lobby).Follows(result), Is.False);
+        Assert.That(result.Follows(nextLobby), Is.False);
+
+        // 다른 방, 다른 방장, 줄어든 설정 번호는 이어지지 않는다.
+        NetworkLobbySnapshot otherRoom = nextLobby;
+        otherRoom.Code = "345678";
+        Assert.That(otherRoom.Follows(result), Is.False);
+        NetworkLobbySnapshot otherHost = nextLobby;
+        otherHost.HostClientId = 99;
+        Assert.That(otherHost.Follows(result), Is.False);
+        Assert.That(At(1, LobbyPhase.Lobby, 3).Follows(result), Is.False);
     }
 
     // LobbyNetwork는 모든 메시지를 256바이트 버퍼로 보낸다. 가장 큰 값으로 채워도 그 안에 들어가야 한다.
@@ -130,7 +212,9 @@ public class NetworkLobbySnapshotTests
             OpponentPresent = true,
             GuestClientId = ulong.MaxValue - 1,
             SettingsRevision = uint.MaxValue,
-            Phase = LobbyPhase.Battle,
+            Round = uint.MaxValue,
+            Phase = LobbyPhase.Result,
+            WinnerSlot = 1,
             Settings = new NetworkMapSettings(WithMapSizeAndRanges(
                 new Vector2Int(DuelSettings.MaxSize, DuelSettings.MaxSize), DuelSettings.MaxObstacleDensity, 1, 2).Map)
         };
