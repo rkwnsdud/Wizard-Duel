@@ -1,6 +1,6 @@
 using UnityEngine;
 
-public class LightOrbWeapon : WeaponBase
+public class LightOrbWeapon : WeaponBase, IWeapon
 {
     [SerializeField, Min(.01f)] private float coreFlashDuration = .18f;
     private Renderer coreRenderer;
@@ -170,6 +170,40 @@ public class LightOrbWeapon : WeaponBase
     [SerializeField] private LightOrbProjectile lightAttackPrefab;
     [SerializeField] private AudioSource audioSource;
     [SerializeField] private AudioClip lightSound;
+    private bool presentingOwnShot;
+
+    public void ConfigureForOfflineDuel(Transform point, LightOrbProjectile projectile, AnimationClip clip)
+    {
+        firePoint = point;
+        lightAttackPrefab = projectile;
+        SetAttackAnimation(clip);
+    }
+
+    void IWeapon.Fire(uint attackId, Vector3 direction, float charge, IShotSink sink)
+    {
+        if (sink == null || lightAttackPrefab == null || firePoint == null) return;
+        direction.y = 0f;
+        if (direction.sqrMagnitude < 0.0001f) direction = transform.root.forward;
+        direction.Normalize();
+        Vector3 start = firePoint.position;
+        LightOrbProjectile beam = Instantiate(lightAttackPrefab, start, Quaternion.identity);
+        beam.InitializeOnline(direction, GetComponentInParent<PlayerHealth>(), audioSource, sink, attackId);
+        presentingOwnShot = true;
+        try { sink.Broadcast(new ShotEvent(attackId, 0, start, start + direction, charge)); }
+        finally { presentingOwnShot = false; }
+    }
+
+    public void Present(ShotEvent shot)
+    {
+        if (shot.Kind != 0) return;
+        if (audioSource != null && lightSound != null) audioSource.PlayOneShot(lightSound);
+        FlashCore();
+        if (presentingOwnShot || lightAttackPrefab == null) return;
+        Vector3 direction = shot.Point - shot.Start;
+        if (direction.sqrMagnitude < 0.0001f) return;
+        LightOrbProjectile beam = Instantiate(lightAttackPrefab, shot.Start, Quaternion.identity);
+        beam.InitializeVisualOnly(direction.normalized, GetComponentInParent<PlayerHealth>(), audioSource);
+    }
     private PlayerAim playerAim;
 
     private void Awake()

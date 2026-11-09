@@ -6,6 +6,9 @@ public abstract class WeaponBase : MonoBehaviour
     private AnimationClip attackAnimation;
     public AnimationClip AttackAnimation => attackAnimation;
 
+    // The offline duel builds its extra test weapons from existing visual assets.
+    public void SetAttackAnimation(AnimationClip clip) => attackAnimation = clip;
+
     [SerializeField, Min(0f), Tooltip("Minimum time between attacks started with this weapon, in seconds.")]
     private float attackCooldown = 0.65f;
     public float AttackCooldown => Mathf.Max(0f, attackCooldown);

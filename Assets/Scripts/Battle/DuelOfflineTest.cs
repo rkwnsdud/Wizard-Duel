@@ -14,12 +14,21 @@ public sealed class DuelOfflineTest : MonoBehaviour
     [SerializeField] NetworkObject playerPrefab;
     [Tooltip("맞기만 하는 더미. 슬롯이 플레이어와 달라야 피해가 들어가므로 참가자 프리팹(DuelWizard-2)을 쓴다.")]
     [SerializeField] NetworkObject dummyPrefab;
+    [Header("Test weapons")]
+    [SerializeField] BasicWandWeapon basicWandPrefab;
+    [SerializeField] GameObject lightOrbVisualPrefab;
+    [SerializeField] LightOrbProjectile lightOrbProjectilePrefab;
+    [SerializeField] AnimationClip lightOrbAttackClip;
     [Tooltip("더미가 쓰러진 뒤 다시 세우기까지 기다리는 시간.")]
     [SerializeField, Min(0f)] float dummyRespawnDelay = 1.5f;
 
     DuelPlayer player;
     DuelPlayer dummy;
     PlayerHealth dummyHealth;
+    PlayerAttack playerAttack;
+    WeaponBase lightningWeapon;
+    BasicWandWeapon basicWandWeapon;
+    LightOrbWeapon lightOrbWeapon;
     // 0보다 작으면 예약이 없다.
     float combatAt = -1f;
     float dummyRespawnAt = -1f;
@@ -40,6 +49,14 @@ public sealed class DuelOfflineTest : MonoBehaviour
     {
         if (!manager.IsServer) return;
         if (Keyboard.current != null && Keyboard.current.rKey.wasPressedThisFrame) Respawn();
+        if (Keyboard.current != null && playerAttack != null)
+        {
+            if (Keyboard.current.digit1Key.wasPressedThisFrame) playerAttack.TryEquipWeapon(lightningWeapon);
+            if (Keyboard.current.digit2Key.wasPressedThisFrame && basicWandWeapon != null)
+                playerAttack.TryEquipWeapon(basicWandWeapon);
+            if (Keyboard.current.digit3Key.wasPressedThisFrame && lightOrbWeapon != null)
+                playerAttack.TryEquipWeapon(lightOrbWeapon);
+        }
         // Main의 DuelArena처럼 스폰 이펙트가 끝난 뒤 입력을 켠다.
         if (combatAt >= 0f && Time.time >= combatAt)
         {
@@ -56,8 +73,44 @@ public sealed class DuelOfflineTest : MonoBehaviour
         Despawn(player);
         player = Spawn(playerPrefab, 0);
         player.NetworkObject.SpawnAsPlayerObject(manager.LocalClientId);
+        SetupTestWeapons();
         combatAt = Time.time + player.SpawnEffectDuration;
         FollowPlayer();
+    }
+
+    void SetupTestWeapons()
+    {
+        playerAttack = player.GetComponent<PlayerAttack>();
+        lightningWeapon = playerAttack.CurrentWeapon;
+        Transform socket = lightningWeapon != null ? lightningWeapon.transform.parent : null;
+        if (socket == null || basicWandPrefab == null || lightOrbVisualPrefab == null ||
+            lightOrbProjectilePrefab == null || lightOrbAttackClip == null)
+        {
+            Debug.LogError("[OfflineTest] Test weapon references are incomplete.", this);
+            return;
+        }
+
+        basicWandWeapon = Instantiate(basicWandPrefab, socket);
+        basicWandWeapon.transform.SetLocalPositionAndRotation(
+            new Vector3(-0.0354f, 0.1328f, 0.0304f),
+            new Quaternion(0.11589537f, 0.8612196f, 0.2269948f, -0.43970728f));
+        basicWandWeapon.transform.localScale = Vector3.one * 1.3f;
+        basicWandWeapon.gameObject.SetActive(false);
+
+        GameObject orb = new GameObject("Light Orb");
+        orb.SetActive(false);
+        orb.transform.SetParent(socket, false);
+        orb.transform.SetLocalPositionAndRotation(
+            new Vector3(0.394f, 0.315f, 0.958f),
+            new Quaternion(-0.7438935f, 0.114031404f, 0.18716522f, 0.63133866f));
+        orb.transform.localScale = new Vector3(0.65f, 0.65f, 0.654f);
+        Instantiate(lightOrbVisualPrefab, orb.transform).transform.SetLocalPositionAndRotation(
+            new Vector3(0f, 2.48f, 0f), Quaternion.identity);
+        Transform firePoint = new GameObject("FirePoint").transform;
+        firePoint.SetParent(orb.transform, false);
+        firePoint.localPosition = new Vector3(0f, 3.15f, 0f);
+        lightOrbWeapon = orb.AddComponent<LightOrbWeapon>();
+        lightOrbWeapon.ConfigureForOfflineDuel(firePoint, lightOrbProjectilePrefab, lightOrbAttackClip);
     }
 
     void SpawnDummy()
@@ -106,6 +159,11 @@ public sealed class DuelOfflineTest : MonoBehaviour
     {
         helpStyle ??= new GUIStyle(GUI.skin.box) { fontSize = 18, alignment = TextAnchor.UpperLeft, padding = new RectOffset(12, 12, 8, 8) };
         string health = dummyHealth != null ? $"{dummyHealth.CurrentHealth:0.#} / {dummyHealth.MaxHealth:0.#}" : "-";
-        GUI.Box(new Rect(16f, 16f, 440f, 64f), $"온라인 전투 스크립트 오프라인 테스트\n더미 체력 {health}    R: 다시 세우기", helpStyle);
+        string equipped = playerAttack != null && playerAttack.CurrentWeapon != null
+            ? playerAttack.CurrentWeapon.name : "-";
+        GUI.Box(new Rect(16f, 16f, 520f, 94f),
+            $"오프라인 전투 테스트 | 더미 체력 {health}\n" +
+            $"1 번개  2 기본 완드  3 라이트 오브 | 장착: {equipped}\n" +
+            "R: 다시 세우기", helpStyle);
     }
 }

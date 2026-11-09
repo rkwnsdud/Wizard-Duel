@@ -9,6 +9,9 @@ public class ArcaneBoltProjectile : MonoBehaviour
     [SerializeField] private GameObject hitEffectPrefab;
 
     private PlayerHealth ownerHealth;
+    private IShotSink onlineSink;
+    private uint onlineAttackId;
+    private bool visualOnly;
     private float distanceTraveled = 0f;
 
     void Update()
@@ -31,7 +34,8 @@ public class ArcaneBoltProjectile : MonoBehaviour
             if (target != null)
             {
                 WeaponHitEffect.Spawn(hitEffectPrefab, hit.point);
-                target.TakeDamage(10f);
+                if (onlineSink != null) onlineSink.Hit(onlineAttackId, 0, target, 10f);
+                else if (!visualOnly) target.TakeDamage(10f);
             }
 
             transform.position += transform.forward * hit.distance;
@@ -51,5 +55,18 @@ public class ArcaneBoltProjectile : MonoBehaviour
     public void Initialize(PlayerHealth owner)
     {
         ownerHealth = owner;
+    }
+
+    public void InitializeOnline(PlayerHealth owner, IShotSink sink, uint attackId)
+    {
+        ownerHealth = owner;
+        onlineSink = sink;
+        onlineAttackId = attackId;
+    }
+
+    public void InitializeVisualOnly(PlayerHealth owner)
+    {
+        ownerHealth = owner;
+        visualOnly = true;
     }
 }

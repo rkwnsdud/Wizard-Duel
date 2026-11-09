@@ -236,6 +236,10 @@ MonoBehaviour:
   map: {fileID: 568773226}
   playerPrefab: {fileID: 4760838517846775089, guid: 902e0f01f8488be408e2ba4f863b2e6e, type: 3}
   dummyPrefab: {fileID: 7265209467207546497, guid: 11be34856f0c18648be46d1282272402, type: 3}
+  basicWandPrefab: {fileID: 5918805252675816218, guid: a797a62da8b406b42ad029f43ef9cd46, type: 3}
+  lightOrbVisualPrefab: {fileID: 554204523568698419, guid: c676c1e9b96fa5741a6f6bfe6f0a71e0, type: 3}
+  lightOrbProjectilePrefab: {fileID: 191058561687818987, guid: 7ec76eb30e1afaa43ad22a995b8ab4b9, type: 3}
+  lightOrbAttackClip: {fileID: 7400000, guid: 2339c21bd5cb2da45b4051c7804bdee5, type: 2}
   dummyRespawnDelay: 1.5
 --- !u!4 &998745937
 Transform:
