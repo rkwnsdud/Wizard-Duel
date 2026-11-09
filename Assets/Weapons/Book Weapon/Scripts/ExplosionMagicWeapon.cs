@@ -124,8 +124,23 @@ public sealed class ExplosionMagicWeapon : WeaponBase, IWeapon
                 flying.Remove(shot.AttackId);
             }
             WeaponHitEffect.Spawn(explosionEffectPrefab, shot.Point);
-            if (explosionSound != null) AudioSource.PlayClipAtPoint(explosionSound, shot.Point, explosionVolume);
+            PlayExplosionSound(shot.Point);
         }
+    }
+
+    // 카메라(리스너)가 캐릭터에서 13m쯤 떨어져 있어 3D 소리(PlayClipAtPoint)는 6%쯤으로 줄어 거의 안 들린다.
+    // 다른 무기 소리처럼 2D로 낸다. 폭발 전에 무기를 바꿔 책이 꺼져도 들리도록 책의 AudioSource 대신 따로 만든다.
+    private void PlayExplosionSound(Vector3 point)
+    {
+        if (explosionSound == null) return;
+        var sound = new GameObject("Explosion magic sound");
+        sound.transform.position = point;
+        AudioSource source = sound.AddComponent<AudioSource>();
+        source.clip = explosionSound;
+        source.volume = explosionVolume;
+        source.spatialBlend = 0f;
+        source.Play();
+        Destroy(sound, explosionSound.length * (Time.timeScale < 0.01f ? 0.01f : Time.timeScale));
     }
 
     // 손이 벽 안으로 들어간 채 쏘면 화염 공이 벽을 뚫고 나가므로, 몸 중심에서 손까지 막혀 있으면 벽 앞에서 시작한다.
