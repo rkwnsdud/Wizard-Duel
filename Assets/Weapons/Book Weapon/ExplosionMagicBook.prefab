@@ -130,9 +130,9 @@ MonoBehaviour:
   fireballPrefab: {fileID: 3928553344027406521, guid: 8d4ef4c3a6f0b114590f95daba5d8339, type: 3}
   explosionEffectPrefab: {fileID: 8212563711177716315, guid: 255034b25c3b59a449980c5c9f9dd21c, type: 3}
   audioSource: {fileID: 4445355180034063487}
-  castSound: {fileID: 0}
-  explosionSound: {fileID: 0}
-  explosionVolume: 0.8
+  castSound: {fileID: 8300000, guid: b356d4dcbf8ed1b459d750f6879e86df, type: 3}
+  explosionSound: {fileID: 8300000, guid: 65080eaff3e843148959ae8afea5b2e8, type: 3}
+  explosionVolume: 1
 --- !u!114 &7267090105697356067
 MonoBehaviour:
   m_ObjectHideFlags: 0
