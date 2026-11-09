@@ -25,13 +25,19 @@ public sealed class LobbySession
     public bool OpponentPresent => guestConfirmed;
     public string RoomCode { get; private set; } = string.Empty;
     public LobbyPhase Phase { get; private set; }
+    // 이 방에서 몇 번째 판인지. 결과를 보여 주고 로비로 돌아갈 때 하나 오른다.
+    public uint Round { get; private set; }
+    // 결과 단계에서만 의미가 있다. 0은 방장(파랑), 1은 참가자(빨강).
+    public byte WinnerSlot { get; private set; }
     public NetworkLobbySnapshot Snapshot => new NetworkLobbySnapshot
     {
         Code = RoomCode,
         HostClientId = HostClientId,
         OpponentPresent = OpponentPresent,
         GuestClientId = GuestClientId,
+        Round = Round,
         Phase = Phase,
+        WinnerSlot = Phase == LobbyPhase.Result ? WinnerSlot : (byte)0,
         Settings = settings
     };
 
@@ -155,6 +161,25 @@ public sealed class LobbySession
         return true;
     }
 
+    // 전투 중 먼저 쓰러진 플레이어의 슬롯을 받아 결과 단계로 넘긴다. 승자는 반대 슬롯이고, 이미 끝난 판이면 무시한다.
+    public bool TryFinishBattle(int defeatedSlot)
+    {
+        if (Phase != LobbyPhase.Battle || !Ready || (defeatedSlot != 0 && defeatedSlot != 1)) return false;
+        WinnerSlot = (byte)(1 - defeatedSlot);
+        Phase = LobbyPhase.Result;
+        return true;
+    }
+
+    // 결과를 보여 준 뒤 다음 판의 로비로 돌아간다. 방 코드, 방장·참가자, 설정과 시드는 그대로 둔다.
+    public bool ReturnToLobby()
+    {
+        if (Phase != LobbyPhase.Result) return false;
+        Phase = LobbyPhase.Lobby;
+        WinnerSlot = 0;
+        Round++;
+        return true;
+    }
+
     public static bool IsValidCode(string code)
     {
         if (code == null || code.Length != 6) return false;
@@ -172,6 +197,8 @@ public sealed class LobbySession
         hostConfirmed = false;
         guestConfirmed = false;
         Phase = LobbyPhase.Lobby;
+        Round = 0;
+        WinnerSlot = 0;
         settings = default;
     }
 }

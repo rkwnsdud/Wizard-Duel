@@ -281,6 +281,101 @@ public class LobbySessionTests
         Assert.That(alone, Is.EqualTo("Two players must join before the duel starts."));
     }
 
+    [TestCase(0, 1)]
+    [TestCase(1, 0)]
+    public void DefeatInBattleShowsResultOnce_WithTheOtherSlotAsWinner(int defeated, int winner)
+    {
+        var session = CreateFullRoom();
+        Assert.That(session.TryFinishBattle(defeated), Is.False);
+        Assert.That(session.TryStart(1, out _), Is.True);
+        Assert.That(session.TryFinishBattle(defeated), Is.False);
+        Assert.That(session.BeginBattle(), Is.True);
+        Assert.That(session.TryFinishBattle(2), Is.False);
+        Assert.That(session.TryFinishBattle(-1), Is.False);
+        Assert.That(session.Phase, Is.EqualTo(LobbyPhase.Battle));
+
+        Assert.That(session.TryFinishBattle(defeated), Is.True);
+        Assert.That(session.Phase, Is.EqualTo(LobbyPhase.Result));
+        Assert.That(session.WinnerSlot, Is.EqualTo((byte)winner));
+        Assert.That(session.Snapshot.WinnerSlot, Is.EqualTo((byte)winner));
+        Assert.That(session.Snapshot.IsValidFor(1), Is.True);
+        Assert.That(session.Snapshot.IsValidFor(2), Is.True);
+
+        // 뒤이어 쓰러진 쪽은 결과를 바꾸지 않는다.
+        Assert.That(session.TryFinishBattle(1 - defeated), Is.False);
+        Assert.That(session.WinnerSlot, Is.EqualTo((byte)winner));
+    }
+
+    [Test]
+    public void ResultRejectsSettingsAndStart()
+    {
+        var session = CreateFullRoom();
+        PlayUntilResult(session, 0);
+        Assert.That(session.TryUpdateSettings(1, Settings(5), out string settingsReason), Is.False);
+        Assert.That(settingsReason, Is.EqualTo("Room settings cannot change once the duel starts."));
+        Assert.That(session.TryStart(1, out string startReason), Is.False);
+        Assert.That(startReason, Is.EqualTo("The duel has already started."));
+        Assert.That(session.BeginBattle(), Is.False);
+        Assert.That(session.CancelStart(), Is.False);
+        Assert.That(session.Phase, Is.EqualTo(LobbyPhase.Result));
+    }
+
+    [Test]
+    public void ReturnToLobbyKeepsRoomRolesAndSettings_AndAllowsRematch()
+    {
+        var session = CreateFullRoom();
+        Assert.That(session.TryUpdateSettings(1, Settings(4242), out string reason), Is.True, reason);
+        NetworkLobbySnapshot before = session.Snapshot;
+        Assert.That(session.ReturnToLobby(), Is.False);
+
+        PlayUntilResult(session, 1);
+        Assert.That(session.ReturnToLobby(), Is.True);
+        Assert.That(session.ReturnToLobby(), Is.False);
+        NetworkLobbySnapshot after = session.Snapshot;
+        Assert.That(after.Phase, Is.EqualTo(LobbyPhase.Lobby));
+        Assert.That(after.Round, Is.EqualTo(before.Round + 1));
+        Assert.That(after.WinnerSlot, Is.EqualTo((byte)0));
+        Assert.That(after.Code, Is.EqualTo(before.Code));
+        Assert.That(after.HostClientId, Is.EqualTo(1ul));
+        Assert.That(after.GuestClientId, Is.EqualTo(2ul));
+        Assert.That(after.OpponentPresent, Is.True);
+        Assert.That(after.IsValidFor(1), Is.True);
+        AssertSettingsEqual(Settings(4242), new DuelSettings { Map = after.Settings.ToSettings() });
+
+        // 재대결도 같은 방에서 시작하고 결과를 낸다.
+        PlayUntilResult(session, 0);
+        Assert.That(session.WinnerSlot, Is.EqualTo((byte)1));
+        Assert.That(session.ReturnToLobby(), Is.True);
+        Assert.That(session.Round, Is.EqualTo(2u));
+        Assert.That(session.Snapshot.Settings.Seed, Is.EqualTo(4242));
+    }
+
+    [Test]
+    public void LeavingDuringResultClosesRoom_AndNextRoomStartsAtFirstRound()
+    {
+        var session = CreateFullRoom();
+        PlayUntilResult(session, 0);
+        Assert.That(session.ReturnToLobby(), Is.True);
+        PlayUntilResult(session, 1);
+        Assert.That(session.Disconnect(2), Is.True);
+        Assert.That(session.HasRoom, Is.False);
+        Assert.That(session.Phase, Is.EqualTo(LobbyPhase.Lobby));
+        Assert.That(session.Round, Is.EqualTo(0u));
+        Assert.That(session.WinnerSlot, Is.EqualTo((byte)0));
+        Assert.That(session.ReturnToLobby(), Is.False);
+
+        CreateAndConfirmHost(session, 3);
+        Assert.That(session.Snapshot.Round, Is.EqualTo(0u));
+        Assert.That(session.Snapshot.Phase, Is.EqualTo(LobbyPhase.Lobby));
+    }
+
+    static void PlayUntilResult(LobbySession session, int defeatedSlot)
+    {
+        Assert.That(session.TryStart(session.HostClientId, out string reason), Is.True, reason);
+        Assert.That(session.BeginBattle(), Is.True);
+        Assert.That(session.TryFinishBattle(defeatedSlot), Is.True);
+    }
+
     static LobbySession CreateFullRoom()
     {
         var session = CreateSession();

@@ -82,6 +82,14 @@ public sealed class DuelPlayer : NetworkBehaviour, IAttackAuthority, IShotSink
         combatEnabled.Value = true;
     }
 
+    // 승부가 나면 두 플레이어 모두 부른다. 입력을 끄고 남은 상태이상을 지워서, 늦게 온 명중 보고와 도트 피해를 더 받지 않는다.
+    public void ServerDisableCombat()
+    {
+        if (!IsServer || !IsSpawned) return;
+        combatEnabled.Value = false;
+        ClearServerStatusEffects();
+    }
+
     void IAttackAuthority.StartAttack(float chargeRatio)
     {
         if (IsSpawned && IsOwner && combatEnabled.Value && !playerHealth.IsDead)
@@ -147,7 +155,7 @@ public sealed class DuelPlayer : NetworkBehaviour, IAttackAuthority, IShotSink
     /// <summary>서버에서 상태이상 틱 피해를 넣는다. 공격자 보고가 없어 서버가 직접 굴린다.</summary>
     public void ServerApplyStatusTick(int attackerSlot, uint dotAttackId, int tickIndex, float damage)
     {
-        if (!IsServer || !IsSpawned || combat == null) return;
+        if (!IsServer || !IsSpawned || combat == null || !combatEnabled.Value) return;
         if (!combat.TryTakeHit(attackerSlot, dotAttackId, tickIndex, damage, out bool defeatedNow)) return;
         Debug.Log($"[Combat] DoT slot={slot} attacker={attackerSlot} id={dotAttackId} tick={tickIndex} health={combat.Health:F3}");
         health.Value = combat.Health;
@@ -198,7 +206,15 @@ public sealed class DuelPlayer : NetworkBehaviour, IAttackAuthority, IShotSink
     void OnCombatEnabledChanged(bool previous, bool current)
     {
         Debug.Log($"[Player] Combat {(current ? "enabled" : "disabled")} slot={slot} owner={OwnerClientId} local={IsOwner} position={transform.position}.");
-        if (IsOwner) ApplyCombatState(current);
+        if (!IsOwner) return;
+        ApplyCombatState(current);
+        if (current) return;
+        // 승부가 나서 꺼지면 차징 중이던 공격과 미리보기를 거두고, 걷던 자리에서 제자리 걸음을 하지 않게 멈춰 세운다.
+        attack.CancelAttack();
+        if (!animator.enabled) return;
+        animator.SetFloat("MoveSpeed", 0f);
+        animator.SetFloat("MoveX", 0f);
+        animator.SetFloat("MoveZ", 0f);
     }
 
     void ApplyCombatState(bool enabled)
