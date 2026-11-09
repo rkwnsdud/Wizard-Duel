@@ -23,6 +23,13 @@ public class ArenaBackgroundBuilderNew : MonoBehaviour
     [SerializeField] float farGroundSize = 240f;
     // CreatePrimitive 평면의 빌트인 머티리얼은 URP 빌드에서 마젠타로 보일 수 있어, URP Lit으로 직접 만든다.
     static Material sharedGroundMaterial;
+    // 이번 Rebuild로 깐 바닥 타일과 장식. 맵이 블록과 함께 내놓아(ProceduralMap.Pieces) 물결로 같이 움직인다.
+    // FarGround는 조각들이 가라앉아 사라지는 바닥이라 넣지 않는다.
+    readonly List<Transform> pieces = new List<Transform>();
+    // 마지막으로 배경을 만든 레이아웃. Start에서 같은 맵의 배경을 다시 만들지 않으려고 기억한다.
+    MapLayout builtLayout;
+    bool built;
+    public IReadOnlyList<Transform> Pieces => pieces;
     public enum BackgroundYawMode { Fixed, Random90, Random360 }
     [System.Serializable]
     public struct BackgroundRotationSettings
@@ -59,6 +66,9 @@ public class ArenaBackgroundBuilderNew : MonoBehaviour
         if (map == null) map = GetComponentInParent<ProceduralMap>();
         if (map == null) map = FindSingleMap();
         if (backgroundRoot == null) backgroundRoot = transform;
+        // 맵이 먼저 생성되며 이미 이 배경을 깔았으면 다시 만들지 않는다. 다시 만들면
+        // TitleBackdrop이 물결로 붙잡은 조각이 사라지고, 새 조각이 맵보다 먼저 제자리에 선다.
+        if (built && builtLayout == (map != null ? map.GeneratedLayout : null)) return;
         Rebuild();
     }
 #if UNITY_EDITOR
@@ -82,6 +92,9 @@ public class ArenaBackgroundBuilderNew : MonoBehaviour
             if (Application.isPlaying) Destroy(child);
             else DestroyImmediate(child);
         }
+        pieces.Clear();
+        built = true;
+        builtLayout = map != null ? map.GeneratedLayout : null;
         EnsureFarGround();
         if (map == null || map.GeneratedLayout == null) return;
         MapLayout layout = map.GeneratedLayout;
@@ -152,6 +165,7 @@ public class ArenaBackgroundBuilderNew : MonoBehaviour
         }
         go.name = "Apron_" + c.x + "_" + c.y;
         StripColliders(go);
+        pieces.Add(go.transform);
     }
     void PlaceMirroredDeco(Vector2Int a, Vector2Int m, MapLayout layout, System.Random rand)
     {
@@ -194,6 +208,8 @@ public class ArenaBackgroundBuilderNew : MonoBehaviour
         go.name = "Deco_" + c.x + "_" + c.y;
         StripColliders(go);
         GroundSnap(go, decoGroundY + settings.yOffset);
+        // 땅에 맞춘 뒤의 위치가 물결이 돌아올 제자리다.
+        pieces.Add(go.transform);
     }
     static float RollYaw(System.Random rand, BackgroundYawMode mode)
     {

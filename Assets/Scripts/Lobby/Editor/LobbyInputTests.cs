@@ -398,9 +398,13 @@ public class LobbyInputTests
         Assert.That(Field<bool>(backdrop, "preview"), Is.False);
         Assert.That(Field<float>(backdrop, "targetDistance"),
             Is.EqualTo(Field<float>(backdrop, "radius") * Field<float>(backdrop, "distanceScale")));
+        // 맵을 붙잡으면 블록뿐 아니라 배경 바닥과 장식도 제자리에 선다.
+        IReadOnlyList<Transform> pieces = map.Pieces;
+        Assert.That(pieces.Count, Is.GreaterThan(blocks.Count), "The wave must carry the background with the map.");
         Vector3[] homes = Field<Vector3[]>(backdrop, "homes");
-        for (int b = 0; b < blocks.Count; b++)
-            Assert.That(Vector3.Distance(blocks[b].Transform.localPosition, homes[b]), Is.LessThan(0.001f));
+        Assert.That(homes.Length, Is.EqualTo(pieces.Count));
+        for (int p = 0; p < pieces.Count; p++)
+            Assert.That(Vector3.Distance(pieces[p].localPosition, homes[p]), Is.LessThan(0.001f));
 
         NetworkLobbySnapshot approved = Snapshot(0, expected.Map.Seed);
         approved.Settings = new NetworkMapSettings(expected.Map);
@@ -422,6 +426,67 @@ public class LobbyInputTests
         Assert.That(backdrop.Current, Is.SameAs(current));
         Assert.That(map.GeneratedLayout, Is.SameAs(layout));
         CollectionAssert.AreEqual(blocks, map.Blocks);
+    }
+
+    [UnityTest]
+    public IEnumerator TitleWave_CarriesBackgroundWithMap()
+    {
+        TitleBackdrop backdrop = Field<TitleBackdrop>(flow, "backdrop");
+        ProceduralMap map = Field<ProceduralMap>(backdrop, "map");
+        ArenaBackgroundBuilderNew background = Field<ArenaBackgroundBuilderNew>(backdrop, "background");
+        Assert.That(background, Is.Not.Null);
+        // 씬을 연 뒤 배경의 Start가 같은 맵의 배경을 다시 만들면 물결이 잡은 첫 맵의 조각이 파괴된다.
+        foreach (Transform piece in map.Pieces) Assert.That(piece != null, Is.True, "Start must not rebuild the background.");
+
+        // 느린 프레임이 몇 번 지나도 가장 먼 조각이 아직 출발하지 않도록 물결을 늘린다.
+        SetField(backdrop, "waveDuration", 2f);
+        backdrop.ShowTitle(new DuelSettings
+        {
+            Map = new MapGenerationSettings
+            {
+                Size = new Vector2Int(35, 29), Shape = MapShape.Rectangle,
+                ObstacleDensity = 0.2f, Symmetry = MapSymmetry.None
+            }
+        }, false);
+        yield return WaitForFrames(1);
+
+        IReadOnlyList<Transform> pieces = map.Pieces;
+        int blockCount = map.Blocks.Count;
+        Transform root = Field<Transform>(background, "backgroundRoot");
+        Transform farGround = null;
+        foreach (Transform child in root)
+            if (child.name.StartsWith("FarGround")) farGround = child;
+        Assert.That(farGround, Is.Not.Null);
+        // 배경 루트 아래는 FarGround를 빼고 모두 물결에 들어간다. FarGround는 조각이 가라앉는 바닥이라 그대로 있다.
+        Assert.That(pieces.Count - blockCount, Is.GreaterThan(0));
+        Assert.That(pieces.Count - blockCount, Is.EqualTo(root.childCount - 1));
+        // Transform은 자식을 도는 IEnumerable이라 CollectionAssert는 자식 없는 Transform끼리 같다고 본다. 참조로 비교한다.
+        bool farGroundListed = false;
+        foreach (Transform piece in pieces) farGroundListed |= piece == farGround;
+        Assert.That(farGroundListed, Is.False, "FarGround must stay out of the wave.");
+        Assert.That(farGround.position.y, Is.EqualTo(Field<float>(background, "farGroundY")).Within(0.001f));
+
+        // 물결은 맵 가장자리에서 끝나지 않고 배경 바깥까지 이어진다. 가장 먼 조각은 아직 출발하지 않았다.
+        float[] delays = Field<float[]>(backdrop, "delays");
+        Vector3[] homes = Field<Vector3[]>(backdrop, "homes");
+        int farthest = 0;
+        float blockDelay = 0f;
+        for (int p = 0; p < pieces.Count; p++)
+        {
+            if (delays[p] > delays[farthest]) farthest = p;
+            if (p < blockCount) blockDelay = Mathf.Max(blockDelay, delays[p]);
+        }
+        Assert.That(farthest, Is.GreaterThanOrEqualTo(blockCount));
+        Assert.That(delays[farthest], Is.GreaterThan(blockDelay));
+        Vector3 sunk = homes[farthest] + Vector3.down * Field<float>(backdrop, "sinkDepth");
+        Assert.That(Vector3.Distance(pieces[farthest].localPosition, sunk), Is.LessThan(0.001f));
+
+        // 맵을 붙잡으면 배경까지 모두 제자리로 돌아온다.
+        SetField(backdrop, "blockDuration", 0.05f);
+        backdrop.HoldTitle();
+        yield return WaitForRuntime(delays[farthest] + 0.2f);
+        for (int p = 0; p < pieces.Count; p++)
+            Assert.That(Vector3.Distance(pieces[p].localPosition, homes[p]), Is.LessThan(0.001f));
     }
 
     [UnityTest]

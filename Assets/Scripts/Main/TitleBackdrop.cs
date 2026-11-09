@@ -23,7 +23,7 @@ public class TitleBackdrop : MonoBehaviour
     [SerializeField] float regenerateInterval = 12f;
     [Tooltip("블록이 바닥 아래로 숨는 깊이.")]
     [SerializeField] float sinkDepth = 10f;
-    [Tooltip("물결이 맵 중심에서 모서리까지 퍼지는 시간.")]
+    [Tooltip("물결이 맵 중심에서 맵 대각선 길이만큼 퍼지는 시간. 맵 모서리에는 그 절반쯤에 닿고, 배경은 같은 빠르기로 그 바깥까지 이어진다.")]
     [SerializeField] float waveDuration = 1f;
     [Tooltip("블록 하나가 올라오거나 내려가는 시간.")]
     [SerializeField, Min(0.05f)] float blockDuration = 0.7f;
@@ -74,8 +74,11 @@ public class TitleBackdrop : MonoBehaviour
     UniversalRenderPipelineAsset pipeline;
     float originalShadowDistance;
     float originalFieldOfView;
+    // map.Pieces(블록과 배경 조각)의 제자리와 출발 시간. 순서는 map.Pieces와 같다.
     Vector3[] homes;
     float[] delays;
+    // 가장 먼 조각이 출발하는 시간. 물결은 이 조각까지 제자리에 서면 끝난다.
+    float lastDelay;
 
     void OnEnable()
     {
@@ -147,9 +150,9 @@ public class TitleBackdrop : MonoBehaviour
         catch (Exception exception) when (exception is InvalidOperationException || exception is ArgumentException)
         {
             Debug.LogWarning($"미리보기 맵을 만들지 못했어요: {exception.Message}", this);
-            // 물결 도중에 멈췄을 수 있으니 이전 맵을 제자리에 세운다.
-            IReadOnlyList<IBlock> blocks = map.Blocks;
-            for (int b = 0; homes != null && b < blocks.Count; b++) blocks[b].Transform.localPosition = homes[b];
+            // 물결 도중에 멈췄을 수 있으니 이전 맵을 배경까지 제자리에 세운다.
+            IReadOnlyList<Transform> pieces = map.Pieces;
+            for (int p = 0; homes != null && p < pieces.Count; p++) pieces[p].localPosition = homes[p];
             return false;
         }
 
@@ -244,19 +247,24 @@ public class TitleBackdrop : MonoBehaviour
         map.Generate(settings);
         Current = settings;
 
-        // 칸 크기가 2라서 대각선 칸 수가 곧 반지름이다. 카메라가 돌아도 맵이 잘리지 않게 대각선을 쓴다.
+        // radius는 맵의 대각선 칸 수다(칸 크기가 1이라 대각선 길이와 같다). 카메라가 돌아도 맵이 잘리지 않을 만큼 넉넉하고,
+        // 시작 화면 카메라 거리(distanceScale), 바닥 빛 크기, 물결 빠르기가 모두 이 값에 맞춰져 있다.
         Vector2Int size = map.GeneratedLayout.Size;
         radius = Mathf.Sqrt(size.x * size.x + size.y * size.y);
 
-        // 맵 중심에서 먼 블록일수록 늦게 출발해 가운데부터 물결이 퍼진다.
-        // 같은 칸의 바닥과 벽은 거리가 같아서 한 기둥처럼 함께 움직인다.
-        IReadOnlyList<IBlock> blocks = map.Blocks;
-        homes = new Vector3[blocks.Count];
-        delays = new float[blocks.Count];
-        for (int b = 0; b < blocks.Count; b++)
+        // 맵 중심에서 먼 조각일수록 늦게 출발해 가운데부터 물결이 퍼진다.
+        // 같은 칸의 바닥과 벽은 거리가 같아서 한 기둥처럼 함께 움직인다. 배경의 바닥 타일과 장식도
+        // 같은 빠르기로 뒤따라서, 물결이 맵 가장자리에서 끊기지 않고 배경 바깥까지 이어진다.
+        IReadOnlyList<Transform> pieces = map.Pieces;
+        homes = new Vector3[pieces.Count];
+        delays = new float[pieces.Count];
+        lastDelay = 0f;
+        for (int p = 0; p < pieces.Count; p++)
         {
-            homes[b] = blocks[b].Transform.localPosition;
-            delays[b] = new Vector2(homes[b].x, homes[b].z).magnitude / radius * waveDuration;
+            homes[p] = pieces[p].localPosition;
+            Vector3 fromCenter = map.transform.InverseTransformPoint(pieces[p].position);
+            delays[p] = new Vector2(fromCenter.x, fromCenter.z).magnitude / radius * waveDuration;
+            lastDelay = Mathf.Max(lastDelay, delays[p]);
         }
 
         ground.localScale = new Vector3(radius, 1f, radius);
@@ -282,6 +290,7 @@ public class TitleBackdrop : MonoBehaviour
 
     // previewYaw로 볼 때 모든 블록이 previewExtent 안에 들어오는 가장 가까운 카메라 거리.
     // 맵 모양에 따라 화면에서 차지하는 크기가 크게 달라서, 대기실에서는 반지름 대신 실제 블록 위치로 맞춘다.
+    // 배경은 화면 밖으로 넘쳐도 되므로 플레이 영역 블록만 센다. y축으로만 돌려서 물결 중인 높이는 결과와 상관없다.
     float FitDistance()
     {
         float tanY = Mathf.Tan(viewCamera.fieldOfView * 0.5f * Mathf.Deg2Rad);
@@ -290,10 +299,11 @@ public class TitleBackdrop : MonoBehaviour
         float cos = Mathf.Cos(pitch * Mathf.Deg2Rad);
         Quaternion toView = Quaternion.Euler(0f, -previewYaw, 0f);
         float fit = 0f;
-        foreach (Vector3 home in homes)
+        IReadOnlyList<IBlock> blocks = map.Blocks;
+        for (int b = 0; b < blocks.Count; b++)
         {
             // x는 화면 가로, z는 카메라에서 멀어지는 쪽이다. 가까운 쪽일수록 화면에서 크게 보인다.
-            Vector3 point = toView * home;
+            Vector3 point = toView * blocks[b].Transform.localPosition;
             float depth = point.z * cos;
             float wide = Mathf.Abs(point.x) / (previewExtent.x * tanX);
             float tall = Mathf.Abs(point.z) * sin / (previewExtent.y * tanY);
@@ -302,38 +312,38 @@ public class TitleBackdrop : MonoBehaviour
         return fit;
     }
 
-    // 블록을 하나씩 바닥 아래에서 올리거나 내린다. 첫 프레임에 바로 위치를 정해서 새 맵이 잠깐 보이는 일이 없다.
+    // 블록과 배경 조각을 하나씩 바닥 아래에서 올리거나 내린다. 첫 프레임에 바로 위치를 정해서 새 맵이 잠깐 보이는 일이 없다.
     IEnumerator Wave(bool rising)
     {
-        IReadOnlyList<IBlock> blocks = map.Blocks;
+        IReadOnlyList<Transform> pieces = map.Pieces;
         for (float time = 0f; ; time += Time.deltaTime)
         {
-            for (int b = 0; b < blocks.Count; b++)
+            for (int p = 0; p < pieces.Count; p++)
             {
-                float t = Mathf.Clamp01((time - delays[b]) / blockDuration);
+                float t = Mathf.Clamp01((time - delays[p]) / blockDuration);
                 float height = riseCurve.Evaluate(rising ? t : 1f - t);
-                blocks[b].Transform.localPosition = homes[b] + Vector3.down * (sinkDepth * (1f - height));
+                pieces[p].localPosition = homes[p] + Vector3.down * (sinkDepth * (1f - height));
             }
-            if (time >= waveDuration + blockDuration) yield break;
+            if (time >= lastDelay + blockDuration) yield break;
             yield return null;
         }
     }
 
-    // 블록을 지금 높이에서 제자리로 물결처럼 돌려놓는다. 올라오거나 가라앉던 도중이어도 끊기지 않고 이어지고,
-    // 이미 제자리에 있는 블록은 움직이지 않는다.
+    // 조각을 지금 높이에서 제자리로 물결처럼 돌려놓는다. 올라오거나 가라앉던 도중이어도 끊기지 않고 이어지고,
+    // 이미 제자리에 있는 조각은 움직이지 않는다.
     IEnumerator Settle()
     {
-        IReadOnlyList<IBlock> blocks = map.Blocks;
-        float[] starts = new float[blocks.Count];
-        for (int b = 0; b < blocks.Count; b++) starts[b] = blocks[b].Transform.localPosition.y - homes[b].y;
+        IReadOnlyList<Transform> pieces = map.Pieces;
+        float[] starts = new float[pieces.Count];
+        for (int p = 0; p < pieces.Count; p++) starts[p] = pieces[p].localPosition.y - homes[p].y;
         for (float time = 0f; ; time += Time.deltaTime)
         {
-            for (int b = 0; b < blocks.Count; b++)
+            for (int p = 0; p < pieces.Count; p++)
             {
-                float t = Mathf.Clamp01((time - delays[b]) / blockDuration);
-                blocks[b].Transform.localPosition = homes[b] + Vector3.up * (starts[b] * (1f - riseCurve.Evaluate(t)));
+                float t = Mathf.Clamp01((time - delays[p]) / blockDuration);
+                pieces[p].localPosition = homes[p] + Vector3.up * (starts[p] * (1f - riseCurve.Evaluate(t)));
             }
-            if (time >= waveDuration + blockDuration) yield break;
+            if (time >= lastDelay + blockDuration) yield break;
             yield return null;
         }
     }
