@@ -4,7 +4,34 @@
 팀원이 Unity에서 무엇을 확인할 수 있는지 적는다. Task D 화염 마도서와 Task E 패시브의 전제 조건이다.
 
 관련 PR: #80 (Task B), #81 (Task C)
-관련 이슈: #57 (패시브 인터페이스), #58 (근접형 무기), #61 (도트 상태이상), #68 (협업 추적)
+관련 이슈: #57 (패시브 인터페이스), #58 (근접형 무기), #60 (스턴), #61 (도트 상태이상), #68 (협업 추적)
+
+## 다른 팀원이 바로 쓸 수 있는 것과 화염 전용인 것
+
+### 바로 쓸 수 있는 공용 기반
+
+- `IWeaponEquipPassive`, `IWeaponHitPassive`: 무기 프리팹 자식으로 붙이고 인터페이스만 구현하면 된다.
+  무기당 각 1개 제한은 `PlayerWeaponPassiveController`가 이미 강제한다.
+- `PlayerCombatStats` 이동속도·공격속도 modifier:
+  `SetMoveSpeedModifier(this, 값)`처럼 자기 컴포넌트를 키로 쓰면 서로 겹치지 않는다. 곱연산이라 여러 효과가 동시에 걸려도 깨지지 않는다.
+- 서버 승인 적중 경로: `DuelPlayer.ReportHitRpc`에서 `TryTakeHit`을 통과한 것만
+  `NotifyServerHit`으로 넘어가므로 중복이나 사망 후 히트는 이미 걸러진다.
+
+### 지금 화염 전용이라 다른 무기가 못 쓰는 것
+
+- `PlayerStatusEffects`: Burn과 Slow 2개가 하드코딩돼 있다.
+  독이나 스턴 같은 걸 붙이려면 이 파일을 직접 고쳐야 한다. 인터페이스가 아니다.
+- `DuelPlayer.ServerInflictStatus`: 인자가 화염 전용이다.
+  `tickDamage, tickCount, duration, slowMultiplier, slowDuration`으로 박혀 있어서 다른 효과는 못 넣는다.
+- `StatusEffectState`: Burn 틱 규칙만 있다. 다른 도트와 공유할 구조가 아니다.
+
+지금 상태는 "공통 기반 + 화염 1호 구현"이 섞여 있다.
+효과 2개째가 들어오는 순간 일반화가 필요하다. 방향은 다음 중 하나다.
+
+1. 효과마다 분리: `ServerApplyBurn`처럼 `ServerApplyPoison`, `ServerApplyStun`을 계속 추가한다.
+   간단하지만 파일이 비대해진다. 효과 3개까지는 버틴다.
+2. 일반화: 효과 종류를 id로 구분하고 틱 피해와 modifier를 테이블로 관리한다.
+   `StatusEffectState`를 `effectId -> 상태` 딕셔너리로 바꾸는 방식이다. 3개를 넘기면 이쪽이 맞다.
 
 ## Task B: 이동속도 modifier
 
