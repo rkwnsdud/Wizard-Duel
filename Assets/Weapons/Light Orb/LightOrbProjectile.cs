@@ -25,6 +25,9 @@ public class LightOrbProjectile : MonoBehaviour
     private LineRenderer currentBeamCore;
     private LineRenderer currentBeamGlow;
     private AudioSource audioSource;
+    private IShotSink onlineSink;
+    private uint onlineAttackId;
+    private bool visualOnly;
 
     public void Initialize(Vector3 fireDirection, PlayerHealth owner, AudioSource source)
     {
@@ -44,6 +47,20 @@ public class LightOrbProjectile : MonoBehaviour
         beamGlow.SetPosition(0, transform.position);
         beamGlow.SetPosition(1, transform.position);
 
+    }
+
+    public void InitializeOnline(Vector3 fireDirection, PlayerHealth owner, AudioSource source,
+        IShotSink sink, uint attackId)
+    {
+        Initialize(fireDirection, owner, source);
+        onlineSink = sink;
+        onlineAttackId = attackId;
+    }
+
+    public void InitializeVisualOnly(Vector3 fireDirection, PlayerHealth owner, AudioSource source)
+    {
+        Initialize(fireDirection, owner, source);
+        visualOnly = true;
     }
 
 
@@ -106,7 +123,8 @@ public class LightOrbProjectile : MonoBehaviour
             {
                 float finalDamage = damage * (1f + damageIncreaseRate * reflectionCount);
                 WeaponHitEffect.Spawn(hitEffectPrefab, hit.point);
-                targetHealth.TakeDamage(finalDamage);
+                if (onlineSink != null) onlineSink.Hit(onlineAttackId, 0, targetHealth, finalDamage);
+                else if (!visualOnly) targetHealth.TakeDamage(finalDamage);
                 Destroy(gameObject);
                 return;
             }

@@ -37,53 +37,25 @@ public class LightningBolt : MonoBehaviour
     }
 
     // Shared by preview and actual bolt, including existing wall filtering.
-    public Vector3 GetEndPosition(Vector3 start, Vector3 direction, float chargeRatio)
+    public Vector3 GetEndPosition(Vector3 start, Vector3 direction, float chargeRatio, PlayerHealth owner = null)
     {
-        float range = GetRange(chargeRatio);
-        Vector3 end = start + direction * range;
-        float wallDistance = range;
-        foreach (RaycastHit hit in Physics.RaycastAll(start, direction, range, blockerMask, QueryTriggerInteraction.Ignore))
-        {
-            if (hit.collider.GetComponentInParent<PlayerHealth>() != null || hit.distance >= wallDistance)
-                continue;
-            wallDistance = hit.distance;
-            end = hit.point;
-        }
-        return end;
+        return LightningHitTrace.Trace(start, direction, GetRange(chargeRatio), GetHitWidth(chargeRatio),
+            hitHeight, blockerMask, owner != null ? owner : GetComponentInParent<PlayerHealth>(), out _);
     }
     public void SetCharge(float chargeRatio)
     {
         chargeRatio = Mathf.Clamp01(chargeRatio);
-        float range = GetRange(chargeRatio);
         float boltWidth = Mathf.Lerp(minBoltWidth, maxBoltWidth, chargeRatio);
         float hitWidth = GetHitWidth(chargeRatio);
         damage = Mathf.Lerp(minDamage, maxDamage, chargeRatio);
 
         Vector3 startPosition = transform.position;
-        Vector3 endPosition = GetEndPosition(startPosition, transform.forward, chargeRatio);
-
-        // 타격 박스 형성
-        Vector3 center = (startPosition + endPosition) / 2f;
-        float length = Vector3.Distance(startPosition, endPosition);
-        Vector3 halfExtents = new Vector3(hitWidth / 2f, hitHeight / 2f, length / 2f);
-        Collider[] hits = Physics.OverlapBox(center, halfExtents, transform.rotation);
-        foreach (Collider hitCollider in hits)
+        Vector3 endPosition = LightningHitTrace.Trace(startPosition, transform.forward, GetRange(chargeRatio),
+            hitWidth, hitHeight, blockerMask, ownerHealth, out PlayerHealth target);
+        if (target != null)
         {
-            PlayerHealth playerHealth = hitCollider.GetComponentInParent<PlayerHealth>();
-            
-            if (playerHealth == null)
-            {
-                continue;
-            }
-
-            if (playerHealth == ownerHealth)
-            {
-                continue;
-            }
-
-            WeaponHitEffect.Spawn(hitEffectPrefab, hitCollider.ClosestPoint(center));
-            playerHealth.TakeDamage(damage);
-            break;
+            WeaponHitEffect.Spawn(hitEffectPrefab, endPosition);
+            target.TakeDamage(damage);
         }
 
         mainLightning.SetEndpoints(startPosition, endPosition);
