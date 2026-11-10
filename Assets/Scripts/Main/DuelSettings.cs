@@ -7,6 +7,7 @@ public sealed class DuelSettings
     public const int MinSize = 25;
     public const int MaxSize = 61;
     public const float MaxObstacleDensity = 0.25f;
+    public const float MaxBushDensity = 0.2f;
 
     // 노이즈는 강도만 고른다. 스케일은 강도에 따라 변형이 가장 고르게 커지는 생성기 기본값(0.75)을 그대로 쓴다.
     public MapGenerationSettings Map = new MapGenerationSettings();
@@ -20,6 +21,7 @@ public sealed class DuelSettings
         Size = Map.Size,
         Shape = Map.Shape,
         ObstacleDensity = Map.ObstacleDensity,
+        BushDensity = Map.BushDensity,
         Symmetry = Map.Symmetry,
         NoiseStrength = Map.NoiseStrength,
         NoiseScale = Map.NoiseScale
@@ -37,6 +39,7 @@ public sealed class DuelSettings
             !Enum.IsDefined(typeof(MapSymmetry), map.Symmetry)) return false;
         // 양방향 범위 비교는 NaN과 무한대도 거절한다.
         if (!(map.ObstacleDensity >= 0 && map.ObstacleDensity <= DuelSettings.MaxObstacleDensity) ||
+            !(map.BushDensity >= 0 && map.BushDensity <= DuelSettings.MaxBushDensity) ||
             !(map.NoiseStrength >= 0 && map.NoiseStrength <= 1) ||
             !(map.NoiseScale >= 0.25f && map.NoiseScale <= 2)) return false;
         reason = string.Empty;

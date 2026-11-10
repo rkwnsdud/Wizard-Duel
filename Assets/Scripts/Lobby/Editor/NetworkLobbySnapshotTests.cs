@@ -14,6 +14,7 @@ public class NetworkLobbySnapshotTests
             Size = size,
             Shape = MapShape.Random,
             ObstacleDensity = 0.22f,
+            BushDensity = 0.09f,
             Symmetry = MapSymmetry.Rotate180,
             NoiseStrength = 0.65f,
             NoiseScale = 1.25f
@@ -53,6 +54,7 @@ public class NetworkLobbySnapshotTests
         Assert.That(restored.Map.Size, Is.EqualTo(settings.Map.Size));
         Assert.That(restored.Map.Shape, Is.EqualTo(settings.Map.Shape));
         Assert.That(restored.Map.ObstacleDensity, Is.EqualTo(settings.Map.ObstacleDensity));
+        Assert.That(restored.Map.BushDensity, Is.EqualTo(settings.Map.BushDensity));
         Assert.That(restored.Map.Symmetry, Is.EqualTo(settings.Map.Symmetry));
         Assert.That(restored.Map.NoiseStrength, Is.EqualTo(settings.Map.NoiseStrength));
         Assert.That(restored.Map.NoiseScale, Is.EqualTo(settings.Map.NoiseScale));
@@ -216,7 +218,8 @@ public class NetworkLobbySnapshotTests
             Phase = LobbyPhase.Result,
             WinnerSlot = 1,
             Settings = new NetworkMapSettings(WithMapSizeAndRanges(
-                new Vector2Int(DuelSettings.MaxSize, DuelSettings.MaxSize), DuelSettings.MaxObstacleDensity, 1, 2).Map)
+                new Vector2Int(DuelSettings.MaxSize, DuelSettings.MaxSize), DuelSettings.MaxObstacleDensity, 1, 2,
+                DuelSettings.MaxBushDensity).Map)
         };
         using (var writer = new FastBufferWriter(bufferSize, Allocator.Temp))
         {
@@ -298,6 +301,7 @@ public class NetworkLobbySnapshotTests
                 Size = new Vector2Int(41, 37),
                 Shape = MapShape.Donut,
                 ObstacleDensity = 0.24f,
+                BushDensity = 0.17f,
                 Symmetry = MapSymmetry.None,
                 NoiseStrength = 0.9f,
                 NoiseScale = 1.8f
@@ -354,6 +358,11 @@ public class NetworkLobbySnapshotTests
         AssertInvalid(s => s.Map.ObstacleDensity = float.NegativeInfinity);
         AssertInvalid(s => s.Map.ObstacleDensity = -0.01f);
         AssertInvalid(s => s.Map.ObstacleDensity = DuelSettings.MaxObstacleDensity + 0.01f);
+        AssertInvalid(s => s.Map.BushDensity = float.NaN);
+        AssertInvalid(s => s.Map.BushDensity = float.PositiveInfinity);
+        AssertInvalid(s => s.Map.BushDensity = float.NegativeInfinity);
+        AssertInvalid(s => s.Map.BushDensity = -0.01f);
+        AssertInvalid(s => s.Map.BushDensity = DuelSettings.MaxBushDensity + 0.01f);
         AssertInvalid(s => s.Map.NoiseStrength = float.NaN);
         AssertInvalid(s => s.Map.NoiseStrength = float.PositiveInfinity);
         AssertInvalid(s => s.Map.NoiseStrength = float.NegativeInfinity);
@@ -372,10 +381,10 @@ public class NetworkLobbySnapshotTests
         AssertValid(Settings());
         AssertValid(WithMapSizeAndRanges(
             new Vector2Int(DuelSettings.MinSize, DuelSettings.MaxSize), 0,
-            0, 0.25f));
+            0, 0.25f, 0));
         AssertValid(WithMapSizeAndRanges(
             new Vector2Int(DuelSettings.MaxSize, DuelSettings.MinSize),
-            DuelSettings.MaxObstacleDensity, 1, 2));
+            DuelSettings.MaxObstacleDensity, 1, 2, DuelSettings.MaxBushDensity));
     }
 
     static void AssertInvalid(System.Action<DuelSettings> change)
@@ -397,11 +406,12 @@ public class NetworkLobbySnapshotTests
         Assert.That(reason, Is.Empty);
     }
 
-    static DuelSettings WithMapSizeAndRanges(Vector2Int? size, float density, float strength, float scale)
+    static DuelSettings WithMapSizeAndRanges(Vector2Int? size, float density, float strength, float scale, float bushDensity = 0.05f)
     {
         DuelSettings settings = Settings();
         settings.Map.Size = size;
         settings.Map.ObstacleDensity = density;
+        settings.Map.BushDensity = bushDensity;
         settings.Map.NoiseStrength = strength;
         settings.Map.NoiseScale = scale;
         return settings;
@@ -413,6 +423,7 @@ public class NetworkLobbySnapshotTests
         Assert.That(actual.Map.Size, Is.EqualTo(expected.Map.Size));
         Assert.That(actual.Map.Shape, Is.EqualTo(expected.Map.Shape));
         Assert.That(actual.Map.ObstacleDensity, Is.EqualTo(expected.Map.ObstacleDensity));
+        Assert.That(actual.Map.BushDensity, Is.EqualTo(expected.Map.BushDensity));
         Assert.That(actual.Map.Symmetry, Is.EqualTo(expected.Map.Symmetry));
         Assert.That(actual.Map.NoiseStrength, Is.EqualTo(expected.Map.NoiseStrength));
         Assert.That(actual.Map.NoiseScale, Is.EqualTo(expected.Map.NoiseScale));
