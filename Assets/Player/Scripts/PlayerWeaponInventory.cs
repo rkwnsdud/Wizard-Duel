@@ -39,6 +39,7 @@ public class PlayerWeaponInventory : MonoBehaviour
         storedWeapon = previousWeapon;
         return true;
     }
+
     public void SetNearbyPickup(WeaponPickup pickup)
     {
         nearbyPickup = pickup;
@@ -49,4 +50,13 @@ public class PlayerWeaponInventory : MonoBehaviour
         if (nearbyPickup == pickup)
             nearbyPickup = null;
     }
+
+    public void TryPickupNearby()
+    {
+        if (nearbyPickup == null)
+        {
+            return;
+        }
+
+   }
 }

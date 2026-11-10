@@ -6,12 +6,9 @@ public class WeaponPickup : MonoBehaviour
     [SerializeField]
     private WeaponBase weaponPrefab;
 
-    public WeaponBase WeaponPrefab => weaponPrefab;
-
     private void OnTriggerEnter(Collider other)
     {
-        PlayerWeaponInventory inventory =
-            other.GetComponentInParent<PlayerWeaponInventory>();
+        PlayerWeaponInventory inventory = other.GetComponentInParent<PlayerWeaponInventory>();
 
         if (inventory == null)
             return;
@@ -21,8 +18,7 @@ public class WeaponPickup : MonoBehaviour
 
     private void OnTriggerExit(Collider other)
     {
-        PlayerWeaponInventory inventory =
-            other.GetComponentInParent<PlayerWeaponInventory>();
+        PlayerWeaponInventory inventory = other.GetComponentInParent<PlayerWeaponInventory>();
 
         if (inventory == null)
             return;
