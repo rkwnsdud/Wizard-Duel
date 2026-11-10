@@ -16,6 +16,18 @@ PrefabInstance:
       propertyPath: m_Enabled
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 3483601261248268240, guid: a1cc0d0fb37c35449bd995841e69ab7a, type: 3}
+      propertyPath: m_LocalScale.x
+      value: 0.01
+      objectReference: {fileID: 0}
+    - target: {fileID: 3483601261248268240, guid: a1cc0d0fb37c35449bd995841e69ab7a, type: 3}
+      propertyPath: m_LocalScale.y
+      value: 0.01
+      objectReference: {fileID: 0}
+    - target: {fileID: 3483601261248268240, guid: a1cc0d0fb37c35449bd995841e69ab7a, type: 3}
+      propertyPath: m_LocalScale.z
+      value: 0.01
+      objectReference: {fileID: 0}
     - target: {fileID: 3791717283436599051, guid: a1cc0d0fb37c35449bd995841e69ab7a, type: 3}
       propertyPath: m_Enabled
       value: 0
@@ -64,25 +76,13 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: 3483601261248268240, guid: a1cc0d0fb37c35449bd995841e69ab7a, type: 3}
-      propertyPath: m_LocalScale.x
-      value: 0.01
-      objectReference: {fileID: 0}
-    - target: {fileID: 3483601261248268240, guid: a1cc0d0fb37c35449bd995841e69ab7a, type: 3}
-      propertyPath: m_LocalScale.y
-      value: 0.01
-      objectReference: {fileID: 0}
-    - target: {fileID: 3483601261248268240, guid: a1cc0d0fb37c35449bd995841e69ab7a, type: 3}
-      propertyPath: m_LocalScale.z
-      value: 0.01
-      objectReference: {fileID: 0}
     - target: {fileID: 6880158743967379202, guid: a1cc0d0fb37c35449bd995841e69ab7a, type: 3}
       propertyPath: m_Enabled
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 6880158743967379202, guid: a1cc0d0fb37c35449bd995841e69ab7a, type: 3}
       propertyPath: currentWeapon
-      value:
+      value: 
       objectReference: {fileID: 3408941888141757619}
     m_RemovedComponents: []
     m_RemovedGameObjects:
@@ -101,10 +101,18 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 368348533957044283, guid: a1cc0d0fb37c35449bd995841e69ab7a, type: 3}
       insertIndex: -1
       addedObject: {fileID: 7957169812440675240}
+    - targetCorrespondingSourceObject: {fileID: 368348533957044283, guid: a1cc0d0fb37c35449bd995841e69ab7a, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 6900515569440143283}
   m_SourcePrefab: {fileID: 100100000, guid: a1cc0d0fb37c35449bd995841e69ab7a, type: 3}
 --- !u!4 &2525174313372251855 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 8004607256499747338, guid: a1cc0d0fb37c35449bd995841e69ab7a, type: 3}
+  m_PrefabInstance: {fileID: 5484587522368474309}
+  m_PrefabAsset: {fileID: 0}
+--- !u!223 &2704547680010085459 stripped
+Canvas:
+  m_CorrespondingSourceObject: {fileID: 7608075665380452502, guid: a1cc0d0fb37c35449bd995841e69ab7a, type: 3}
   m_PrefabInstance: {fileID: 5484587522368474309}
   m_PrefabAsset: {fileID: 0}
 --- !u!1 &5260635653613004030 stripped
@@ -122,7 +130,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.NetworkObject
   GlobalObjectIdHash: 0
   InScenePlacedSourceGlobalObjectIdHash: 0
@@ -149,7 +157,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e96cb6065543e43c4a752faaa1468eb1, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.Components.NetworkTransform
   ShowTopMostFoldoutHeaderGroup: 1
   NetworkTransformExpanded: 0
@@ -195,7 +203,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 55a10dfc307bc74459e341c9544c20e3, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DuelPlayer
   ShowTopMostFoldoutHeaderGroup: 1
   slot: 0
@@ -203,6 +211,30 @@ MonoBehaviour:
   spawnRuneRadius: 1.35
   blueSpawnColor: {r: 0.08, g: 1.4, b: 2.2, a: 1}
   redSpawnColor: {r: 2.2, g: 0.22, b: 0.035, a: 1}
+--- !u!114 &6900515569440143283
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5260635653613004030}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fefb20e03139e9142909660645c82aa8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerBushVisibility
+  healthBar: {fileID: 2704547680010085459}
+  fadedMaterials:
+  - source: {fileID: 2100000, guid: 0bdfadc34a2aea74e9a41948ea14ff7d, type: 2}
+    faded: {fileID: 2100000, guid: c67ac1f393949be429fb1af472aaa0ab, type: 2}
+  - source: {fileID: 2100000, guid: 6e43de37d5f8346409feff39c7a7debf, type: 2}
+    faded: {fileID: 2100000, guid: 25aeaf5f062017e4f83cd4f69843654b, type: 2}
+  - source: {fileID: 2100000, guid: e15d62164f52c494daa9b2387939b84f, type: 2}
+    faded: {fileID: 2100000, guid: 43f8ee480355d7c42939b09f7503795d, type: 2}
+  - source: {fileID: 2100000, guid: f115592655d1b5b41bf1ed1076e45206, type: 2}
+    faded: {fileID: 2100000, guid: 266b826703453da4182a245d3279ac13, type: 2}
+  - source: {fileID: 2100000, guid: 8441e07cee0083249a603ca00cd94bba, type: 2}
+    faded: {fileID: 2100000, guid: fa668fba46aa79c47901572ecde69b38, type: 2}
 --- !u!1001 &8748689029136786047
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -269,8 +301,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 0553436afbe21d14eafe39037be4396a, type: 3}
-  hitEffectPrefab: {fileID: 2965222256817593503, guid: a164e676dbbd6e54587237e619372c98, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DuelLightningWeapon
 --- !u!4 &4340013173032741177 stripped
 Transform:
