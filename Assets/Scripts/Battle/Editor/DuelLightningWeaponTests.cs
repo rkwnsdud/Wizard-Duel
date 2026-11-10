@@ -112,9 +112,9 @@ public class DuelLightningWeaponTests
         Assert.That(Object.FindObjectsByType<LightningBolt>(FindObjectsSortMode.None), Is.Empty);
     }
 
-    [TestCase(0f, 2f, 5f)]
-    [TestCase(1f, 8f, 15f)]
-    public void Fire_UsesLocalChargeForRangeAndDamage(float charge, float range, float damage)
+    [TestCase(0f, 5f)]
+    [TestCase(1f, 15f)]
+    public void Fire_UsesLocalChargeForDamageAndStopsAtTarget(float charge, float damage)
     {
         Target(Vector3.right * 1.25f);
         Physics.SyncTransforms();
@@ -123,10 +123,48 @@ public class DuelLightningWeaponTests
         Assert.That(sink.Shots.Count, Is.EqualTo(2));
         Assert.That(sink.Shots[0].AttackId, Is.EqualTo(9));
         Assert.That(sink.Shots[0].Start, Is.EqualTo(Origin));
-        Assert.That(sink.Shots[0].Point, Is.EqualTo(Origin + Vector3.right * range));
+        Assert.That(Vector3.Distance(sink.Shots[0].Point, Origin + Vector3.right * 0.75f), Is.LessThan(0.01f));
         Assert.That(sink.Shots[0].Charge, Is.EqualTo(charge));
         Assert.That(sink.Hits, Is.EqualTo(1));
         Assert.That(sink.Damage, Is.EqualTo(damage));
+    }
+
+    [TestCase(0f, 2f)]
+    [TestCase(1f, 8f)]
+    public void Fire_MissKeepsChargedRange(float charge, float range)
+    {
+        Physics.SyncTransforms();
+        var sink = new ShotSink();
+        ((IWeapon)weapon).Fire(10, Vector3.right, charge, sink);
+        Assert.That(sink.Shots[0].Point, Is.EqualTo(Origin + Vector3.right * range));
+        Assert.That(sink.Hits, Is.Zero);
+    }
+
+    [Test]
+    public void Fire_StopsAtNearestLivingTargetRegardlessOfCreationOrder()
+    {
+        Target(Vector3.right * 6f);
+        var nearest = Target(Vector3.right * 3f);
+        nearest.gameObject.AddComponent<BoxCollider>();
+        var dead = Target(Vector3.right * 1.5f);
+        dead.TakeDamage(100f);
+        Physics.SyncTransforms();
+        var sink = new ShotSink();
+        ((IWeapon)weapon).Fire(11, Vector3.right, 1f, sink);
+        Assert.That(sink.Target, Is.SameAs(nearest));
+        Assert.That(sink.Hits, Is.EqualTo(1));
+        Assert.That(Vector3.Distance(sink.Shots[0].Point, Origin + Vector3.right * 2.5f), Is.LessThan(0.01f));
+    }
+
+    [Test]
+    public void Fire_OffCenterTargetWithinBeamAlsoStopsTheBolt()
+    {
+        var target = Target(Vector3.right * 4f + Vector3.forward * 0.7f);
+        Physics.SyncTransforms();
+        var sink = new ShotSink();
+        ((IWeapon)weapon).Fire(12, Vector3.right, 1f, sink);
+        Assert.That(sink.Target, Is.SameAs(target));
+        Assert.That(Vector3.Distance(sink.Shots[0].Point, Origin + Vector3.right * 3.5f), Is.LessThan(0.01f));
     }
 
     [Test]

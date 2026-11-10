@@ -38,7 +38,10 @@ public class BasicWandWeapon : WeaponBase, IWeapon
     public override void Fire()
     {
         PlayerHealth owner = GetComponentInParent<PlayerHealth>();
-        ArcaneBoltProjectile bolt = Instantiate(projectilePrefab, firePoint.position, firePoint.rotation);
+        PlayerAim aim = GetComponentInParent<PlayerAim>();
+        Vector3 direction = Vector3.ProjectOnPlane(aim != null ? aim.transform.forward : transform.root.forward, Vector3.up);
+        if (direction.sqrMagnitude < 0.0001f) direction = Vector3.forward;
+        ArcaneBoltProjectile bolt = Instantiate(projectilePrefab, firePoint.position, Quaternion.LookRotation(direction));
         bolt.Initialize(owner);
         if (audioSource != null && fireSound != null)
             audioSource.PlayOneShot(fireSound);

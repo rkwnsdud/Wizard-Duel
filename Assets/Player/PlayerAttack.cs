@@ -61,6 +61,7 @@ public class PlayerAttack : MonoBehaviour
         : Mathf.Clamp01(1f - CooldownRemaining / activeCooldownDuration);
     // 온라인 전투에서 DuelPlayer가 넣는다. 없으면 오프라인으로 바로 공격한다.
     public IAttackAuthority Authority { get; set; }
+    public bool AttackInputBlocked { get; set; }
     public WeaponBase Weapon => currentWeapon;
 
     // Equipment must be parented to this player's socket first. Switching during
@@ -192,7 +193,7 @@ public class PlayerAttack : MonoBehaviour
     // 공격 버튼을 누른 순간 차징 시작
     private void AttackStarted(InputAction.CallbackContext context)
     {
-        if (currentWeapon == null || IsAttacking || isCharging || IsOnCooldown ||
+        if (AttackInputBlocked || currentWeapon == null || IsAttacking || isCharging || IsOnCooldown ||
             (playerHealth != null && playerHealth.IsDead))
         {
             return;

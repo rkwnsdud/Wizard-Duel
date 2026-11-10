@@ -172,13 +172,6 @@ public class LightOrbWeapon : WeaponBase, IWeapon
     [SerializeField] private AudioClip lightSound;
     private bool presentingOwnShot;
 
-    public void ConfigureForOfflineDuel(Transform point, LightOrbProjectile projectile, AnimationClip clip)
-    {
-        firePoint = point;
-        lightAttackPrefab = projectile;
-        SetAttackAnimation(clip);
-    }
-
     void IWeapon.Fire(uint attackId, Vector3 direction, float charge, IShotSink sink)
     {
         if (sink == null || lightAttackPrefab == null || firePoint == null) return;
