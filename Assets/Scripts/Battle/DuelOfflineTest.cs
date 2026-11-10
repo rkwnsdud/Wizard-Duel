@@ -101,14 +101,15 @@ public sealed class DuelOfflineTest : MonoBehaviour
         orb.SetActive(false);
         orb.transform.SetParent(socket, false);
         orb.transform.SetLocalPositionAndRotation(
-            new Vector3(0.394f, 0.315f, 0.958f),
-            new Quaternion(-0.7438935f, 0.114031404f, 0.18716522f, 0.63133866f));
-        orb.transform.localScale = new Vector3(0.65f, 0.65f, 0.654f);
+            new Vector3(0.062f, 0.152f, 0.206f),
+            new Quaternion(-0.7739676f, 0.065845385f, 0.12816916f, 0.6166127f));
+        // Match the Player-1 orb in PlayerTest, including its hand placement.
+        orb.transform.localScale = Vector3.one * 0.2f;
         Instantiate(lightOrbVisualPrefab, orb.transform).transform.SetLocalPositionAndRotation(
             new Vector3(0f, 2.48f, 0f), Quaternion.identity);
         Transform firePoint = new GameObject("FirePoint").transform;
         firePoint.SetParent(orb.transform, false);
-        firePoint.localPosition = new Vector3(0f, 3.15f, 0f);
+        firePoint.localPosition = new Vector3(0f, 2.485f, 0f);
         lightOrbWeapon = orb.AddComponent<LightOrbWeapon>();
         lightOrbWeapon.ConfigureForOfflineDuel(firePoint, lightOrbProjectilePrefab, lightOrbAttackClip);
     }
