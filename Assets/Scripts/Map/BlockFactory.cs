@@ -8,6 +8,8 @@ public class BlockFactory : MonoBehaviour
     [SerializeField] Block[] floorBlocks;
     [SerializeField] Block[] wallBlocks;
     [SerializeField] Block[] spawnBlocks = new Block[0];
+    [Tooltip("부시 칸(*)에 바닥 위로 까는 덤불. 부시가 없는 손 레이아웃만 쓰는 씬이면 비워 둬도 된다.")]
+    [SerializeField] BushBlock[] bushBlocks = new BushBlock[0];
 
     System.Random random;
     readonly List<Vector3>[] spawnCells = { new List<Vector3>(), new List<Vector3>() };
@@ -26,6 +28,10 @@ public class BlockFactory : MonoBehaviour
     {
         ValidateBlockArray(floorBlocks, "Floor Blocks");
         ValidateBlockArray(wallBlocks, "Wall Blocks");
+        if (bushBlocks != null)
+            for (int i = 0; i < bushBlocks.Length; i++)
+                if (bushBlocks[i] == null)
+                    throw new InvalidOperationException($"BlockFactory Bush Blocks element {i} is not assigned.");
         if (spawnBlocks == null || spawnBlocks.Length < 2)
             throw new InvalidOperationException("BlockFactory requires two spawn block prefabs (Player 1 and Player 2).");
 
@@ -48,17 +54,23 @@ public class BlockFactory : MonoBehaviour
                 throw new InvalidOperationException($"BlockFactory {label} element {i} is not assigned.");
     }
 
-    // . = 바닥, # = 바닥과 벽, B/O = 파랑/주황 스폰 영역, 공백 = 빈 공간
+    // . = 바닥, # = 바닥과 벽, * = 바닥과 부시, B/O = 파랑/주황 스폰 영역, 공백 = 빈 공간
     // 스폰 칸은 모아 두었다가 CreateSpawns에서 영역 가운데에 스폰 타일 하나로 깐다.
     public IEnumerable<IBlock> CreateCell(char cell, Vector3 position, Transform parent)
     {
         int spawnIndex = cell == 'B' ? 0 : cell == 'O' ? 1 : -1;
         if (spawnIndex >= 0) spawnCells[spawnIndex].Add(position);
-        if (cell != '.' && cell != '#') yield break;
+        if (cell != '.' && cell != '#' && cell != BushRegions.Symbol) yield break;
 
         yield return CreateBlock(floorBlocks, position, parent);
         if (cell == '#')
             yield return CreateBlock(wallBlocks, position, parent);
+        if (cell == BushRegions.Symbol)
+        {
+            if (bushBlocks == null || bushBlocks.Length == 0)
+                throw new InvalidOperationException("BlockFactory Bush Blocks must contain at least one prefab for '*' cells.");
+            yield return CreateBlock(bushBlocks, position, parent);
+        }
     }
 
     // 모든 칸을 깐 뒤 부른다. 스폰 타일 프리팹은 스폰 영역 전체를 덮는 크기다.

@@ -154,14 +154,14 @@ MonoBehaviour:
   layout:
   - '###############'
   - '#.............#'
-  - '#......#......#'
-  - '#......#......#'
+  - '#.***..#..**..#'
+  - '#.***..#..**..#'
   - '#.............#'
   - '#...BB...OO...#'
   - '#...BB...OO...#'
   - '#.............#'
-  - '#......#......#'
-  - '#......#......#'
+  - '#......#..**..#'
+  - '#......#..**..#'
   - '###############'
 --- !u!114 &568773227
 MonoBehaviour:
@@ -188,6 +188,8 @@ MonoBehaviour:
   spawnBlocks:
   - {fileID: 6194714110399475094, guid: 57cb17e3681ece848b9f82433d8f88ff, type: 3}
   - {fileID: 7208045001040428938, guid: ff3c1e5e26ff0b545845bfafb0351f39, type: 3}
+  bushBlocks:
+  - {fileID: 5384837213045814529, guid: c87e7197a319345429fe8e8ef2b8f2e6, type: 3}
 --- !u!4 &568773228
 Transform:
   m_ObjectHideFlags: 0
@@ -238,8 +240,9 @@ MonoBehaviour:
   dummyPrefab: {fileID: 7265209467207546497, guid: 11be34856f0c18648be46d1282272402, type: 3}
   dummyRespawnDelay: 1.5
   extraWeapons:
-  - {fileID: 5918805252675816218, guid: a797a62da8b406b42ad029f43ef9cd46, type: 3}
+  - {fileID: 8220961399317443507, guid: c9cf41e51711fb8409d5e098e9ccd5fd, type: 3}
   - {fileID: 241648436553267233, guid: e2592a6a3e1c5be4d908bd34e3e7a4b6, type: 3}
+  - {fileID: 5918805252675816218, guid: a797a62da8b406b42ad029f43ef9cd46, type: 3}
 --- !u!4 &998745937
 Transform:
   m_ObjectHideFlags: 0

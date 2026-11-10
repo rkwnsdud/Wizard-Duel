@@ -177,6 +177,7 @@ public class LobbySessionTests
         var invalidSettings = new[]
         {
             new DuelSettings { Map = new MapGenerationSettings { ObstacleDensity = 0.26f } },
+            new DuelSettings { Map = new MapGenerationSettings { BushDensity = DuelSettings.MaxBushDensity + 0.01f } },
             new DuelSettings { Map = new MapGenerationSettings { NoiseStrength = float.NaN } }
         };
         foreach (DuelSettings invalid in invalidSettings)
@@ -391,6 +392,7 @@ public class LobbySessionTests
         Assert.That(actual.Map.Size, Is.EqualTo(expected.Map.Size));
         Assert.That(actual.Map.Shape, Is.EqualTo(expected.Map.Shape));
         Assert.That(actual.Map.ObstacleDensity, Is.EqualTo(expected.Map.ObstacleDensity));
+        Assert.That(actual.Map.BushDensity, Is.EqualTo(expected.Map.BushDensity));
         Assert.That(actual.Map.Symmetry, Is.EqualTo(expected.Map.Symmetry));
         Assert.That(actual.Map.NoiseStrength, Is.EqualTo(expected.Map.NoiseStrength));
         Assert.That(actual.Map.NoiseScale, Is.EqualTo(expected.Map.NoiseScale));

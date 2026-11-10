@@ -21,6 +21,7 @@ public class NetworkMapSettingsTests
             Size = fixedSize ? new Vector2Int(35, 29) : (Vector2Int?)null,
             Shape = shape,
             ObstacleDensity = 0.27f,
+            BushDensity = 0.13f,
             Symmetry = symmetry,
             NoiseStrength = 0.65f,
             NoiseScale = 1.25f
@@ -35,6 +36,7 @@ public class NetworkMapSettingsTests
         Assert.That(client.Size, Is.EqualTo(original.Size));
         Assert.That(client.Shape, Is.EqualTo(original.Shape));
         Assert.That(client.ObstacleDensity, Is.EqualTo(original.ObstacleDensity));
+        Assert.That(client.BushDensity, Is.EqualTo(original.BushDensity));
         Assert.That(client.Symmetry, Is.EqualTo(original.Symmetry));
         Assert.That(client.NoiseStrength, Is.EqualTo(original.NoiseStrength));
         Assert.That(client.NoiseScale, Is.EqualTo(original.NoiseScale));

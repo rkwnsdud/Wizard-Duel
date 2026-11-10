@@ -12,7 +12,10 @@ public class ProceduralMap : MonoBehaviour, ISpawnPointProvider
     [Tooltip("자동 크기를 끄면 적용되는 크기입니다. Circle/Rectangle/Donut은 최소 25x25, Elongated는 한 변 25·다른 변 13칸 이상이어야 합니다.")]
     [SerializeField] Vector2Int size = new Vector2Int(31, 31);
     [SerializeField] MapShape shape = MapShape.Random;
+    [Tooltip("벽과 엄폐물 칸 수 / 내부 바닥 칸 수. 부시는 세지 않는다.")]
     [SerializeField, Range(0f, 1f)] float obstacleDensity = 0.15f;
+    [Tooltip("부시 칸 수 / 내부 바닥 칸 수. 벽과 엄폐물 다음에 두므로 이 값만 바꾸면 벽은 그대로다. 0이면 부시가 없다.")]
+    [SerializeField, Range(0f, 1f)] float bushDensity = 0.05f;
     [SerializeField] MapSymmetry symmetry = MapSymmetry.Rotate180;
     [SerializeField, Range(0f, 1f)] float noiseStrength = 0.5f;
     [SerializeField, Range(0.25f, 2f)] float noiseScale = 0.75f;
@@ -24,6 +27,8 @@ public class ProceduralMap : MonoBehaviour, ISpawnPointProvider
     readonly List<Transform> pieces = new List<Transform>();
 
     public MapLayout GeneratedLayout { get; private set; }
+    // 깐 부시 칸과 덩어리. 맵을 지우면 null이다. 전투 맵이면 DuelArena가 BushField.Active로 등록한다.
+    public BushField Bushes { get; private set; }
     public IReadOnlyList<IBlock> Blocks => blocks;
     // 맵을 이루는 조각 전체. 앞쪽은 Blocks와 같은 순서의 블록이고, 그 뒤에 배경이 깐 바닥 타일과 장식이 온다.
     // 배경도 맵의 일부라서 시작 화면·로비 화면의 물결은 이 목록을 함께 움직인다.
@@ -46,6 +51,7 @@ public class ProceduralMap : MonoBehaviour, ISpawnPointProvider
             Size = automaticSize ? (Vector2Int?)null : size,
             Shape = shape,
             ObstacleDensity = obstacleDensity,
+            BushDensity = bushDensity,
             Symmetry = symmetry,
             NoiseStrength = noiseStrength,
             NoiseScale = noiseScale
@@ -63,6 +69,7 @@ public class ProceduralMap : MonoBehaviour, ISpawnPointProvider
         GeneratedLayout = generatedLayout;
         SpawnPoints = blockFactory.SpawnPoints;
         string[] layout = generatedLayout.ToLayout();
+        Bushes = new BushField(layout, transform, cellSize);
         for (int z = 0; z < layout.Length; z++)
         {
             for (int x = 0; x < layout[z].Length; x++)
@@ -70,7 +77,11 @@ public class ProceduralMap : MonoBehaviour, ISpawnPointProvider
                 Vector3 position = new Vector3(
                     (x - (layout[z].Length - 1) * 0.5f) * cellSize, 0f,
                     ((layout.Length - 1) * 0.5f - z) * cellSize);
-                blocks.AddRange(blockFactory.CreateCell(layout[z][x], position, transform));
+                foreach (IBlock block in blockFactory.CreateCell(layout[z][x], position, transform))
+                {
+                    blocks.Add(block);
+                    Bushes.Add(x, z, block);
+                }
             }
         }
         blocks.AddRange(blockFactory.CreateSpawns(transform));
@@ -95,15 +106,21 @@ public class ProceduralMap : MonoBehaviour, ISpawnPointProvider
         SpawnPoints = null;
     }
 
+    void OnDestroy() => BushField.Deactivate(Bushes);
+
     void DestroyBlocks()
     {
+        BushField.Deactivate(Bushes);
+        Bushes = null;
         foreach (IBlock block in blocks)
         {
             Block instance = (Block)block;
             if (instance == null) continue;
             // Destroy가 프레임 끝에 처리되기 전에도 이전 맵의 충돌은 비활성화한다.
             instance.gameObject.SetActive(false);
-            Destroy(instance.gameObject);
+            // 에디트 모드(EditMode 테스트)에서는 Destroy가 지우지 못하고 오류만 남긴다. 배경 빌더와 같이 바로 지운다.
+            if (Application.isPlaying) Destroy(instance.gameObject);
+            else DestroyImmediate(instance.gameObject);
         }
         blocks.Clear();
         pieces.Clear();

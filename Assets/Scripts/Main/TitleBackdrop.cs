@@ -48,7 +48,7 @@ public class TitleBackdrop : MonoBehaviour
     [SerializeField] float viewSharpness = 2.2f;
 
     [Header("전투")]
-    [Tooltip("카메라를 내 플레이어에게 넘긴 뒤의 시야각과 안개. DuelOfflineTest 씬과 같은 에셋(Assets/Settings/DuelCamera)을 쓴다.")]
+    [Tooltip("카메라를 내 플레이어에게 넘긴 뒤의 투영과 안개. DuelOfflineTest 씬과 같은 에셋(Assets/Settings/DuelCamera)을 쓴다.")]
     [SerializeField] DuelCameraSettings battleCamera;
 
     public Transform[] SpawnPoints => map.SpawnPoints;
@@ -72,6 +72,8 @@ public class TitleBackdrop : MonoBehaviour
     UniversalRenderPipelineAsset pipeline;
     float originalShadowDistance;
     float originalFieldOfView;
+    // 전투 카메라가 직교일 수 있어서, 시작 화면으로 돌아오면 원래 투영으로 되돌린다.
+    bool originalOrthographic;
     // map.Pieces(블록과 배경 조각)의 제자리와 출발 시간. 순서는 map.Pieces와 같다.
     Vector3[] homes;
     float[] delays;
@@ -89,6 +91,7 @@ public class TitleBackdrop : MonoBehaviour
         pipeline = GraphicsSettings.currentRenderPipeline as UniversalRenderPipelineAsset;
         if (pipeline != null) originalShadowDistance = pipeline.shadowDistance;
         originalFieldOfView = viewCamera.fieldOfView;
+        originalOrthographic = viewCamera.orthographic;
         ShowTitle(titleSettings, false);
     }
 
@@ -99,7 +102,14 @@ public class TitleBackdrop : MonoBehaviour
         // 씬을 닫을 때는 카메라가 먼저 사라질 수 있다.
         if (viewCamera == null) return;
         viewCamera.ResetProjectionMatrix();
-        if (released) viewCamera.fieldOfView = originalFieldOfView;
+        if (released) RestoreProjection();
+    }
+
+    // 전투에 넘기면서 바꾼 시야각과 투영을 시작 화면 값으로 되돌린다.
+    void RestoreProjection()
+    {
+        viewCamera.orthographic = originalOrthographic;
+        viewCamera.fieldOfView = originalFieldOfView;
     }
 
     // 맵을 주기적으로 바꾸며 도는 시작 화면 배경으로 돌아간다. 새 맵은 settings로 만들고 시드와 형태만 랜덤으로 고른다.
@@ -111,7 +121,7 @@ public class TitleBackdrop : MonoBehaviour
         if (map == null) return;
         // 전투에서 돌아오면 감췄던 맵 자리에 새 맵을 솟게 하고, 카메라는 시작 화면 거리로 바로 옮긴다.
         if (released || !map.gameObject.activeSelf) keepMap = false;
-        if (released) viewCamera.fieldOfView = originalFieldOfView;
+        if (released) RestoreProjection();
         snapDistance |= released;
         released = false;
         map.gameObject.SetActive(true);
@@ -137,10 +147,15 @@ public class TitleBackdrop : MonoBehaviour
     }
 
     // 순환을 멈추고 이 설정의 맵을 바로 솟게 한다. 만들 수 없는 설정이면 이전 맵을 그대로 두고 false를 돌려준다.
+    // 부시만 달라졌으면(부시 밀도만 바꿨을 때) 벽과 바닥은 지금 높이 그대로 두고 새로 생긴 부시만 땅에서 솟게 한다.
     public bool ShowPreview(MapGenerationSettings settings)
     {
         preview = true;
         StopAllCoroutines();
+        MapLayout before = map.GeneratedLayout;
+        var groundDrops = new Dictionary<Vector3, float>();
+        var bushDrops = new Dictionary<Vector3, float>();
+        RecordDrops(groundDrops, bushDrops);
         try
         {
             Rebuild(settings);
@@ -154,7 +169,20 @@ public class TitleBackdrop : MonoBehaviour
             return false;
         }
 
-        StartCoroutine(Wave(true));
+        if (before != null && SameGround(before, map.GeneratedLayout))
+        {
+            IReadOnlyList<Transform> pieces = map.Pieces;
+            for (int p = 0; p < pieces.Count; p++)
+            {
+                bool bush = IsBush(pieces[p]);
+                // 전에 없던 부시는 땅속에서 출발한다. 같은 자리에 있던 조각은 하던 높이에서 이어 간다.
+                if (!(bush ? bushDrops : groundDrops).TryGetValue(homes[p], out float drop))
+                    drop = bush ? -sinkDepth : 0f;
+                pieces[p].localPosition = homes[p] + Vector3.up * drop;
+            }
+            StartCoroutine(Settle());
+        }
+        else StartCoroutine(Wave(true));
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
         MapLayout layout = map.GeneratedLayout;
         uint signature = 2166136261;
@@ -164,6 +192,32 @@ public class TitleBackdrop : MonoBehaviour
 #endif
         return true;
     }
+
+    // 지금 맵의 조각마다 제자리에서 얼마나 내려가 있는지 제자리 좌표로 적는다. 부시는 같은 칸의 바닥과 제자리가 겹칠 수 있어 따로 적는다.
+    void RecordDrops(Dictionary<Vector3, float> ground, Dictionary<Vector3, float> bushes)
+    {
+        IReadOnlyList<Transform> pieces = map.Pieces;
+        if (homes == null || homes.Length != pieces.Count) return;
+        for (int p = 0; p < pieces.Count; p++)
+        {
+            if (pieces[p] == null) continue;
+            (IsBush(pieces[p]) ? bushes : ground)[homes[p]] = pieces[p].localPosition.y - homes[p].y;
+        }
+    }
+
+    static bool IsBush(Transform piece) => piece.TryGetComponent(out BushBlock _);
+
+    // 부시를 바닥으로 보면 두 맵이 칸마다 같은지. 부시 밀도만 바뀐 맵은 벽, 바닥, 스폰이 그대로라 true다.
+    static bool SameGround(MapLayout a, MapLayout b)
+    {
+        if (a.Size != b.Size || a.SpawnA != b.SpawnA || a.SpawnB != b.SpawnB) return false;
+        for (int x = 0; x < a.Width; x++)
+            for (int y = 0; y < a.Height; y++)
+                if (Ground(a[x, y]) != Ground(b[x, y])) return false;
+        return true;
+    }
+
+    static MapCell Ground(MapCell cell) => cell == MapCell.Bush ? MapCell.Floor : cell;
 
     // 전투 준비가 시작되면 같은 자리에 전투 맵이 서므로 미리보기 맵을 감춘다. 카메라는 소환 전까지 그대로 둔다.
     public void HideMap()
@@ -180,7 +234,7 @@ public class TitleBackdrop : MonoBehaviour
     {
         // 플레이어 디스폰이 늦게 와도 따라가던 카메라와 겹치지 않게 먼저 끈다.
         if (viewCamera.TryGetComponent(out CameraFollow follow)) follow.enabled = false;
-        if (released) viewCamera.fieldOfView = originalFieldOfView;
+        if (released) RestoreProjection();
         released = false;
         snapDistance = true;
         if (map == null) return;
@@ -188,7 +242,7 @@ public class TitleBackdrop : MonoBehaviour
         if (background != null) background.gameObject.SetActive(true);
     }
 
-    // 내 플레이어가 소환되면 카메라를 넘긴다. 렌즈 이동과 늘려 둔 그림자 거리를 되돌리고 시야와 안개를 전투에 맞춘다.
+    // 내 플레이어가 소환되면 카메라를 넘긴다. 렌즈 이동과 늘려 둔 그림자 거리를 되돌리고 투영과 안개를 전투에 맞춘다.
     public void ReleaseCamera()
     {
         released = true;
