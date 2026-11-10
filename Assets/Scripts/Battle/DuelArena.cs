@@ -15,6 +15,16 @@ public sealed class DuelArena : MonoBehaviour
     [SerializeField] NetworkObject[] playerPrefabs;
     [Tooltip("스폰 이펙트가 끝난 뒤, 소환 메시지가 클라이언트에 닿도록 전투 입력을 켜기 전에 더 기다리는 시간.")]
     [SerializeField, Min(0f)] float combatDelayPadding = 0.15f;
+    [SerializeField] WeaponSpawnCatalog weaponCatalog;
+    public ArenaWeaponSpawner Weapons { get; private set; }
+
+    public void RegisterWeaponMessages(NetworkManager manager)
+    {
+        if (Weapons == null) Weapons = gameObject.AddComponent<ArenaWeaponSpawner>();
+        Weapons.Initialize(manager, weaponCatalog);
+    }
+
+    public void UnregisterWeaponMessages() => Weapons?.Shutdown();
 
     readonly List<NetworkObject> players = new List<NetworkObject>();
     readonly List<DuelPlayer> duelists = new List<DuelPlayer>();
@@ -94,12 +104,14 @@ public sealed class DuelArena : MonoBehaviour
         combat = null;
         foreach (DuelPlayer player in spawned)
             if (player != null) player.ServerEnableCombat();
+        Weapons?.BeginRound(map, duelists);
         combatEnabled?.Invoke();
     }
 
     // 서버에서 승부가 나면 부른다. 두 플레이어의 입력을 끄고 플레이어와 맵은 결과를 보여 주는 동안 그대로 둔다.
     public void EndCombat()
     {
+        Weapons?.EndRound();
         if (combat != null) StopCoroutine(combat);
         combat = null;
         playerDefeated = null;
@@ -111,6 +123,7 @@ public sealed class DuelArena : MonoBehaviour
     // 클라이언트는 시작 화면이나 로비 화면으로 돌아갈 때 부른다.
     public void Clear()
     {
+        Weapons?.Clear();
         if (combat != null) StopCoroutine(combat);
         combat = null;
         playerDefeated = null;

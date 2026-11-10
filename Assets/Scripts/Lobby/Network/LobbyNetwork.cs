@@ -225,6 +225,7 @@ public sealed class LobbyNetwork : MonoBehaviour
 
     void RegisterMessages()
     {
+        if (arena != null) arena.RegisterWeaponMessages(manager);
         manager.CustomMessagingManager.RegisterNamedMessageHandler(SnapshotMessage, OnSnapshot);
         manager.CustomMessagingManager.RegisterNamedMessageHandler(SettingsMessage, OnSettings);
         manager.CustomMessagingManager.RegisterNamedMessageHandler(ErrorMessage, OnError);
@@ -235,6 +236,7 @@ public sealed class LobbyNetwork : MonoBehaviour
 
     void UnregisterMessages()
     {
+        if (arena != null) arena.UnregisterWeaponMessages();
         manager.CustomMessagingManager?.UnregisterNamedMessageHandler(SnapshotMessage);
         manager.CustomMessagingManager?.UnregisterNamedMessageHandler(SettingsMessage);
         manager.CustomMessagingManager?.UnregisterNamedMessageHandler(ErrorMessage);

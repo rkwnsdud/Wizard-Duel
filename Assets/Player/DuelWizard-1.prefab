@@ -325,69 +325,25 @@ PrefabInstance:
   m_Modification:
     serializedVersion: 3
     m_TransformParent: {fileID: 2525174313372251855}
-    m_Modifications:
-    - target: {fileID: 4995411922631248710, guid: 6b7c5eb841461db4784b142b9c3c5d99, type: 3}
-      propertyPath: m_LocalPosition.x
-      value: 0.27018064
-      objectReference: {fileID: 0}
-    - target: {fileID: 4995411922631248710, guid: 6b7c5eb841461db4784b142b9c3c5d99, type: 3}
-      propertyPath: m_LocalPosition.y
-      value: 0.18670687
-      objectReference: {fileID: 0}
-    - target: {fileID: 4995411922631248710, guid: 6b7c5eb841461db4784b142b9c3c5d99, type: 3}
-      propertyPath: m_LocalPosition.z
-      value: 0.49401486
-      objectReference: {fileID: 0}
-    - target: {fileID: 4995411922631248710, guid: 6b7c5eb841461db4784b142b9c3c5d99, type: 3}
-      propertyPath: m_LocalRotation.w
-      value: 0.75100106
-      objectReference: {fileID: 0}
-    - target: {fileID: 4995411922631248710, guid: 6b7c5eb841461db4784b142b9c3c5d99, type: 3}
-      propertyPath: m_LocalRotation.x
-      value: -0.60682046
-      objectReference: {fileID: 0}
-    - target: {fileID: 4995411922631248710, guid: 6b7c5eb841461db4784b142b9c3c5d99, type: 3}
-      propertyPath: m_LocalRotation.y
-      value: 0.18719545
-      objectReference: {fileID: 0}
-    - target: {fileID: 4995411922631248710, guid: 6b7c5eb841461db4784b142b9c3c5d99, type: 3}
-      propertyPath: m_LocalRotation.z
-      value: 0.18089838
-      objectReference: {fileID: 0}
-    - target: {fileID: 4995411922631248710, guid: 6b7c5eb841461db4784b142b9c3c5d99, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.x
-      value: 197.972
-      objectReference: {fileID: 0}
-    - target: {fileID: 4995411922631248710, guid: 6b7c5eb841461db4784b142b9c3c5d99, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.y
-      value: 165.234
-      objectReference: {fileID: 0}
-    - target: {fileID: 4995411922631248710, guid: 6b7c5eb841461db4784b142b9c3c5d99, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.z
-      value: -51.563995
-      objectReference: {fileID: 0}
-    - target: {fileID: 7849561195481495274, guid: 6b7c5eb841461db4784b142b9c3c5d99, type: 3}
-      propertyPath: m_Name
-      value: DuelLightningStaff
-      objectReference: {fileID: 0}
+    m_Modifications: []
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents: []
-  m_SourcePrefab: {fileID: 100100000, guid: 6b7c5eb841461db4784b142b9c3c5d99, type: 3}
+  m_SourcePrefab: {fileID: 100100000, guid: a797a62da8b406b42ad029f43ef9cd46, type: 3}
 --- !u!114 &3408941888141757619 stripped
 MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 6208045803293748940, guid: 6b7c5eb841461db4784b142b9c3c5d99, type: 3}
+  m_CorrespondingSourceObject: {fileID: 5918805252675816218, guid: a797a62da8b406b42ad029f43ef9cd46, type: 3}
   m_PrefabInstance: {fileID: 8748689029136786047}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 0553436afbe21d14eafe39037be4396a, type: 3}
+  m_Script: {fileID: 11500000, guid: 23e8bdbba6a2e3e43894e0951db70f68, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::DuelLightningWeapon
+  m_EditorClassIdentifier: Assembly-CSharp::BasicWandWeapon
 --- !u!4 &4340013173032741177 stripped
 Transform:
-  m_CorrespondingSourceObject: {fileID: 4995411922631248710, guid: 6b7c5eb841461db4784b142b9c3c5d99, type: 3}
+  m_CorrespondingSourceObject: {fileID: 3759419378231829450, guid: a797a62da8b406b42ad029f43ef9cd46, type: 3}
   m_PrefabInstance: {fileID: 8748689029136786047}
   m_PrefabAsset: {fileID: 0}

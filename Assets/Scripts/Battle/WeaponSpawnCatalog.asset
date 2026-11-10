@@ -1,0 +1,53 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c5fb822989034de9914eb2e08e4da580, type: 3}
+  m_Name: WeaponSpawnCatalog
+  m_EditorClassIdentifier: Assembly-CSharp::WeaponSpawnCatalog
+  notificationFont: {fileID: 11400000, guid: ef2ba2f6499fe014a9ef0560a9e09d61, type: 2}
+  notificationSound: {fileID: 8300000, guid: f526d9983f4f4534b1bd77b18cb4d06f, type: 3}
+  notificationVolume: 0.22
+  entries:
+  - id: 1
+    prefab: {fileID: 5918805252675816218, guid: a797a62da8b406b42ad029f43ef9cd46, type: 3}
+    canSpawn: 0
+    alignLongestAxis: 1
+    displayRotation: {x: 0, y: 0, z: -8}
+    displaySize: 0.85
+    rotationSpeed: 30
+  - id: 2
+    prefab: {fileID: 6208045803293748940, guid: 6b7c5eb841461db4784b142b9c3c5d99, type: 3}
+    canSpawn: 1
+    alignLongestAxis: 1
+    displayRotation: {x: 0, y: 0, z: -8}
+    displaySize: 2.8125
+    rotationSpeed: 30
+  - id: 3
+    prefab: {fileID: 241648436553267233, guid: e2592a6a3e1c5be4d908bd34e3e7a4b6, type: 3}
+    canSpawn: 1
+    alignLongestAxis: 0
+    displayRotation: {x: 0, y: 20, z: 0}
+    displaySize: 0.975
+    rotationSpeed: 30
+  - id: 4
+    prefab: {fileID: 1264406045734964430, guid: 554d672bbaff32c47be49e14173c711f, type: 3}
+    canSpawn: 1
+    alignLongestAxis: 0
+    displayRotation: {x: 70, y: 0, z: -8}
+    displaySize: 1.125
+    rotationSpeed: 30
+  - id: 5
+    prefab: {fileID: 8220961399317443507, guid: c9cf41e51711fb8409d5e098e9ccd5fd, type: 3}
+    canSpawn: 1
+    alignLongestAxis: 1
+    displayRotation: {x: 0, y: 0, z: 8}
+    displaySize: 1.575
+    rotationSpeed: 30

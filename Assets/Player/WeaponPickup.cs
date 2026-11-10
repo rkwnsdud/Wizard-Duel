@@ -5,6 +5,7 @@ public class WeaponPickup : MonoBehaviour
 {
     [SerializeField]
     private WeaponBase weaponPrefab;
+    public WeaponBase WeaponPrefab => weaponPrefab;
 
     private void OnTriggerEnter(Collider other)
     {

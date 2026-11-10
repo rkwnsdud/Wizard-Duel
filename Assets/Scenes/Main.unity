@@ -16955,6 +16955,7 @@ MonoBehaviour:
   - {fileID: 4760838517846775089, guid: 902e0f01f8488be408e2ba4f863b2e6e, type: 3}
   - {fileID: 7265209467207546497, guid: 11be34856f0c18648be46d1282272402, type: 3}
   combatDelayPadding: 0.15
+  weaponCatalog: {fileID: 11400000, guid: c9a5214f81cc43d89da7e25b81884f20, type: 2}
 --- !u!114 &1787997947
 MonoBehaviour:
   m_ObjectHideFlags: 0
