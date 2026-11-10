@@ -16,6 +16,9 @@ public sealed class DuelOfflineTest : MonoBehaviour
     [SerializeField] NetworkObject dummyPrefab;
     [Tooltip("더미가 쓰러진 뒤 다시 세우기까지 기다리는 시간.")]
     [SerializeField, Min(0f)] float dummyRespawnDelay = 1.5f;
+    [Tooltip("무기 변경 패널에 더할 무기 프리팹. 플레이어를 세울 때마다 WeaponSocket에 꺼진 채로 넣는다(같은 이름이 이미 있으면 건너뛴다). " +
+             "IWeapon이 아닌 무기는 그 무기를 든 동안만 무기 자체의 오프라인 판정으로 쏜다.")]
+    [SerializeField] WeaponBase[] extraWeapons = System.Array.Empty<WeaponBase>();
 
     DuelPlayer player;
     DuelPlayer dummy;
@@ -23,10 +26,23 @@ public sealed class DuelOfflineTest : MonoBehaviour
     PlayerBushVisibility dummyVisibility;
     // 더미가 서 있는 부시 덩어리 번호. -1이면 스폰 자리다.
     int dummyBush = -1;
+    // 프리팹에 저장된 더미 레이어. 오프라인 판정 무기를 든 동안만 Player 레이어로 바꾼다.
+    int dummyLayer;
     // 0보다 작으면 예약이 없다.
     float combatAt = -1f;
     float dummyRespawnAt = -1f;
     GUIStyle helpStyle;
+
+    // 도움말 상자 아래 무기 변경 패널. 플레이어 WeaponSocket에 들어 있는 무기(꺼진 예비 무기 포함)를 고른다.
+    const float WeaponRowHeight = 36f;
+    PlayerAttack playerAttack;
+    WeaponBase[] weapons = System.Array.Empty<WeaponBase>();
+    // 고른 무기의 오브젝트 이름. R로 다시 세워도 같은 무기를 들고, 공격 중에 고르면 공격이 끝난 뒤 바꾼다.
+    // null이면 프리팹의 기본 무기를 그대로 든다.
+    string selectedWeapon;
+    GUIStyle weaponButtonStyle;
+    // 도움말 상자(y 16, 높이 92) 바로 아래에 둔다.
+    Rect WeaponPanelRect => new Rect(16f, 116f, 440f, 46f + weapons.Length * (WeaponRowHeight + 4f));
 
     void Start()
     {
@@ -54,6 +70,75 @@ public sealed class DuelOfflineTest : MonoBehaviour
             if (player != null) player.ServerEnableCombat();
         }
         if (dummyRespawnAt >= 0f && Time.time >= dummyRespawnAt) SpawnDummy();
+        UpdateWeaponSwitch();
+    }
+
+    // 숫자 키나 패널 버튼으로 고른 무기를 TryEquipWeapon으로 장착한다. 호스트 혼자이므로 로컬 장착이 곧 전체 상태다.
+    void UpdateWeaponSwitch()
+    {
+        if (playerAttack == null) return;
+        Keyboard keyboard = Keyboard.current;
+        if (keyboard != null)
+            for (int i = 0; i < weapons.Length && i < 9; i++)
+                if (keyboard[Key.Digit1 + i].wasPressedThisFrame) selectedWeapon = weapons[i].name;
+
+        // 패널 버튼을 누르는 왼쪽 클릭이 공격으로 나가면 공격 중이라 장착이 거절되므로, 패널 위에서는 공격 입력을 막는다.
+        // 입력 이벤트는 다음 프레임 Update 전에 처리되므로 이번 프레임의 마우스 위치로 미리 정해 둔다.
+        Mouse mouse = Mouse.current;
+        if (mouse != null)
+        {
+            Vector2 position = mouse.position.ReadValue();
+            playerAttack.AttackInputBlocked = WeaponPanelRect.Contains(new Vector2(position.x, Screen.height - position.y));
+        }
+
+        EquipSelectedWeapon();
+        SyncFireMode();
+    }
+
+    void EquipSelectedWeapon()
+    {
+        if (selectedWeapon == null || (playerAttack.CurrentWeapon != null && playerAttack.CurrentWeapon.name == selectedWeapon)) return;
+        WeaponBase target = System.Array.Find(weapons, weapon => weapon != null && weapon.name == selectedWeapon);
+        if (target == null)
+        {
+            selectedWeapon = null;
+            return;
+        }
+        // 공격·차징 중이거나 쓰러져 있으면 거절되므로 다음 프레임에 다시 시도한다.
+        if (playerAttack.TryEquipWeapon(target))
+            Debug.Log($"[OfflineTest] Equipped {target.name}{(target is IWeapon ? "" : " (offline fire)")}", this);
+    }
+
+    // DuelPlayer는 IWeapon이 아닌 무기의 발사를 건너뛴다. 그런 무기를 든 동안은 Authority를 비워
+    // PlayerAttack이 무기의 Fire()를 직접 부르게 한다(피해는 서버를 거치지 않고 이 화면에서만 들어간다).
+    // 그런 무기의 투사체는 Player 레이어만 맞히는데 대전 캐릭터는 Default 레이어라서, 그동안만 더미를 Player 레이어로 옮긴다.
+    // 온라인 무기는 Main과 같은 Authority·레이어로 시험한다. 다시 세우면 DuelPlayer가 Authority를 넣으므로 매 프레임 맞춘다.
+    void SyncFireMode()
+    {
+        bool online = playerAttack.CurrentWeapon is IWeapon;
+        playerAttack.Authority = online ? player : null;
+        if (dummy != null) dummy.gameObject.layer = online ? dummyLayer : LayerMask.NameToLayer("Player");
+    }
+
+    // 꺼진 부모 아래에서 만들어, 소켓에 붙기 전에 무기의 Awake·OnEnable이 돌지 않게 한다.
+    void AddExtraWeapons()
+    {
+        Transform socket = playerAttack.CurrentWeapon != null ? playerAttack.CurrentWeapon.transform.parent : null;
+        if (socket == null) return;
+        var holder = new GameObject("Offline test weapon holder");
+        holder.SetActive(false);
+        foreach (WeaponBase prefab in extraWeapons)
+        {
+            if (prefab == null || socket.Find(prefab.name) != null) continue;
+            WeaponBase weapon = Instantiate(prefab, holder.transform, false);
+            weapon.name = prefab.name;
+            weapon.gameObject.SetActive(false);
+            weapon.transform.SetParent(socket, false);
+            // 씬에 놓였던 자리를 루트에 그대로 저장한 프리팹(화염 향로)은 손에서 수십 m 떨어지므로 소켓 원점에 둔다.
+            if (weapon.transform.localPosition.sqrMagnitude > 1f)
+                weapon.transform.SetLocalPositionAndRotation(Vector3.zero, Quaternion.identity);
+        }
+        Destroy(holder);
     }
 
     // 플레이어와 더미를 각자의 스폰 위치에 새로 세운다.
@@ -63,6 +148,9 @@ public sealed class DuelOfflineTest : MonoBehaviour
         Despawn(player);
         player = Spawn(playerPrefab, 0);
         player.NetworkObject.SpawnAsPlayerObject(manager.LocalClientId);
+        playerAttack = player.GetComponent<PlayerAttack>();
+        AddExtraWeapons();
+        weapons = playerAttack.GetComponentsInChildren<WeaponBase>(true);
         combatAt = Time.time + player.SpawnEffectDuration;
         FollowPlayer();
     }
@@ -75,6 +163,7 @@ public sealed class DuelOfflineTest : MonoBehaviour
         dummy = Spawn(dummyPrefab, 1);
         dummy.NetworkObject.Spawn();
         dummy.name = "Dummy (Player-2)";
+        dummyLayer = dummy.gameObject.layer;
         dummy.Defeated += OnDummyDefeated;
         dummyHealth = dummy.GetComponent<PlayerHealth>();
         dummyVisibility = dummy.GetComponent<PlayerBushVisibility>();
@@ -134,5 +223,44 @@ public sealed class DuelOfflineTest : MonoBehaviour
         GUI.Box(new Rect(16f, 16f, 600f, 92f),
             $"온라인 전투 스크립트 오프라인 테스트\n더미 체력 {health}    더미 위치 {place} ({look})\n" +
             "R: 다시 세우기    B: 더미를 다음 부시로    T: 더미 공격(부시 노출)", helpStyle);
+        DrawWeaponPanel();
+    }
+
+    void DrawWeaponPanel()
+    {
+        if (playerAttack == null || weapons.Length == 0) return;
+        weaponButtonStyle ??= new GUIStyle(GUI.skin.button)
+        {
+            fontSize = 17, alignment = TextAnchor.MiddleLeft, padding = new RectOffset(12, 12, 4, 4)
+        };
+        Rect panel = WeaponPanelRect;
+        GUI.Box(panel, $"무기 변경    숫자 키 1~{Mathf.Min(weapons.Length, 9)}", helpStyle);
+        for (int i = 0; i < weapons.Length; i++)
+        {
+            WeaponBase weapon = weapons[i];
+            if (weapon == null) continue;
+            bool equipped = playerAttack.CurrentWeapon == weapon;
+            // 공격 중에 고르면 끝난 뒤 바뀌므로 그동안 대기로 보여 준다.
+            string state = equipped ? "    장착 중" : weapon.name == selectedWeapon ? "    대기" : "";
+            Rect row = new Rect(panel.x + 8f, panel.y + 40f + i * (WeaponRowHeight + 4f), panel.width - 16f, WeaponRowHeight);
+            Color previous = GUI.backgroundColor;
+            if (equipped) GUI.backgroundColor = new Color(1f, 0.7f, 0.3f);
+            if (GUI.Button(row, $"{i + 1}. {WeaponLabel(weapon)}{state}", weaponButtonStyle)) selectedWeapon = weapon.name;
+            GUI.backgroundColor = previous;
+        }
+    }
+
+    static string WeaponLabel(WeaponBase weapon)
+    {
+        string label = weapon switch
+        {
+            DuelLightningWeapon => "번개 지팡이",
+            ExplosionMagicWeapon => "폭발 마법 책",
+            FireCenserWeapon => "화염 향로",
+            LightOrbWeapon => "빛 반사 구슬",
+            BasicWandWeapon => "기본 완드",
+            _ => weapon.name,
+        };
+        return weapon is IWeapon ? label : label + " · 오프라인 판정";
     }
 }
