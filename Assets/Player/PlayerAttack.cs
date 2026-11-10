@@ -155,7 +155,7 @@ public class PlayerAttack : MonoBehaviour
 
         inputActions.Player.Attack.started += AttackStarted;
         inputActions.Player.Attack.canceled += Attack;
-
+        inputActions.Player.Interact.performed += OnInteract;
         inputActions.Enable();
     }
 
@@ -165,6 +165,7 @@ public class PlayerAttack : MonoBehaviour
         {
             inputActions.Player.Attack.started -= AttackStarted;
             inputActions.Player.Attack.canceled -= Attack;
+            inputActions.Player.Interact.performed -= OnInteract;
             inputActions.Disable();
         }
 
@@ -315,5 +316,16 @@ public class PlayerAttack : MonoBehaviour
     {
         RestoreWeaponController();
         inputActions?.Dispose();
+    }
+
+    private void OnInteract(InputAction.CallbackContext context)
+    {
+        // 입력 감지
+        PlayerWeaponInventory inventory = GetComponent<PlayerWeaponInventory>();
+
+        if (inventory != null) 
+            return;
+
+        inventory.TryPickupNearby();
     }
 }
