@@ -44,6 +44,8 @@ public sealed class DuelArena : MonoBehaviour
             return false;
         }
 
+        // 가시성 판정은 지금 싸우는 맵의 부시만 본다. map이 지워지거나 다시 만들어지면 스스로 등록을 푼다.
+        BushField.Activate(map.Bushes);
         MapLayout layout = map.GeneratedLayout;
         Debug.Log($"[Arena] Ready settings={JsonUtility.ToJson(new NetworkMapSettings(settings))} shape={layout.Shape} " +
             $"size={layout.Size} spawnA={layout.SpawnA} spawnB={layout.SpawnB} fingerprint={Fingerprint}");

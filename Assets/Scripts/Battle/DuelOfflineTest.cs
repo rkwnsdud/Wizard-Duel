@@ -23,6 +23,9 @@ public sealed class DuelOfflineTest : MonoBehaviour
     DuelPlayer player;
     DuelPlayer dummy;
     PlayerHealth dummyHealth;
+    PlayerBushVisibility dummyVisibility;
+    // 더미가 서 있는 부시 덩어리 번호. -1이면 스폰 자리다.
+    int dummyBush = -1;
     // 프리팹에 저장된 더미 레이어. 오프라인 판정 무기를 든 동안만 Player 레이어로 바꾼다.
     int dummyLayer;
     // 0보다 작으면 예약이 없다.
@@ -30,7 +33,7 @@ public sealed class DuelOfflineTest : MonoBehaviour
     float dummyRespawnAt = -1f;
     GUIStyle helpStyle;
 
-    // 왼쪽 위 무기 변경 패널. 플레이어 WeaponSocket에 들어 있는 무기(꺼진 예비 무기 포함)를 고른다.
+    // 도움말 상자 아래 무기 변경 패널. 플레이어 WeaponSocket에 들어 있는 무기(꺼진 예비 무기 포함)를 고른다.
     const float WeaponRowHeight = 36f;
     PlayerAttack playerAttack;
     WeaponBase[] weapons = System.Array.Empty<WeaponBase>();
@@ -38,7 +41,8 @@ public sealed class DuelOfflineTest : MonoBehaviour
     // null이면 프리팹의 기본 무기를 그대로 든다.
     string selectedWeapon;
     GUIStyle weaponButtonStyle;
-    Rect WeaponPanelRect => new Rect(16f, 88f, 440f, 46f + weapons.Length * (WeaponRowHeight + 4f));
+    // 도움말 상자(y 16, 높이 92) 바로 아래에 둔다.
+    Rect WeaponPanelRect => new Rect(16f, 116f, 440f, 46f + weapons.Length * (WeaponRowHeight + 4f));
 
     void Start()
     {
@@ -54,7 +58,11 @@ public sealed class DuelOfflineTest : MonoBehaviour
     void Update()
     {
         if (!manager.IsServer) return;
-        if (Keyboard.current != null && Keyboard.current.rKey.wasPressedThisFrame) Respawn();
+        Keyboard keyboard = Keyboard.current;
+        if (keyboard != null && keyboard.rKey.wasPressedThisFrame) Respawn();
+        if (keyboard != null && keyboard.bKey.wasPressedThisFrame) MoveDummyToNextBush();
+        // 상대 화면이 더미의 공격 시작(PlayAttackRpc)을 받은 것처럼 부시 노출과 공격 모션을 재생한다. 더미는 전투가 꺼져 있어 쏘지는 않는다.
+        if (keyboard != null && keyboard.tKey.wasPressedThisFrame && dummy != null) dummy.SimulateReceivedAttack(0f);
         // Main의 DuelArena처럼 스폰 이펙트가 끝난 뒤 입력을 켠다.
         if (combatAt >= 0f && Time.time >= combatAt)
         {
@@ -158,6 +166,8 @@ public sealed class DuelOfflineTest : MonoBehaviour
         dummyLayer = dummy.gameObject.layer;
         dummy.Defeated += OnDummyDefeated;
         dummyHealth = dummy.GetComponent<PlayerHealth>();
+        dummyVisibility = dummy.GetComponent<PlayerBushVisibility>();
+        dummyBush = -1;
         // 상대 화면의 원격 플레이어처럼 맞을 수 있게 콜라이더만 켠다. 이동·조준·공격은 DuelPlayer가 꺼 둔 그대로다.
         dummy.GetComponent<CharacterController>().enabled = true;
         // 더미도 소유자라서 스폰할 때 카메라를 가져가므로 플레이어에게 돌려준다.
@@ -181,6 +191,20 @@ public sealed class DuelOfflineTest : MonoBehaviour
 
     void OnDummyDefeated(DuelPlayer defeated) => dummyRespawnAt = Time.time + dummyRespawnDelay;
 
+    // 더미를 맵의 부시 덩어리 한가운데로 차례로 옮긴다. 마지막 덩어리 다음에는 스폰 자리로 돌아온다.
+    void MoveDummyToNextBush()
+    {
+        BushField bushes = map.Bushes;
+        if (dummy == null || bushes == null || bushes.Count == 0) return;
+        dummyBush = dummyBush + 1 < bushes.Count ? dummyBush + 1 : -1;
+        Vector3 target = dummyBush >= 0 ? bushes.CenterOf(dummyBush) : map.SpawnPoints[1].position;
+        // CharacterController가 켜져 있으면 옮긴 위치를 되돌릴 수 있어 잠깐 끈다.
+        var controller = dummy.GetComponent<CharacterController>();
+        controller.enabled = false;
+        dummy.transform.position = new Vector3(target.x, dummy.transform.position.y, target.z);
+        controller.enabled = true;
+    }
+
     // Main에서 TitleBackdrop.ReleaseCamera가 하듯 전투 투영·안개를 같은 에셋으로 맞추고 플레이어를 따라가게 한다.
     void FollowPlayer()
     {
@@ -194,7 +218,11 @@ public sealed class DuelOfflineTest : MonoBehaviour
     {
         helpStyle ??= new GUIStyle(GUI.skin.box) { fontSize = 18, alignment = TextAnchor.UpperLeft, padding = new RectOffset(12, 12, 8, 8) };
         string health = dummyHealth != null ? $"{dummyHealth.CurrentHealth:0.#} / {dummyHealth.MaxHealth:0.#}" : "-";
-        GUI.Box(new Rect(16f, 16f, 440f, 64f), $"온라인 전투 스크립트 오프라인 테스트\n더미 체력 {health}    R: 다시 세우기", helpStyle);
+        string look = dummyVisibility != null ? dummyVisibility.Look.ToString() : "-";
+        string place = dummyBush >= 0 ? $"부시 {dummyBush}" : "스폰";
+        GUI.Box(new Rect(16f, 16f, 600f, 92f),
+            $"온라인 전투 스크립트 오프라인 테스트\n더미 체력 {health}    더미 위치 {place} ({look})\n" +
+            "R: 다시 세우기    B: 더미를 다음 부시로    T: 더미 공격(부시 노출)", helpStyle);
         DrawWeaponPanel();
     }
 

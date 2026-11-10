@@ -13,6 +13,19 @@ MonoBehaviour:
   m_Name: Light Orb Layered Refraction
   m_EditorClassIdentifier: Assembly-CSharp::LightOrbRefractionFeature
   m_Active: 1
+--- !u!114 &-286771128323506458
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 07b0d29c8801f044a83ab7afbe70d237, type: 3}
+  m_Name: Character Fade
+  m_EditorClassIdentifier: Assembly-CSharp::CharacterFadeFeature
+  m_Active: 1
 --- !u!114 &11400000
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -40,7 +53,8 @@ MonoBehaviour:
   m_RendererFeatures:
   - {fileID: 7833122117494664109}
   - {fileID: -7512666807333872410}
-  m_RendererFeatureMap: ad6b866f10d7b46c
+  - {fileID: -286771128323506458}
+  m_RendererFeatureMap: ad6b866f10d7b46ce61cffb057a5bd97e67e709c2d2f05fc
   m_UseNativeRenderPass: 1
   xrSystemData: {fileID: 0}
   postProcessData: {fileID: 11400000, guid: 41439944d30ece34e96484bdb6645b55, type: 2}
