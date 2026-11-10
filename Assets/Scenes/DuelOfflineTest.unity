@@ -237,6 +237,10 @@ MonoBehaviour:
   playerPrefab: {fileID: 4760838517846775089, guid: 902e0f01f8488be408e2ba4f863b2e6e, type: 3}
   dummyPrefab: {fileID: 7265209467207546497, guid: 11be34856f0c18648be46d1282272402, type: 3}
   dummyRespawnDelay: 1.5
+  extraWeapons:
+  - {fileID: 8220961399317443507, guid: c9cf41e51711fb8409d5e098e9ccd5fd, type: 3}
+  - {fileID: 241648436553267233, guid: e2592a6a3e1c5be4d908bd34e3e7a4b6, type: 3}
+  - {fileID: 5918805252675816218, guid: a797a62da8b406b42ad029f43ef9cd46, type: 3}
 --- !u!4 &998745937
 Transform:
   m_ObjectHideFlags: 0

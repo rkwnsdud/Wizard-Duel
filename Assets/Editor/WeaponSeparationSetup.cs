@@ -70,11 +70,20 @@ public static class WeaponSeparationSetup
                 Require(attack.CurrentWeapon.transform.IsChildOf(root.transform), name + " weapon ownership");
                 Require(attack.CurrentWeapon.transform.parent.name == "WeaponSocket", name + " socket");
                 Require(attack.CurrentWeapon.AttackAnimation != null, name + " weapon attack clip");
-                Require(root.GetComponentsInChildren<WeaponBase>(true).Length == 1, name + " duplicate weapon");
+                // Inactive spare weapons may wait in the socket for weapon switching; only the equipped one is active.
+                var weapons = root.GetComponentsInChildren<WeaponBase>(true);
+                Require(attack.CurrentWeapon.gameObject.activeSelf &&
+                        weapons.Count(w => w.gameObject.activeSelf) == 1, name + " duplicate weapon");
                 Require(root.GetComponentsInChildren<SkinnedMeshRenderer>(true).Length > 0, name + " character mesh");
-                var events = AnimationUtility.GetAnimationEvents(attack.CurrentWeapon.AttackAnimation);
-                Require(events.Count(e => e.functionName == "FireMagic") == 1, name + " FireMagic event");
-                Require(events.Count(e => e.functionName == "EndAttack") == 1, name + " EndAttack event");
+                foreach (var weapon in weapons)
+                {
+                    string label = weapon == attack.CurrentWeapon ? name : name + "/" + weapon.name;
+                    Require(weapon.transform.parent.name == "WeaponSocket", label + " socket");
+                    Require(weapon.AttackAnimation != null, label + " weapon attack clip");
+                    var events = AnimationUtility.GetAnimationEvents(weapon.AttackAnimation);
+                    Require(events.Count(e => e.functionName == "FireMagic") == 1, label + " FireMagic event");
+                    Require(events.Count(e => e.functionName == "EndAttack") == 1, label + " EndAttack event");
+                }
                 Debug.Log("[WeaponSeparation] PASS " + name);
             }
             finally { PrefabUtility.UnloadPrefabContents(root); }
