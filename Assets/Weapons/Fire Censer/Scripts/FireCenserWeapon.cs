@@ -79,7 +79,12 @@ public sealed class FireCenserWeapon : WeaponBase, IWeapon
             PlayerHealth candidate = hit.GetComponentInParent<PlayerHealth>();
             if (candidate == null || candidate == owner || candidate.IsDead) continue;
             if (victims.Contains(candidate)) continue;
-            Vector3 toTarget = candidate.transform.position - origin;
+            // Aim is measured from the victim's root so child collider offsets
+            // (crouching dummies, low hitboxes) cannot tilt the fan out of range.
+            Transform targetRoot = candidate.transform;
+            DuelPlayer victimPlayer = candidate.GetComponentInParent<DuelPlayer>();
+            if (victimPlayer != null) targetRoot = victimPlayer.transform;
+            Vector3 toTarget = targetRoot.position - origin;
             toTarget.y = 0f;
             if (toTarget.sqrMagnitude > attackRange * attackRange) continue;
             if (toTarget.sqrMagnitude < 0.0001f) { victims.Add(candidate); continue; }
