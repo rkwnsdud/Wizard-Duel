@@ -470,11 +470,20 @@ public sealed class LobbyNetwork : MonoBehaviour
     LobbyRoom ServerRoomOf(ulong clientId) => serverMode && !closing ? Directory.RoomOf(clientId) : null;
 
     // 서버: 그 방의 설정으로 맵을 만들어 지문과 스폰 자리를 받아 둔다. 서버에는 방별 맵이 남지 않는다.
+    // 맵을 만들다 예외가 나도 실패로 돌려준다. 예외가 OnStart까지 올라가면 시작이 취소되지 않아 방이 준비 단계에 갇힌다.
     bool PrepareMatch(LobbyRoom room)
     {
         room.ReadyClients.Clear();
         NetworkLobbySnapshot snapshot = room.Session.Snapshot;
-        room.Match = arena != null ? arena.Prepare(snapshot.Settings.ToSettings()) : null;
+        try
+        {
+            room.Match = arena != null ? arena.Prepare(snapshot.Settings.ToSettings()) : null;
+        }
+        catch (Exception exception)
+        {
+            Debug.LogError($"[Lobby] Battle prepare failed code={snapshot.Code} seed={snapshot.Settings.Seed}: {exception}");
+            room.Match = null;
+        }
         Debug.Log($"[Lobby] Battle preparing code={snapshot.Code} round={snapshot.Round} revision={room.SettingsRevision} " +
             $"seed={snapshot.Settings.Seed} mapgenerated={room.Match != null} fingerprint={room.Match?.Fingerprint ?? "none"}");
         return room.Match != null;
