@@ -9,7 +9,7 @@ using Random = UnityEngine.Random;
 // 시드 줄의 "새로" 버튼은 Inspector의 OnClick에서 RollSeed를 부르고, 값을 바꾸는 컨트롤은 Awake에서 구독한다.
 public class MapSettingsPanel : MonoBehaviour
 {
-    // 슬라이더는 정수 눈금으로 움직이고 실제 값은 이만큼 나눈다.
+    // 슬라이더는 정수 눈금으로 움직이고 실제 값은 이만큼 나눈다. 장애물 밀도와 부시 밀도는 0.01 단위다.
     const float DensitySteps = 100f;
     const float NoiseSteps = 20f;
 
@@ -18,7 +18,7 @@ public class MapSettingsPanel : MonoBehaviour
     [SerializeField] GameObject lockNote;
     [Tooltip("방장만 만질 수 있는 컨트롤 묶음. 참가자에게는 흐리게 보인다.")]
     [SerializeField] CanvasGroup[] hostControls;
-    [Tooltip("줄 순서는 시드, 크기, 형태, 장애물 밀도, 대칭, 노이즈 강도.")]
+    [Tooltip("줄 순서는 시드, 크기, 형태, 장애물 밀도, 부시 밀도, 대칭, 노이즈 강도.")]
     [SerializeField] Graphic[] rowHighlights;
     [SerializeField] TMP_InputField seedField;
     [SerializeField] SegmentedControl sizeMode;
@@ -28,6 +28,8 @@ public class MapSettingsPanel : MonoBehaviour
     [SerializeField] SegmentedControl shape;
     [SerializeField] Slider density;
     [SerializeField] TMP_Text densityValue;
+    [SerializeField] Slider bushDensity;
+    [SerializeField] TMP_Text bushDensityValue;
     [SerializeField] SegmentedControl symmetry;
     [SerializeField] Slider noiseStrength;
     [SerializeField] TMP_Text noiseStrengthValue;
@@ -57,6 +59,7 @@ public class MapSettingsPanel : MonoBehaviour
         heightField.onEndEdit.AddListener(_ => Edit());
         shape.Changed += _ => Edit();
         density.onValueChanged.AddListener(_ => Edit());
+        bushDensity.onValueChanged.AddListener(_ => Edit());
         symmetry.Changed += _ => Edit();
         noiseStrength.onValueChanged.AddListener(_ => Edit());
     }
@@ -94,6 +97,7 @@ public class MapSettingsPanel : MonoBehaviour
             before.Size != after.Size,
             before.Shape != after.Shape,
             !Mathf.Approximately(before.ObstacleDensity, after.ObstacleDensity),
+            !Mathf.Approximately(before.BushDensity, after.BushDensity),
             before.Symmetry != after.Symmetry,
             !Mathf.Approximately(before.NoiseStrength, after.NoiseStrength)
         };
@@ -143,6 +147,7 @@ public class MapSettingsPanel : MonoBehaviour
         map.Size = sizeMode.Value == 1 ? size : (Vector2Int?)null;
         map.Shape = (MapShape)shape.Value;
         map.ObstacleDensity = density.value / DensitySteps;
+        map.BushDensity = bushDensity.value / DensitySteps;
         map.Symmetry = (MapSymmetry)symmetry.Value;
         map.NoiseStrength = noiseStrength.value / NoiseSteps;
         ShowSettings();
@@ -164,6 +169,8 @@ public class MapSettingsPanel : MonoBehaviour
         shape.SetValueWithoutNotify((int)map.Shape);
         density.SetValueWithoutNotify(Mathf.Round(map.ObstacleDensity * DensitySteps));
         densityValue.text = map.ObstacleDensity.ToString("0.00");
+        bushDensity.SetValueWithoutNotify(Mathf.Round(map.BushDensity * DensitySteps));
+        bushDensityValue.text = map.BushDensity.ToString("0.00");
         symmetry.SetValueWithoutNotify((int)map.Symmetry);
         noiseStrength.SetValueWithoutNotify(Mathf.Round(map.NoiseStrength * NoiseSteps));
         noiseStrengthValue.text = map.NoiseStrength.ToString("0.00");

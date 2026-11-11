@@ -34,7 +34,7 @@ public sealed class LightningWeapon : WeaponBase, IChargeableWeapon
         if (preview == null || boltPrefab == null || firePoint == null) return;
         Vector3 start = firePoint.position;
         Vector3 direction = GetAimDirection();
-        preview.ShowPreview(start, boltPrefab.GetEndPosition(start, direction, chargeRatio),
+        preview.ShowPreview(start, boltPrefab.GetEndPosition(start, direction, chargeRatio, GetComponentInParent<PlayerHealth>()),
             direction, boltPrefab.GetHitWidth(chargeRatio));
     }
 

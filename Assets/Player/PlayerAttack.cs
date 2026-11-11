@@ -71,6 +71,8 @@ public class PlayerAttack : MonoBehaviour
     private bool hasFired;
 
     public bool IsAttacking { get; private set; }
+    // 화면 위 패널 버튼을 누르는 클릭이 공격으로 새지 않게 새 공격 입력만 막는다(진행 중인 공격은 그대로).
+    public bool AttackInputBlocked { get; set; }
     public bool IsOnCooldown => CooldownRemaining > 0f;
     public float CooldownRemaining => Mathf.Max(0f, cooldownEndsAt - Time.time);
     public float CooldownRemainingFraction => activeCooldownDuration <= 0f || !IsOnCooldown
@@ -212,7 +214,7 @@ public class PlayerAttack : MonoBehaviour
     // 공격 버튼을 누른 순간 차징 시작
     private void AttackStarted(InputAction.CallbackContext context)
     {
-        if (currentWeapon == null || IsAttacking || isCharging || IsOnCooldown ||
+        if (AttackInputBlocked || currentWeapon == null || IsAttacking || isCharging || IsOnCooldown ||
             (playerHealth != null && playerHealth.IsDead))
         {
             return;

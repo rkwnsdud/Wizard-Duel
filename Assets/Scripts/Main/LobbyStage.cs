@@ -96,7 +96,7 @@ public class LobbyStage : MonoBehaviour
 
     static bool SameMap(MapGenerationSettings a, MapGenerationSettings b) =>
         a.Seed == b.Seed && a.Size == b.Size && a.Shape == b.Shape && a.ObstacleDensity == b.ObstacleDensity &&
-        a.Symmetry == b.Symmetry && a.NoiseStrength == b.NoiseStrength && a.NoiseScale == b.NoiseScale;
+        a.BushDensity == b.BushDensity && a.Symmetry == b.Symmetry && a.NoiseStrength == b.NoiseStrength && a.NoiseScale == b.NoiseScale;
 
     // 스폰 지점에 마법진 이펙트를 띄우며 마법사를 세운다.
     void Appear(int slot)

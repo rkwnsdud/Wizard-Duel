@@ -18,6 +18,8 @@ public sealed class DuelPlayer : NetworkBehaviour, IAttackAuthority, IShotSink
     public int Slot => slot;
     // 서버에서 체력이 0이 되는 순간 한 번 불린다.
     public event Action<DuelPlayer> Defeated;
+    // 서버에만 있다. 이 플레이어가 속한 방의 판. DuelArena가 소환하기 전에 넣는다.
+    public DuelMatch Match { get; set; }
 
     readonly NetworkVariable<bool> combatEnabled = new NetworkVariable<bool>(false,
         NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
@@ -28,6 +30,7 @@ public sealed class DuelPlayer : NetworkBehaviour, IAttackAuthority, IShotSink
     Animator animator;
     PlayerAttack attack;
     PlayerHealth playerHealth;
+    PlayerBushVisibility bushVisibility;
     CameraFollow cameraFollow;
     Vector3 previousPosition;
     // 서버에만 있다.
@@ -41,6 +44,7 @@ public sealed class DuelPlayer : NetworkBehaviour, IAttackAuthority, IShotSink
         animator = transform.Find("Wizard").GetComponent<Animator>();
         attack = GetComponent<PlayerAttack>();
         playerHealth = GetComponent<PlayerHealth>();
+        bushVisibility = GetComponent<PlayerBushVisibility>();
     }
 
     public override void OnNetworkSpawn()
@@ -59,6 +63,8 @@ public sealed class DuelPlayer : NetworkBehaviour, IAttackAuthority, IShotSink
         combatEnabled.OnValueChanged += OnCombatEnabledChanged;
         if (IsClient) PlaySpawnEffect();
         if (IsOwner) FollowWithCamera();
+        // 부시 가시성은 이 클라이언트의 내 캐릭터가 판정한다. 오프라인 테스트의 더미는 호스트 소유지만 플레이어 오브젝트가 아니다.
+        if (bushVisibility != null) bushVisibility.IsLocal = IsLocalPlayer;
         // 상대 플레이어는 내 입력을 읽으면 안 되므로 항상 꺼 둔다.
         ApplyCombatState(IsOwner && combatEnabled.Value);
     }
@@ -72,6 +78,7 @@ public sealed class DuelPlayer : NetworkBehaviour, IAttackAuthority, IShotSink
         ApplyCombatState(false);
         attack.CancelAttack();
         SpawnEffectController.Stop(slot);
+        if (bushVisibility != null) bushVisibility.IsLocal = false;
         // 파괴될 플레이어를 계속 따라가지 않도록 카메라 추적을 끈다.
         if (cameraFollow != null) cameraFollow.enabled = false;
     }
@@ -99,7 +106,17 @@ public sealed class DuelPlayer : NetworkBehaviour, IAttackAuthority, IShotSink
     [Rpc(SendTo.NotOwner, InvokePermission = RpcInvokePermission.Owner)]
     void PlayAttackRpc(float chargeRatio)
     {
-        if (IsClient) attack.PlayReplicatedAttack(chargeRatio);
+        if (IsClient) ReceiveAttack(chargeRatio);
+    }
+
+    // 오프라인 테스트 전용. 더미는 호스트 소유라 PlayAttackRpc를 받는 클라이언트가 없으므로, 받은 것처럼 같은 처리를 한다.
+    public void SimulateReceivedAttack(float chargeRatio) => ReceiveAttack(chargeRatio);
+
+    void ReceiveAttack(float chargeRatio)
+    {
+        // 부시 안에서 공격하면 공격 시작부터 드러난다. 상대가 이미 공격 중이라 모션을 건너뛰어도 노출은 센다.
+        if (bushVisibility != null) bushVisibility.Reveal();
+        attack.PlayReplicatedAttack(chargeRatio);
     }
 
     void IAttackAuthority.FireMagic(float chargeRatio)
@@ -139,8 +156,9 @@ public sealed class DuelPlayer : NetworkBehaviour, IAttackAuthority, IShotSink
     [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Owner)]
     void ReportHitRpc(NetworkObjectReference target, uint attackId, int hitIndex, float damage)
     {
+        // 서버에는 여러 방의 플레이어가 함께 있다. 같은 판의 플레이어만 맞힐 수 있다.
         if (!combatEnabled.Value || !target.TryGet(out NetworkObject obj, NetworkManager) ||
-            !obj.TryGetComponent(out DuelPlayer player) ||
+            !obj.TryGetComponent(out DuelPlayer player) || player.Match != Match ||
             !player.combat.TryTakeHit(slot, attackId, hitIndex, damage, out bool defeatedNow)) return;
         Debug.Log($"[Combat] Hit slot={player.slot} attacker={slot} id={attackId} hit={hitIndex} health={player.combat.Health:F3}");
         player.health.Value = player.combat.Health;

@@ -5,8 +5,8 @@ using UnityEditor.AssetImporters;
 using UnityEngine;
 using UnityEngine.Rendering;
 
-// Import version changes rebuild the shared optical environment and facet data.
-[ScriptedImporter(17, "glb")]
+// Rebuild cached materials with missing metal texture/environment bindings.
+[ScriptedImporter(18, "glb")]
 public sealed class LightOrbGlbImporter : ScriptedImporter
 {
     [Serializable] class Root { public Node[] nodes; public GMesh[] meshes; public Accessor[] accessors; public BufferView[] bufferViews; public Image[] images; public TextureRef[] textures; }

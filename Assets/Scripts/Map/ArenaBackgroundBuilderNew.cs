@@ -23,6 +23,7 @@ public class ArenaBackgroundBuilderNew : MonoBehaviour
     [SerializeField] float farGroundSize = 240f;
     // CreatePrimitive 평면의 빌트인 머티리얼은 URP 빌드에서 마젠타로 보일 수 있어, URP Lit으로 직접 만든다.
     static Material sharedGroundMaterial;
+    static bool groundShaderMissing;
     // 이번 Rebuild로 깐 바닥 타일과 장식. 맵이 블록과 함께 내놓아(ProceduralMap.Pieces) 물결로 같이 움직인다.
     // FarGround는 조각들이 가라앉아 사라지는 바닥이라 넣지 않는다.
     readonly List<Transform> pieces = new List<Transform>();
@@ -313,11 +314,19 @@ public class ArenaBackgroundBuilderNew : MonoBehaviour
 
     // URP Lit 머티리얼을 코드로 만든다. CreatePrimitive 기본 머티리얼은 URP 빌드에서
     // 셰이더가 걷혀 마젠타(보라색)로 보이는 원인이 된다. 카메라 배경색/포그색과 맞춤.
+    // 전용 서버 빌드(Dedicated Server Optimizations)에는 셰이더가 없어 null을 돌려준다. 그리지 않으니 머티리얼 없이 둔다.
     static Material GroundMaterial()
     {
-        if (sharedGroundMaterial != null) return sharedGroundMaterial;
+        if (sharedGroundMaterial != null || groundShaderMissing) return sharedGroundMaterial;
         Shader shader = Shader.Find("Universal Render Pipeline/Lit");
-        sharedGroundMaterial = new Material(shader != null ? shader : Shader.Find("Standard"));
+        if (shader == null) shader = Shader.Find("Standard");
+        if (shader == null)
+        {
+            // 맵을 만들 때마다 같은 셰이더를 다시 찾지 않는다.
+            groundShaderMissing = true;
+            return null;
+        }
+        sharedGroundMaterial = new Material(shader);
         sharedGroundMaterial.color = new Color(0.05490196f, 0.07450981f, 0.12156863f);
         return sharedGroundMaterial;
     }

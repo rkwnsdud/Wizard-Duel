@@ -105,3 +105,7 @@ InitTestScene*.unity*
 
 # Auto-generated cache in Assets folder
 /[Aa]ssets/[Ss]ceneDependencyCache*
+
+# 리눅스 서버 배포: Unity 라이선스와 서버별 설정은 올리지 않는다.
+/Deploy/Server/secrets/
+/Deploy/Server/.env

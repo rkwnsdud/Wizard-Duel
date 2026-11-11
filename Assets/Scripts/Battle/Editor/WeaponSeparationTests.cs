@@ -23,7 +23,7 @@ public class WeaponSeparationTests
         WeaponSeparationSetup.ValidatePlayerTest();
     }
 
-    [UnityTest]
+    [UnityTest, Category(TestSuites.PlayModeCategory)]
     public IEnumerator EquippedWeaponControlsCastAndFiresOnlyOnce()
     {
         yield return new EnterPlayMode();

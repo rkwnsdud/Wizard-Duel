@@ -17,8 +17,9 @@ using UnityEngine.TestTools;
 using UnityEngine.UI;
 using Object = UnityEngine.Object;
 
-public class LobbyInputTests
+public class LobbyInputTests : PlayModeTestFixture
 {
+    protected override bool UseEmptyScene => false; // 테스트마다 Main 씬을 새로 불러온다.
     const BindingFlags PrivateInstance = BindingFlags.Instance | BindingFlags.NonPublic;
     Keyboard keyboard;
     Keyboard previousKeyboard;
@@ -31,13 +32,11 @@ public class LobbyInputTests
     LobbyNetwork network;
     NetworkManager manager;
 
-    [UnitySetUp]
-    public IEnumerator SetUp()
+    protected override IEnumerator SetUpInPlayMode()
     {
-        yield return new EnterPlayMode();
-        // 진입 전에 열려 있던 Main의 영구 네트워크 루트가 새 씬에 남지 않게 한다.
+        // 편집 씬이나 앞선 테스트가 남긴 영구 네트워크 루트가 새 씬에 남지 않게 한다.
         if (NetworkManager.Singleton != null) Object.DestroyImmediate(NetworkManager.Singleton.gameObject);
-        // 편집 씬은 건드리지 않는다. ExitPlayMode가 진입 전 씬 상태를 복원한다.
+        // 편집 씬은 건드리지 않는다. 클래스가 끝나 플레이 모드를 나가면 진입 전 씬 상태로 돌아온다.
         EditorSceneManager.LoadSceneInPlayMode("Assets/Scenes/Main.unity",
             new LoadSceneParameters(LoadSceneMode.Single));
         // LoadSceneInPlayMode는 로딩 중인 씬을 반환한다. 다음 프레임의 씬 통합을 기다린다.
@@ -90,7 +89,6 @@ public class LobbyInputTests
             originalInputSettings.hideFlags = originalInputSettingsFlags;
         }
         if (testInputSettings != null) Object.DestroyImmediate(testInputSettings);
-        if (Application.isPlaying) yield return new ExitPlayMode();
         Assert.That(shutdownComplete, Is.True, "The test client must finish shutting down.");
     }
 
@@ -185,6 +183,29 @@ public class LobbyInputTests
         Assert.That(edits.Count, Is.EqualTo(5));
         Assert.That(edits[4].Map.Seed, Is.EqualTo(333));
         Assert.That(edits[4].Map.ObstacleDensity, Is.EqualTo(0.2f));
+    }
+
+    [UnityTest]
+    public IEnumerator HostBushDensitySlider_PublishesTheBushDensityInHundredthSteps()
+    {
+        OpenLobby(true);
+        MapSettingsPanel panel = Field<MapSettingsPanel>(lobby, "mapSettings");
+        Slider bushDensity = Field<Slider>(panel, "bushDensity");
+        TMP_Text value = Field<TMP_Text>(panel, "bushDensityValue");
+        var edits = new List<DuelSettings>();
+        panel.Changed += changed => edits.Add(changed.Clone());
+        yield return WaitForFrames(1);
+        Assert.That(bushDensity.wholeNumbers, Is.True);
+        Assert.That(bushDensity.minValue, Is.Zero);
+        Assert.That(bushDensity.maxValue, Is.EqualTo(DuelSettings.MaxBushDensity * 100f).Within(1e-4f));
+        Assert.That(bushDensity.value, Is.EqualTo(5), "The default density 0.05 is five steps of 0.01.");
+        Assert.That(value.text, Is.EqualTo("0.05"));
+
+        bushDensity.value = 12;
+        Assert.That(edits.Count, Is.EqualTo(1));
+        Assert.That(edits[0].Map.BushDensity, Is.EqualTo(0.12f).Within(1e-6f));
+        Assert.That(edits[0].Map.ObstacleDensity, Is.EqualTo(0.15f).Within(1e-6f), "The bush slider must not move the obstacle density.");
+        Assert.That(value.text, Is.EqualTo("0.12"));
     }
 
     [UnityTest]
@@ -489,6 +510,62 @@ public class LobbyInputTests
             Assert.That(Vector3.Distance(pieces[p].localPosition, homes[p]), Is.LessThan(0.001f));
     }
 
+    // 로비 화면에서 부시 밀도만 바꾸면 미리보기 맵 전체를 다시 솟게 하지 않는다.
+    // 벽·바닥·배경은 제자리에 서 있고, 전에 없던 자리의 부시만 땅속에서 올라온다.
+    [UnityTest]
+    public IEnumerator BushDensityPreview_KeepsWallsStanding_AndRaisesOnlyNewBushes()
+    {
+        TitleBackdrop backdrop = Field<TitleBackdrop>(flow, "backdrop");
+        ProceduralMap map = Field<ProceduralMap>(backdrop, "map");
+        var settings = new MapGenerationSettings
+        {
+            Seed = 4242, Size = new Vector2Int(35, 29), Shape = MapShape.Rectangle,
+            ObstacleDensity = 0.2f, BushDensity = 0.03f
+        };
+        SetField(backdrop, "waveDuration", 0.01f);
+        SetField(backdrop, "blockDuration", 0.01f);
+        Assert.That(backdrop.ShowPreview(settings), Is.True);
+        yield return WaitForRuntime(0.2f);
+
+        string[] before = map.GeneratedLayout.ToLayout();
+        var oldBushes = new HashSet<Vector3>();
+        foreach (Transform piece in map.Pieces)
+            if (piece.GetComponent<BushBlock>() != null) oldBushes.Add(piece.localPosition);
+        Assert.That(oldBushes.Count, Is.GreaterThan(0));
+
+        // 다시 솟는 조각이 한 프레임 만에 제자리까지 오지 않도록 천천히 올린다.
+        SetField(backdrop, "waveDuration", 1f);
+        SetField(backdrop, "blockDuration", 5f);
+        settings = new MapGenerationSettings
+        {
+            Seed = settings.Seed, Size = settings.Size, Shape = settings.Shape,
+            ObstacleDensity = settings.ObstacleDensity, BushDensity = 0.15f
+        };
+        Assert.That(backdrop.ShowPreview(settings), Is.True);
+        yield return WaitForFrames(1);
+
+        string[] after = map.GeneratedLayout.ToLayout();
+        Assert.That(after.Length, Is.EqualTo(before.Length));
+        for (int row = 0; row < before.Length; row++)
+            Assert.That(after[row].Replace('*', '.'), Is.EqualTo(before[row].Replace('*', '.')), $"Row {row} changed walls.");
+
+        IReadOnlyList<Transform> pieces = map.Pieces;
+        Vector3[] homes = Field<Vector3[]>(backdrop, "homes");
+        int risingBushes = 0;
+        for (int p = 0; p < pieces.Count; p++)
+        {
+            bool bush = pieces[p].GetComponent<BushBlock>() != null;
+            float drop = homes[p].y - pieces[p].localPosition.y;
+            if (bush && !oldBushes.Contains(homes[p]))
+            {
+                Assert.That(drop, Is.GreaterThan(1f), $"New bush {pieces[p].name} must rise from below.");
+                risingBushes++;
+            }
+            else Assert.That(drop, Is.EqualTo(0f).Within(0.001f), $"{pieces[p].name} must stay standing.");
+        }
+        Assert.That(risingBushes, Is.GreaterThan(0), "More bushes should rise in.");
+    }
+
     [UnityTest]
     public IEnumerator CreateCanceledBeforeApproval_ResumesTitleCycle() => CheckTitleCycleResumes(false);
 
@@ -543,6 +620,7 @@ public class LobbyInputTests
         Assert.That(actual.Size, Is.EqualTo(expected.Size));
         Assert.That(actual.Shape, Is.EqualTo(expected.Shape));
         Assert.That(actual.ObstacleDensity, Is.EqualTo(expected.ObstacleDensity));
+        Assert.That(actual.BushDensity, Is.EqualTo(expected.BushDensity));
         Assert.That(actual.Symmetry, Is.EqualTo(expected.Symmetry));
         Assert.That(actual.NoiseStrength, Is.EqualTo(expected.NoiseStrength));
         Assert.That(actual.NoiseScale, Is.EqualTo(expected.NoiseScale));

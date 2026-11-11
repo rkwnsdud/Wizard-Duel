@@ -91,34 +91,16 @@ public sealed class DuelLightningWeapon : WeaponBase, IChargeableWeapon, IWeapon
 
     private Vector3 GetEndPosition(Vector3 direction, float charge)
     {
-        Vector3 start = firePoint.position;
-        float range = Mathf.Lerp(minRange, maxRange, charge);
-        Vector3 end = start + direction * range;
-        foreach (RaycastHit hit in Physics.RaycastAll(start, direction, range, blockerMask, QueryTriggerInteraction.Ignore))
-        {
-            if (hit.collider.GetComponentInParent<PlayerHealth>() != null || hit.distance >= range) continue;
-            range = hit.distance;
-            end = hit.point;
-        }
-        return end;
+        return Trace(0, direction, charge, out _).Point;
     }
 
     private ShotEvent Trace(uint id, Vector3 direction, float charge, out PlayerHealth target)
     {
         Vector3 start = firePoint.position;
-        Vector3 end = GetEndPosition(direction, charge);
-        Vector3 halfExtents = new Vector3(Mathf.Lerp(minHitWidth, maxHitWidth, charge) / 2f,
-            hitHeight / 2f, Vector3.Distance(start, end) / 2f);
-        PlayerHealth owner = GetComponentInParent<PlayerHealth>();
-        target = null;
-        foreach (Collider hit in Physics.OverlapBox((start + end) / 2f, halfExtents,
-            Quaternion.LookRotation(direction, Vector3.up)))
-        {
-            PlayerHealth candidate = hit.GetComponentInParent<PlayerHealth>();
-            if (candidate == null || candidate == owner || candidate.IsDead) continue;
-            target = candidate;
-            break;
-        }
+        charge = Mathf.Clamp01(charge);
+        Vector3 end = LightningHitTrace.Trace(start, direction, Mathf.Lerp(minRange, maxRange, charge),
+            Mathf.Lerp(minHitWidth, maxHitWidth, charge), hitHeight, blockerMask,
+            GetComponentInParent<PlayerHealth>(), out target);
         return new ShotEvent(id, 0, start, end, charge);
     }
 }

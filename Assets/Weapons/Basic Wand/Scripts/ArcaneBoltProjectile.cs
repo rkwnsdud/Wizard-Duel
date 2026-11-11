@@ -9,14 +9,19 @@ public class ArcaneBoltProjectile : MonoBehaviour
     [SerializeField] private GameObject hitEffectPrefab;
 
     private PlayerHealth ownerHealth;
+    private IShotSink onlineSink;
+    private uint onlineAttackId;
+    private bool visualOnly;
     private float distanceTraveled = 0f;
 
     void Update()
     {
         float moveDistance = Mathf.Min(speed * Time.deltaTime, maxRange - distanceTraveled);
 
+        // DuelWizard uses Default; legacy PlayerTest characters use Player.
+        int collisionMask = onlineSink != null || visualOnly ? mask.value | (1 << 0) : mask.value;
         RaycastHit[] hits = Physics.SphereCastAll(transform.position, hitRadius, transform.forward,
-                            moveDistance, mask, QueryTriggerInteraction.Ignore);
+                            moveDistance, collisionMask, QueryTriggerInteraction.Ignore);
 
         System.Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
 
@@ -31,7 +36,8 @@ public class ArcaneBoltProjectile : MonoBehaviour
             if (target != null)
             {
                 WeaponHitEffect.Spawn(hitEffectPrefab, hit.point);
-                target.TakeDamage(10f);
+                if (onlineSink != null) onlineSink.Hit(onlineAttackId, 0, target, 10f);
+                else if (!visualOnly) target.TakeDamage(10f);
             }
 
             transform.position += transform.forward * hit.distance;
@@ -51,5 +57,18 @@ public class ArcaneBoltProjectile : MonoBehaviour
     public void Initialize(PlayerHealth owner)
     {
         ownerHealth = owner;
+    }
+
+    public void InitializeOnline(PlayerHealth owner, IShotSink sink, uint attackId)
+    {
+        ownerHealth = owner;
+        onlineSink = sink;
+        onlineAttackId = attackId;
+    }
+
+    public void InitializeVisualOnly(PlayerHealth owner)
+    {
+        ownerHealth = owner;
+        visualOnly = true;
     }
 }

@@ -10,6 +10,7 @@ public struct NetworkMapSettings : INetworkSerializable
     public Vector2Int Size;
     public MapShape Shape;
     public float ObstacleDensity;
+    public float BushDensity;
     public MapSymmetry Symmetry;
     public float NoiseStrength;
     public float NoiseScale;
@@ -21,6 +22,7 @@ public struct NetworkMapSettings : INetworkSerializable
         Size = settings.Size.GetValueOrDefault();
         Shape = settings.Shape;
         ObstacleDensity = settings.ObstacleDensity;
+        BushDensity = settings.BushDensity;
         Symmetry = settings.Symmetry;
         NoiseStrength = settings.NoiseStrength;
         NoiseScale = settings.NoiseScale;
@@ -32,6 +34,7 @@ public struct NetworkMapSettings : INetworkSerializable
         Size = HasSize ? Size : (Vector2Int?)null,
         Shape = Shape,
         ObstacleDensity = ObstacleDensity,
+        BushDensity = BushDensity,
         Symmetry = Symmetry,
         NoiseStrength = NoiseStrength,
         NoiseScale = NoiseScale
@@ -44,6 +47,7 @@ public struct NetworkMapSettings : INetworkSerializable
         serializer.SerializeValue(ref Size);
         serializer.SerializeValue(ref Shape);
         serializer.SerializeValue(ref ObstacleDensity);
+        serializer.SerializeValue(ref BushDensity);
         serializer.SerializeValue(ref Symmetry);
         serializer.SerializeValue(ref NoiseStrength);
         serializer.SerializeValue(ref NoiseScale);
