@@ -6,7 +6,7 @@
 
 **Tools > Wizard Duel > Network Test** 창의 **Mode**를 `Main`으로 두고 **Build**를 누르면 `Assets/Scenes/Main.unity`만 Development 빌드해 `Build/LobbyTest/WizardDuel.exe`에 만든다. **Server**는 창 없는 전용 서버로 UDP 7777을 열고, **Client**는 보이는 창에서 `-join 127.0.0.1` 주소를 설정해 시작 화면을 띄운다. `-join`은 방을 만들거나 참가하지 않으므로, 클라이언트 화면에서 **Create**를 누르거나 방장이 보여 준 6자리 코드로 **Join**한다.
 
-서버는 한 번에 방 하나와 확정 참가자 두 명만 받는다. Main 대기실에서 방을 만들면 현재 `TitleBackdrop.Current`의 전체 설정을 복사하고, 서버는 전달받은 시드를 그대로 저장해 두 참가자에게 동기화한다. 시드는 입력란에서 편집하거나 **새로 뽑기**로 바꿀 수 있으며, 다른 설정을 변경해도 시드는 유지된다. 접속한 두 참가자와 서버는 프로토콜 버전 4를 사용하므로 같은 빌드로 실행해야 한다. 확정 참가자 중 한 명이라도 나가면 방 전체를 닫는다. 빌드와 로그는 NetworkDemo와 분리해 `Build/LobbyTest/`, `Logs/LobbyTest/server.log`, `client1.log`, `client2.log`에 둔다. `Open Logs`에서 같은 로그 폴더를 열 수 있고, `[LobbyPreview]` 로그의 시드·형태·크기·스폰 셀·hash를 비교한다. 상세 비교 기록은 `Logs/LobbyTest/stage3-preview-comparison.json`에 있다.
+서버 하나가 방을 여러 개 열고(`LobbyNetwork`의 **Max Rooms**, 기본 50개), 방마다 확정 참가자 두 명을 받는다. 방은 6자리 코드로 구분하고, 각 방의 로비·전투·결과는 따로 진행된다. 플레이어 오브젝트는 그 방의 두 클라이언트에게만 보이므로 다른 방의 플레이어·공격·체력은 전달되지 않는다. 방이 가득 차면 새 방 생성은 `The server is full.`로 거절된다. Main 대기실에서 방을 만들면 현재 `TitleBackdrop.Current`의 전체 설정을 복사하고, 서버는 전달받은 시드를 그대로 저장해 두 참가자에게 동기화한다. 시드는 입력란에서 편집하거나 **새로 뽑기**로 바꿀 수 있으며, 다른 설정을 변경해도 시드는 유지된다. 접속한 두 참가자와 서버는 프로토콜 버전 4를 사용하므로 같은 빌드로 실행해야 한다. 확정 참가자 중 한 명이라도 나가면(강제 종료 포함) 그 방만 닫고, 다른 방과 서버는 그대로 돈다. 서버가 소켓을 다시 만들지 않으므로 Unity Transport 2.7.5 이상이 필요하다(아래 "방을 닫는 이유" 참고). 빌드와 로그는 NetworkDemo와 분리해 `Build/LobbyTest/`, `Logs/LobbyTest/server.log`, `client1.log`, `client2.log`에 둔다. `Open Logs`에서 같은 로그 폴더를 열 수 있고, `[LobbyPreview]` 로그의 시드·형태·크기·스폰 셀·hash를 비교한다. 상세 비교 기록은 `Logs/LobbyTest/stage3-preview-comparison.json`에 있다.
 
 ### Main에서 전투 시작
 
@@ -56,7 +56,7 @@
 
 세 번째 접속은 `This match already has two players.`로 거절된다. 한 명이라도 나가면(강제 종료 포함) 방이 닫혀 남은 플레이어는 `A player left, so the room was closed.`를 받고 메뉴로 돌아간다. 서버는 새 방을 다시 연다. 강제 종료는 UnityTransport의 Disconnect Timeout(5초) 뒤에 감지된다. 창을 클릭해 포커스를 준 쪽만 WASD/마우스 입력을 받는다.
 
-> 방을 닫는 이유: Windows에서 강제 종료된 상대에게 계속 보내면 Unity Transport 2.7.4의 수신 버퍼가 새어, 몇 초 뒤 서버가 아무 패킷도 받지 못한다. 연결을 끊고 소켓을 새로 만들어야 회복된다.
+> 방을 닫는 이유: Windows에서 강제 종료된 상대에게 계속 보내면 Unity Transport 2.7.4의 수신 버퍼가 새어, 몇 초 뒤 서버가 아무 패킷도 받지 못한다. 연결을 끊고 소켓을 새로 만들어야 회복된다. 이 문제는 Unity Transport 2.7.5에서 고쳐졌고, 프로젝트는 2.7.5를 쓴다. NetworkDemo는 방이 하나라 기존처럼 방을 닫고 다시 연다.
 
 ## 구성
 
