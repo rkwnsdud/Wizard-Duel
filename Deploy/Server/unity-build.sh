@@ -10,6 +10,8 @@ secrets="${UNITY_SECRETS_DIR:-/run/secrets}"
 work="$(mktemp -d)"
 blank="$work/BlankProject"
 mkdir -p "$blank/Assets"
+# 빌드 컨테이너에는 Unity가 쓰는 캐시 폴더가 없어 "CreateDirectory failed"가 나므로 미리 만든다.
+mkdir -p "${HOME:-/root}/.cache/unity3d" "${HOME:-/root}/.local/share/unity3d"
 
 read_secret() { tr -d '\r\n' < "$secrets/$1"; }
 email="$(read_secret unity_email)"
@@ -43,9 +45,26 @@ activate() {
         fi
         echo "[unity] 라이선스 활성화 실패 ($attempt/3)" >&2
         show_log "$work/activate.log"
+        # 계정 로그인 실패는 다시 해도 같고, 반복하면 계정이 잠길 수 있어 바로 멈춘다.
+        if grep -q -E "Failed to login|api/login\", HTTP error code 401" "$work/activate.log"; then
+            explain_login_failure
+            return 1
+        fi
         if [ "$attempt" -lt 3 ]; then sleep $((attempt * 15)); fi
     done
     return 1
+}
+
+# 비밀 값은 보여 주지 않고, 파일 내용이 의도와 같은지 확인할 수 있는 정도만 보여 준다.
+explain_login_failure() {
+    local local_part="${email%@*}"
+    cat >&2 <<EOF
+[unity] Unity 계정 로그인 실패(HTTP 401). 아래를 확인하세요.
+  - 이메일 파일: ${local_part:0:2}***@${email#*@}, 비밀번호 파일: ${#password}자
+  - https://id.unity.com 에서 이 이메일·비밀번호로 직접 로그인되는지
+  - Google·Apple 등 소셜 로그인으로 만든 계정이면 비밀번호가 없으니 계정 설정에서 비밀번호를 만든다
+  - 2단계 인증이 켜져 있으면 명령줄 로그인이 거절될 수 있다
+EOF
 }
 
 # 컨테이너마다 새 기기로 활성화되므로 빌드가 끝나면 반드시 반납해 활성화 수가 쌓이지 않게 한다.
@@ -65,7 +84,7 @@ cleanup() {
 }
 
 if ! activate; then
-    echo "[unity] 라이선스를 활성화하지 못했습니다. 이메일·비밀번호와 계정의 2단계 인증 설정을 확인하세요." >&2
+    echo "[unity] 라이선스를 활성화하지 못했습니다." >&2
     rm -rf "$work"
     exit 1
 fi

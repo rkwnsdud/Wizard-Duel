@@ -39,13 +39,15 @@
    ```
    서버에서 이메일과 비밀번호를 파일로 만든다. 비밀번호가 셸 기록에 남지 않도록 입력받아 쓴다.
    ```bash
-   cd ~/Wizard-Duel/Deploy/Server/secrets && read -rp 'Unity email: ' v && printf '%s' "$v" > unity_email && read -rsp 'Unity password: ' v && printf '%s' "$v" > unity_password && unset v && echo
+   cd ~/Wizard-Duel/Deploy/Server/secrets && IFS= read -rp 'Unity email: ' v && printf '%s' "$v" > unity_email && IFS= read -rsp 'Unity password: ' v && printf '%s' "$v" > unity_password && unset v && echo
    ```
    서버에서 권한을 줄인다.
    ```bash
    chmod 600 ~/Wizard-Duel/Deploy/Server/secrets/*
    ```
+   - 계정은 https://id.unity.com 에 이메일·비밀번호로 직접 로그인되는 계정이어야 한다. Google·Apple 등 소셜 로그인으로 만든 계정은 비밀번호가 없어 `Failed to login`(HTTP 401)이 나므로, 계정 설정에서 비밀번호를 먼저 만든다.
    - 2단계 인증이 켜진 계정은 명령줄 활성화가 실패할 수 있다.
+   - 로그인에 실패하면 계정이 잠기지 않도록 다시 시도하지 않고 바로 멈추며, 이메일 앞 두 글자·도메인과 비밀번호 길이를 보여 준다. 파일 내용이 의도와 같은지 이것으로 확인한다.
    - 컨테이너마다 새 기기로 활성화되므로 `unity-build.sh`가 빌드 뒤 `-returnlicense`로 반납한다. 빌드를 강제로 끊어 반납되지 않았다면 Unity 계정 페이지에서 활성화된 기기를 해제한다.
    - 활성화·반납 로그는 비밀번호와 시리얼을 가리고 관련 줄만 보여 준다.
 
