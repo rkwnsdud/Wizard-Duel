@@ -27,6 +27,7 @@ public class PlayerAttack : MonoBehaviour
     private RuntimeAnimatorController sourceController;
     private WeaponBase attackingWeapon;
     public WeaponBase AttackingWeapon => attackingWeapon;
+    private float attackAnimSpeed = 1f;
 
     // Pose components can apply/release their controller synchronously on equip,
     // including when the new weapon was already active in the hierarchy.
@@ -195,6 +196,9 @@ public class PlayerAttack : MonoBehaviour
     // already disabled for input, so OnDisable cannot be relied on there.
     public void CancelAttack()
     {
+        if (attackingWeapon is FireCenserWeapon censerOnCancel) censerOnCancel.HideTelegraph();
+        if (animator != null) animator.speed = 1f;
+        attackAnimSpeed = 1f;
         HideChargePreview(currentWeapon);
         if (attackingWeapon != currentWeapon) HideChargePreview(attackingWeapon);
         isCharging = false;
@@ -276,6 +280,9 @@ public class PlayerAttack : MonoBehaviour
         // Animation events and online authority use this same attack-start weapon.
         attackingWeapon = currentWeapon;
         ApplyWeaponAnimation();
+        attackAnimSpeed = attackingWeapon != null ? attackingWeapon.AttackAnimSpeed : 1f;
+        if (animator != null) animator.speed = attackAnimSpeed;
+        if (attackingWeapon is FireCenserWeapon censer) censer.ShowTelegraph();
         hasFired = false;
         IsAttacking = true;
         StartAttackCooldown(attackingWeapon);
@@ -324,6 +331,9 @@ public class PlayerAttack : MonoBehaviour
     // 공격 애니메이션 마지막 Animation Event에서 호출
     public void EndAttack()
     {
+        if (attackingWeapon is FireCenserWeapon censer) censer.HideTelegraph();
+        if (animator != null) animator.speed = 1f;
+        attackAnimSpeed = 1f;
         IsAttacking = false;
         attackingWeapon = null;
         pendingChargeRatio = 0f;
