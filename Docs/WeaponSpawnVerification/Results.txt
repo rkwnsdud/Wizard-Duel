@@ -1,0 +1,41 @@
+Unity 6000.3.24f1 / Windows x64 Development build / existing Assets/Scenes/Main.unity
+Final production sources compiled in an isolated project copy.
+Temporary runtime driver only in the copy; no test scene created.
+First drop choice forced to Light Orb for deterministic inventory assertions.
+First timer remained 30 seconds; driver observed 29.97 seconds after its next-frame start.
+Second drop timer advanced only by the temporary driver to test cleanup.
+Final run: no Exception, Invalid snapshot, Invalid request or Error log entries.
+HUD checked by actual TMP label and inventory event counts; screenshot API produced no PNG in hidden execution.
+
+WEAPON_SPAWN_VALIDATION_PASS maps=60 sites=619 choices=4; timer, occupancy, duplicate claim, cleanup, Main wiring
+WEAPON_SPAWN_BUILD_PASS
+
+server runtime:
+[WeaponSpawn] Round 1: 12 clear sites, 4 weapons, interval=30s.
+[WeaponSpawn] Spawn id=1 weapon=3 ground=(-2.00, 0.00, 10.50)
+SMOKE server first 29.97
+[WeaponSpawn] Granted client=1 action=0 pickup=1 equipped=2 stored=3
+[WeaponSpawn] Granted client=1 action=1 pickup=0 equipped=3 stored=2
+[WeaponSpawn] Spawn id=2 weapon=4 ground=(15.00, 0.00, 1.50)
+SMOKE server second ok
+SMOKE server server.pass ok
+
+a runtime:
+SMOKE a code 284439
+SMOKE a code 284439
+SMOKE a code 284439
+SMOKE a code 284439
+SMOKE a a.drop 1:3:(-2.00, 0.00, 10.50)
+SMOKE a a.ready ok
+SMOKE a a.claim winner
+SMOKE a a.swapped ok
+SMOKE a a.second ok
+SMOKE a a.pass ok
+
+b runtime:
+SMOKE b b.drop 1:3:(-2.00, 0.00, 10.50)
+SMOKE b b.ready ok
+SMOKE b b.claim loser
+SMOKE b b.swapped ok
+SMOKE b b.second ok
+SMOKE b b.pass ok

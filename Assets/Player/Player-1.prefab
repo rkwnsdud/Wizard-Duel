@@ -97,9 +97,9 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.NetworkObject
-  GlobalObjectIdHash: 0
+  GlobalObjectIdHash: 654832761
   InScenePlacedSourceGlobalObjectIdHash: 0
   m_InScenePlacedDisabledByDefault: 0
   DeferredDespawnTick: 0
@@ -124,7 +124,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e96cb6065543e43c4a752faaa1468eb1, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.Components.NetworkTransform
   ShowTopMostFoldoutHeaderGroup: 1
   NetworkTransformExpanded: 0
@@ -170,7 +170,15 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 311aad7fe0f5a03498c26dda824e618c, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NetworkDemoPlayer
   ShowTopMostFoldoutHeaderGroup: 1
   slot: 0
+  spawnEffectDuration: 1.35
+  spawnRuneRadius: 1.35
+  spawnFloorOffset: 0.06
+  spawnRuneRotationSpeed: 240
+  spawnParticleRiseSpeed: 2.1
+  spawnParticleCount: 36
+  blueSpawnColor: {r: 0.08, g: 1.4, b: 2.2, a: 1}
+  redSpawnColor: {r: 2.2, g: 0.22, b: 0.035, a: 1}

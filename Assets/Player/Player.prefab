@@ -19,6 +19,7 @@ GameObject:
   - component: {fileID: 7930000000000000002}
   - component: {fileID: 6799076728177123932}
   - component: {fileID: 734759746903005762}
+  - component: {fileID: 7654100000000000001}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -268,6 +269,24 @@ MonoBehaviour:
   m_Name:
   m_EditorClassIdentifier: Assembly-CSharp::PlayerWeaponInventory
   storedWeapon: {fileID: 0}
+  pickupSound: {fileID: 8300000, guid: 8af778b5c4884a0dada1f401cbcf439d, type: 3}
+  swapSound: {fileID: 8300000, guid: 798aee167cb7428b81e293b3ca1d852e, type: 3}
+  pickupVolume: 0.8
+  swapVolume: 0.8
+--- !u!114 &7654100000000000001
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 368348533957044283}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1db3c92e46b74f61a0c8210356749edf, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::SecondaryWeaponHud
+  catalog: {fileID: 11400000, guid: 16336854107d7d949a7798c00fad3b20, type: 2}
+  fontAsset: {fileID: 11400000, guid: ef2ba2f6499fe014a9ef0560a9e09d61, type: 2}
 --- !u!1 &1569551498346581771
 GameObject:
   m_ObjectHideFlags: 0

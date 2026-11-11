@@ -37,6 +37,16 @@ public sealed class DuelArena : MonoBehaviour
     [SerializeField] NetworkObject[] playerPrefabs;
     [Tooltip("스폰 이펙트가 끝난 뒤, 소환 메시지가 클라이언트에 닿도록 전투 입력을 켜기 전에 더 기다리는 시간.")]
     [SerializeField, Min(0f)] float combatDelayPadding = 0.15f;
+    [SerializeField] WeaponSpawnCatalog weaponCatalog;
+    public ArenaWeaponSpawner Weapons { get; private set; }
+
+    public void RegisterWeaponMessages(NetworkManager manager)
+    {
+        if (Weapons == null) Weapons = gameObject.AddComponent<ArenaWeaponSpawner>();
+        Weapons.Initialize(manager, weaponCatalog);
+    }
+
+    public void UnregisterWeaponMessages() => Weapons?.Shutdown();
 
     public bool HasMap => map.GeneratedLayout != null;
     public string Fingerprint { get; private set; }
@@ -164,6 +174,8 @@ public sealed class DuelArena : MonoBehaviour
         match.Combat = null;
         foreach (DuelPlayer player in spawned)
             if (player != null) player.ServerEnableCombat();
+        // 무기 스폰은 맵이 서 있는 쪽에서만 연다. 전용 서버는 맵을 지문만 뽑고 지우며 방이 여럿이라 판을 열지 않는다.
+        if (HasMap) Weapons?.BeginRound(map, match.Duelists);
         combatEnabled?.Invoke();
     }
 
@@ -171,6 +183,7 @@ public sealed class DuelArena : MonoBehaviour
     public void EndCombat(DuelMatch match)
     {
         if (match == null) return;
+        if (HasMap) Weapons?.EndRound();
         if (match.Combat != null) StopCoroutine(match.Combat);
         match.Combat = null;
         match.PlayerDefeated = null;
@@ -182,6 +195,7 @@ public sealed class DuelArena : MonoBehaviour
     public void Clear(DuelMatch match)
     {
         if (match == null) return;
+        if (HasMap) Weapons?.Clear();
         if (match.Combat != null) StopCoroutine(match.Combat);
         match.Combat = null;
         match.PlayerDefeated = null;

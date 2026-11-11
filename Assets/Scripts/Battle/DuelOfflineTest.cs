@@ -151,6 +151,7 @@ public sealed class DuelOfflineTest : MonoBehaviour
         playerAttack = player.GetComponent<PlayerAttack>();
         AddExtraWeapons();
         weapons = playerAttack.GetComponentsInChildren<WeaponBase>(true);
+
         combatAt = Time.time + player.SpawnEffectDuration;
         FollowPlayer();
     }

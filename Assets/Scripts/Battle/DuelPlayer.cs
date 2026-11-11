@@ -16,6 +16,7 @@ public sealed class DuelPlayer : NetworkBehaviour, IAttackAuthority, IShotSink
 
     public float SpawnEffectDuration => spawnEffectDuration;
     public int Slot => slot;
+    public bool CanUseInventory => IsSpawned && combatEnabled.Value && !playerHealth.IsDead;
     // 서버에서 체력이 0이 되는 순간 한 번 불린다.
     public event Action<DuelPlayer> Defeated;
     // 서버에만 있다. 이 플레이어가 속한 방의 판. DuelArena가 소환하기 전에 넣는다.
@@ -60,6 +61,9 @@ public sealed class DuelPlayer : NetworkBehaviour, IAttackAuthority, IShotSink
         name = $"Player-{slot + 1}" + (IsBot ? " (Bot)" : IsOwner ? " (Me)" : "");
         previousPosition = transform.position;
         attack.Authority = this;
+        var arena = FindFirstObjectByType<DuelArena>();
+        if (arena != null && TryGetComponent(out PlayerWeaponInventory inventory))
+            inventory.NetworkAuthority = arena.Weapons;
         if (IsServer)
         {
             combat = new DuelCombatState(slot, playerHealth.MaxHealth);
@@ -70,6 +74,7 @@ public sealed class DuelPlayer : NetworkBehaviour, IAttackAuthority, IShotSink
         combatEnabled.OnValueChanged += OnCombatEnabledChanged;
         if (IsClient) PlaySpawnEffect();
         if (IsOwner && !IsBot) FollowWithCamera();
+        if (IsLocalPlayer && TryGetComponent(out SecondaryWeaponHud hud)) hud.ShowForLocalOwner();
         // 부시 가시성은 이 클라이언트의 내 캐릭터가 판정한다. 오프라인 테스트의 더미는 호스트 소유지만 플레이어 오브젝트가 아니다.
         if (bushVisibility != null) bushVisibility.IsLocal = IsLocalPlayer;
         // 상대 플레이어는 내 입력을 읽으면 안 되므로 항상 꺼 둔다.
@@ -79,6 +84,7 @@ public sealed class DuelPlayer : NetworkBehaviour, IAttackAuthority, IShotSink
     public override void OnNetworkDespawn()
     {
         Debug.Log($"[Player] Despawned slot={slot} owner={OwnerClientId}.");
+        if (TryGetComponent(out SecondaryWeaponHud hud)) hud.Hide();
         combatEnabled.OnValueChanged -= OnCombatEnabledChanged;
         health.OnValueChanged -= OnHealthChanged;
         // Authority는 그대로 둔다. 디스폰 뒤 Destroy 전에 남은 애니메이션 이벤트가 오프라인 공격으로 빠지지 않고 아래에서 무시된다.
