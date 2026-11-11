@@ -17,8 +17,9 @@ using UnityEngine.TestTools;
 using UnityEngine.UI;
 using Object = UnityEngine.Object;
 
-public class LobbyInputTests
+public class LobbyInputTests : PlayModeTestFixture
 {
+    protected override bool UseEmptyScene => false; // 테스트마다 Main 씬을 새로 불러온다.
     const BindingFlags PrivateInstance = BindingFlags.Instance | BindingFlags.NonPublic;
     Keyboard keyboard;
     Keyboard previousKeyboard;
@@ -31,13 +32,11 @@ public class LobbyInputTests
     LobbyNetwork network;
     NetworkManager manager;
 
-    [UnitySetUp]
-    public IEnumerator SetUp()
+    protected override IEnumerator SetUpInPlayMode()
     {
-        yield return new EnterPlayMode();
-        // 진입 전에 열려 있던 Main의 영구 네트워크 루트가 새 씬에 남지 않게 한다.
+        // 편집 씬이나 앞선 테스트가 남긴 영구 네트워크 루트가 새 씬에 남지 않게 한다.
         if (NetworkManager.Singleton != null) Object.DestroyImmediate(NetworkManager.Singleton.gameObject);
-        // 편집 씬은 건드리지 않는다. ExitPlayMode가 진입 전 씬 상태를 복원한다.
+        // 편집 씬은 건드리지 않는다. 클래스가 끝나 플레이 모드를 나가면 진입 전 씬 상태로 돌아온다.
         EditorSceneManager.LoadSceneInPlayMode("Assets/Scenes/Main.unity",
             new LoadSceneParameters(LoadSceneMode.Single));
         // LoadSceneInPlayMode는 로딩 중인 씬을 반환한다. 다음 프레임의 씬 통합을 기다린다.
@@ -90,7 +89,6 @@ public class LobbyInputTests
             originalInputSettings.hideFlags = originalInputSettingsFlags;
         }
         if (testInputSettings != null) Object.DestroyImmediate(testInputSettings);
-        if (Application.isPlaying) yield return new ExitPlayMode();
         Assert.That(shutdownComplete, Is.True, "The test client must finish shutting down.");
     }
 

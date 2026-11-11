@@ -9,7 +9,7 @@ using UnityEngine;
 using UnityEngine.TestTools;
 using Object = UnityEngine.Object;
 
-public class DuelLightningWeaponTests
+public class DuelLightningWeaponTests : PlayModeTestFixture
 {
     static readonly Vector3 Origin = new Vector3(10000f, 1f, 10000f);
     DuelLightningWeapon weapon;
@@ -44,10 +44,8 @@ public class DuelLightningWeaponTests
         public void FireMagic(float chargeRatio) { Fires++; Charge = chargeRatio; }
     }
 
-    [UnitySetUp]
-    public IEnumerator SetUp()
+    protected override IEnumerator SetUpInPlayMode()
     {
-        yield return new EnterPlayMode();
         var root = new GameObject("Duel lightning test owner");
         root.SetActive(false);
         root.transform.position = Origin;
@@ -59,10 +57,8 @@ public class DuelLightningWeaponTests
         typeof(DuelLightningWeapon).GetField("firePoint", BindingFlags.Instance | BindingFlags.NonPublic)
             .SetValue(weapon, root.transform);
         root.SetActive(true);
+        yield break;
     }
-
-    [UnityTearDown]
-    public IEnumerator TearDown() { yield return new ExitPlayMode(); }
 
     static PlayerHealth Target(Vector3 offset)
     {

@@ -5,6 +5,8 @@ using System.Globalization;
 public sealed class LobbySession
 {
     readonly Func<int> codeGenerator;
+    // 서버에 방이 여러 개일 때 다른 방이 쓰는 코드를 피한다. 방 하나만 쓰면 null이다.
+    readonly Func<string, bool> codeInUse;
     ulong? hostOwner;
     ulong? guestOwner;
     bool hostConfirmed;
@@ -12,10 +14,11 @@ public sealed class LobbySession
     int lastInvalidatedCode = -1;
     NetworkMapSettings settings;
 
-    public LobbySession(Func<int> codeGenerator = null)
+    public LobbySession(Func<int> codeGenerator = null, Func<string, bool> codeInUse = null)
     {
         var codeRandom = new Random(Guid.NewGuid().GetHashCode());
         this.codeGenerator = codeGenerator ?? (() => codeRandom.Next(1000000));
+        this.codeInUse = codeInUse;
     }
 
     public bool HasRoom => hostOwner.HasValue;
@@ -55,10 +58,10 @@ public sealed class LobbySession
 
         settings = new NetworkMapSettings(requested.Map);
         int code = (int)((uint)codeGenerator() % 1000000);
-        // 방 코드와 시드는 별개이며, 방금 닫힌 코드도 바로 다시 쓰지 않는다.
-        while (code == lastInvalidatedCode || code == settings.Seed)
+        // 방 코드와 시드는 별개이며, 방금 닫힌 코드와 다른 방이 쓰는 코드도 다시 쓰지 않는다.
+        while (code == lastInvalidatedCode || code == settings.Seed || (codeInUse != null && codeInUse(FormatCode(code))))
             code = (code + 1) % 1000000;
-        RoomCode = code.ToString("D6", CultureInfo.InvariantCulture);
+        RoomCode = FormatCode(code);
         hostOwner = clientId;
         reason = string.Empty;
         return true;
@@ -187,6 +190,8 @@ public sealed class LobbySession
             if (digit < '0' || digit > '9') return false;
         return true;
     }
+
+    static string FormatCode(int code) => code.ToString("D6", CultureInfo.InvariantCulture);
 
     void ClearRoom()
     {
