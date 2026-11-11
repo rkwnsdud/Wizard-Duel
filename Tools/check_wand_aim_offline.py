@@ -55,7 +55,7 @@ def sample(keys, t):
     return keys[-1][1]
 
 
-source_file = root / "Assets/Player/Animations/WizardAnimated/WizardStaffCast.anim"
+source_file = root / "Assets/Weapons/Common/BaseCast.anim"
 source = curves(source_file)
 idle = curves("WizardCombatIdle_BasicWandGrip.anim")
 report = []
@@ -105,19 +105,30 @@ for file, local in [("BasicWandAttack.anim", (0.115895, 0.861220, 0.226995, -0.4
                                                    for a, b in zip(source[path], source[path][1:])))
     max_wrist = 0
     max_wrist_time = 0
+    max_elbow = 0
+    max_wrist_rotation = 0
     for t, _ in data[paths[-1]]:
         world_q, world_p = Quaternion(), Vector((0, 0, 0))
         forearm_p = None
+        arm_p = None
         for path in paths:
             world_p += world_q @ sample(pos[path], t)
             world_q = world_q @ sample(data[path], t)
             if path.endswith("/RightForeArm"):
                 forearm_p = world_p.copy()
+            if path.endswith("/RightArm"):
+                arm_p = world_p.copy()
+        max_elbow = max(max_elbow, math.degrees((forearm_p-arm_p).angle(world_p-forearm_p)))
+        max_wrist_rotation = max(max_wrist_rotation, math.degrees(
+            sample(data[paths[-1]], t).rotation_difference(idle[paths[-1]][0][1]).angle))
         wrist_angle = math.degrees((world_q @ Vector((0, 1, 0))).angle(world_p - forearm_p))
         if wrist_angle > max_wrist:
             max_wrist, max_wrist_time = wrist_angle, t
-    assert max_wrist < 50, (file, "excessive wrist bend", max_wrist)
-    assert max_arm_jump <= source_max_jump + .1, (file, "abrupt arm key", max_arm_jump)
+    assert max_wrist < .1 and max_elbow < .1 and max_wrist_rotation < .1, (
+        file, "arm/wrist must remain straight and untwisted", max_wrist, max_elbow, max_wrist_rotation)
+    print(file, "max key jump", round(max_arm_jump, 2), "at", jump_at,
+          "source", round(source_max_jump, 2))
+    assert max_arm_jump <= source_max_jump + 2, (file, "abrupt arm key", max_arm_jump)
     for time in (0, .2, .65):
         q = Quaternion()
         p = Vector((0, 0, 0))
@@ -128,14 +139,29 @@ for file, local in [("BasicWandAttack.anim", (0.115895, 0.861220, 0.226995, -0.4
             if path.endswith("/RightForeArm"):
                 elbow = p.copy()
         wand = Quaternion((local[3], *local[:3]))
-        forward = q @ wand @ Vector((0, 0, 1))
+        wand_path = paths[-1] + "/WeaponSocket/BasicWand"
+        forward = q @ sample(data[wand_path], time) @ Vector((0, 0, 1))
         error = math.degrees(forward.angle(Vector((0, 0, 1))))
         wrist = math.degrees((q @ Vector((0, 1, 0))).angle(p - elbow))
         print(file, "time", time, "aim error", round(error, 3), "wrist", round(wrist, 2))
         if time == .2:
-            assert error < 1 and wrist < 45, (file, error, wrist)
+            assert error < 1 and wrist < 25, (file, error, wrist)
             report.append(f"{file}: source body/leg curves {checked} unchanged; empty LeftForeArm max {empty_forearm_max:.2f} deg, key jump {empty_forearm_jump:.2f} deg (source {source_empty_jump:.2f}); LeftHand local max {empty_hand_max:.2f} deg; release aim {error:.3f} deg; right wrist {wrist:.2f} deg; max right wrist {max_wrist:.2f} deg at {max_wrist_time:.3f}s; max right arm key jump {max_arm_jump:.2f} deg at {jump_at} (source {source_max_jump:.2f} deg)")
     txt = (base / file).read_text(encoding="utf-8")
+    assert paths[-1] + "/WeaponSocket" not in data, (file, "socket compensation reintroduced")
+    assert math.degrees(data[wand_path][0][1].rotation_difference(wand).angle) < .1
+    assert math.degrees(data[wand_path][-1][1].rotation_difference(wand).angle) < .1
+    # Unity stores editor scalar curves alongside runtime quaternion curves.
+    # mathutils quaternion indexing is wxyz, while Unity attributes are xyzw.
+    editor = txt.split("  m_EditorCurves:\n")[1].split("  m_HasGenericRootTransform:")[0]
+    for block in re.split(r"(?=^  - serializedVersion: 2\n)", editor, flags=re.M):
+        path_match = re.search(r"(?m)^    path: (.+)$", block)
+        attr = re.search(r"(?m)^    attribute: m_LocalRotation\.([xyzw])$", block)
+        if not path_match or not attr or path_match[1] not in (*paths[-3:],wand_path): continue
+        for time,value in re.findall(r"(?m)^        time: ([^\n]+)\n        value: ([^\n]+)", block):
+            expected = getattr(sample(data[path_match[1]],float(time)),attr[1])
+            assert abs(float(value)-expected)<1e-5, (file,path_match[1],attr[1],time)
+    report.append(f"  straight elbow max {max_elbow:.3f} deg; wrist local rotation from neutral max {max_wrist_rotation:.3f} deg; wand idle attachment restored; editor/runtime quaternion channels agree.")
     assert re.findall(r"(?m)^    functionName: (.+)$", txt) == ["FireMagic", "EndAttack"]
     assert re.findall(r"(?m)^  - time: (.+)$", txt)[-2:] == ["0.2", "0.65"]
 report.append("PASS: Lightning source remains separate; only standard FireMagic/EndAttack events in wand copies.")

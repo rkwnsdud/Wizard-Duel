@@ -82,15 +82,15 @@ def project(v, axis):
     return v - axis * v.dot(axis)
 
 
-def pose(t, rotations, positions, wand_local, target_offset=(.09, -.08, .72), pole=(.3, -1, 0)):
+def pose(t, rotations, positions, wand_local, target_offset=None, pole=None):
     world_q, world_p = Quaternion(), Vector((0, 0, 0))
     for path in CHAIN:
         world_p += world_q @ sample(positions[path], t, vector)
         world_q = world_q @ sample(rotations[path], t, quat)
     shoulder_q, shoulder_p = world_q.copy(), world_p.copy()
-    arm_local = sample(rotations[ARM], t, quat)
-    elbow_local = sample(rotations[FOREARM], t, quat)
-    hand_local = sample(rotations[HAND], t, quat)
+    arm_local = sample(rotations[ARM], 0, quat)
+    elbow_local = sample(rotations[FOREARM], 0, quat)
+    hand_local = sample(rotations[HAND], 0, quat)
     arm_p = shoulder_p + shoulder_q @ sample(positions[ARM], t, vector)
     arm_q = shoulder_q @ arm_local
     elbow_offset = sample(positions[FOREARM], t, vector)
@@ -98,50 +98,24 @@ def pose(t, rotations, positions, wand_local, target_offset=(.09, -.08, .72), po
     elbow_p = arm_p + arm_q @ elbow_offset
     elbow_q = arm_q @ elbow_local
     hand_p = elbow_p + elbow_q @ hand_offset
-    upper, lower = (elbow_p - arm_p).length, (hand_p - elbow_p).length
-    offset = Vector(target_offset) * (upper + lower)
-    distance = min((upper + lower) * .985, max(abs(upper - lower) + .001, offset.length))
-    direction = offset.normalized()
-    bend = project(Vector(pole), direction).normalized()
-    along = (upper * upper - lower * lower + distance * distance) / (2 * distance)
-    elbow_target = arm_p + direction * along + bend * math.sqrt(max(0, upper * upper - along * along))
-    hand_target = arm_p + direction * distance
-    arm_q = (elbow_p - arm_p).rotation_difference(elbow_target - arm_p) @ arm_q
-    arm_local_aim = shoulder_q.inverted() @ arm_q
-    elbow_p = arm_p + arm_q @ elbow_offset
-    elbow_q = arm_q @ elbow_local
-    hand_p = elbow_p + elbow_q @ hand_offset
-    elbow_q = (hand_p - elbow_p).rotation_difference(hand_target - elbow_p) @ elbow_q
-    hand_p = elbow_p + elbow_q @ hand_offset
-    axis = (hand_p - elbow_p).normalized()
-    wand_forward = elbow_q @ hand_local @ wand_local @ Vector((0, 0, 1))
-    shaft, target = project(wand_forward, axis), project(Vector((0, 0, 1)), axis)
-    if shaft.length_squared > 1e-8 and target.length_squared > 1e-8:
-        angle = math.atan2(axis.dot(shaft.cross(target)), shaft.dot(target))
-        elbow_q = Quaternion(axis, angle) @ elbow_q
-    elbow_local_aim = arm_q.inverted() @ elbow_q
-    hand_q = elbow_q @ hand_local
-    wand_forward = hand_q @ wand_local @ Vector((0, 0, 1))
-    hand_q = wand_forward.rotation_difference(Vector((0, 0, 1))) @ hand_q
-    pre_roll_wrist = math.degrees((hand_q @ Vector((0, 1, 0))).angle(hand_p - elbow_p))
-    # Rolling around the aimed shaft keeps its tip on target while relaxing
-    # the hand's up axis toward the forearm.
+    # The idle grip already has a straight elbow and neutral wrist. Raise the
+    # entire limb at the shoulder; never aim by twisting the wrist itself.
     aim_axis = Vector((0, 0, 1))
-    up_plane = project(hand_q @ Vector((0, 1, 0)), aim_axis)
-    arm_plane = project(hand_p - elbow_p, aim_axis)
-    roll = 0
-    if up_plane.length_squared > 1e-8 and arm_plane.length_squared > 1e-8:
-        roll = math.atan2(aim_axis.dot(up_plane.cross(arm_plane)), up_plane.dot(arm_plane))
-        roll = max(-math.radians(78), min(math.radians(78), roll))
-        hand_q = Quaternion(aim_axis, roll) @ hand_q
-    hand_local_aim = elbow_q.inverted() @ hand_q
-    wrist = math.degrees((hand_q @ Vector((0, 1, 0))).angle(hand_p - elbow_p))
+    arm_q = (hand_p - arm_p).rotation_difference(aim_axis) @ arm_q
+    hand_q = arm_q @ elbow_local @ hand_local
+    back = project(hand_q @ Vector((1, 0, 0)), aim_axis)
+    outward = Vector((1, 0, 0))
+    roll = math.atan2(aim_axis.dot(back.cross(outward)), back.dot(outward))
+    arm_q = Quaternion(aim_axis, roll) @ arm_q
+    arm_local_aim = shoulder_q.inverted() @ arm_q
+    elbow_local_aim, hand_local_aim = elbow_local.copy(), hand_local.copy()
+    wrist = math.degrees((hand_local @ Vector((0, 1, 0))).angle(hand_offset))
     deviation = sum(math.degrees(a.rotation_difference(b).angle)
                     for a, b in zip((arm_local, elbow_local, hand_local),
                                     (arm_local_aim, elbow_local_aim, hand_local_aim)))
     return ((arm_local, elbow_local, hand_local),
             (arm_local_aim, elbow_local_aim, hand_local_aim), wrist, deviation,
-            math.degrees(roll), pre_roll_wrist)
+            math.degrees(roll), wrist)
 
 
 def rewrite_rotation(text, new_samples):
@@ -185,8 +159,7 @@ def rewrite_editor(text, new_samples):
         times = [float(m.group(2)) for m in keys]
         qs = [sample(new_samples[path], t, lambda x: x) for t in times]
         if attr.startswith("m_LocalRotation."):
-            axis = "xyzw".index(attr[-1])
-            values = [q[axis] for q in qs]
+            values = [getattr(q, attr[-1]) for q in qs]
         else:
             axis = "xyz".index(attr[-1])
             eulers = []
@@ -213,24 +186,35 @@ for filename, local in (("BasicWandAttack.anim", (.115895, .861220, .226995, -.4
     rotations = data_of(text, "  m_RotationCurves:\n", "  m_CompressedRotationCurves:")
     positions = data_of(text, "  m_PositionCurves:\n", "  m_ScaleCurves:")
     wand = Quaternion((local[3], *local[:3]))
-    # Keep the hand in front of the torso and avoid twisting the palm around
-    # the wand shaft. A low wrist angle alone hid a 100+ degree hand roll.
-    target, pole = (.09, -.08, .72), (.3, -1, 0)
+    target, pole = None, None
     _, _, release_wrist, release_deviation, release_roll, pre_roll_wrist = pose(.2, rotations, positions, wand, target, pole)
     print(filename, "selected target", target, "pole", pole,
           "release wrist", round(release_wrist, 2), "joint change", round(release_deviation, 1),
           "hand roll", round(release_roll, 1), "pre-roll wrist", round(pre_roll_wrist, 1))
     _, release_aim, _, _, _, _ = pose(.2, rotations, positions, wand, target, pole)
     times = [t for t, _ in rotations[ARM]]
-    values = {path: [] for path in TARGET_PATHS}
+    wand_path = HAND + "/WeaponSocket/BasicWand"
+    # Fit the wand along the neutral hand for the extended cast. Its grip
+    # origin stays inside the hand, and the normal idle attachment returns.
+    cast_wand = (wand @ Vector((0, 0, 1))).rotation_difference(Vector((0, 1, 0))) @ wand
+    if wand_path not in rotations:
+        parts, a, b = blocks(text, "  m_RotationCurves:\n", "  m_CompressedRotationCurves:", "  - curve:\n")
+        template = next(part for part in parts if name_of(part) == HAND)
+        text = text[:b] + template.replace("    path: " + HAND + "\n", "    path: " + wand_path + "\n") + text[b:]
+        parts, a, b = blocks(text, "  m_EditorCurves:\n", "  m_HasGenericRootTransform:", "  - serializedVersion: 2\n")
+        templates = [part.replace("    path: " + HAND + "\n", "    path: " + wand_path + "\n")
+                     for part in parts if name_of(part) == HAND and
+                     ("attribute: m_LocalRotation." in part or "attribute: localEulerAngles." in part)]
+        text = text[:b] + "".join(templates) + text[b:]
+    values = {path: [] for path in (*TARGET_PATHS, wand_path)}
     for t in times:
-        source, _, _, _, _, _ = pose(t, rotations, positions, wand, target, pole)
-        anticipation = min(1, max(0, t / .2))
-        weight = (1 - (1 - anticipation) ** 2) * (1 - smooth(.26, .55, t))
-        for path, a, b in zip(TARGET_PATHS, source, release_aim):
+        source, aim, _, _, _, _ = pose(t, rotations, positions, wand, target, pole)
+        weight = smooth(0, .18, t) * (1 - smooth(.3, .6, t))
+        for path, a, b in zip(TARGET_PATHS, source, aim):
             q = a.slerp(b, weight)
             if values[path] and values[path][-1][1].dot(q) < 0: q.negate()
             values[path].append((t, q))
+        values[wand_path].append((t, wand.slerp(cast_wand, weight)))
     text = rewrite_rotation(text, values)
     text = rewrite_editor(text, values)
     file.write_text(text, encoding="utf-8", newline="\n")

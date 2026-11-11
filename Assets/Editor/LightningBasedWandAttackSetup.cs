@@ -89,12 +89,17 @@ public static class LightningBasedWandAttackSetup
             idle.SampleAnimation(wizard.gameObject, 0);
             var idleRot = bones.Select(b => b.localRotation).ToArray();
             var idlePos = bones.Select(b => b.localPosition).ToArray();
+            Quaternion idleArm = arm.localRotation;
+            Quaternion idleForearm = forearm.localRotation;
+            Quaternion idleHand = hand.localRotation;
             var grip = hand.GetComponentsInChildren<Transform>(true)
                 .Where(b => b.name.StartsWith("Right") && b != hand)
                 .ToArray();
             var fingerIdle = grip.Select(b => b.localRotation).ToArray();
             Vector3 socketPosition = wand.localPosition;
             Quaternion socketRotation = wand.localRotation;
+            Quaternion castWandRotation = Quaternion.FromToRotation(
+                socketRotation * Vector3.forward, Vector3.up) * socketRotation;
             Vector3 rootPosition = wizard.localPosition;
             Quaternion rootRotation = wizard.localRotation;
             idle.SampleAnimation(wizard.gameObject, 0);
@@ -111,21 +116,9 @@ public static class LightningBasedWandAttackSetup
                 AnimationUtility.SetEditorCurve(clip, binding,
                     AnimationCurve.Constant(0, Duration, curve.Evaluate(0)));
             }
-            // Solve one release pose, then blend toward it through anticipation.
-            // Holding this target briefly avoids an elbow/wrist flip between source keys.
-            idle.SampleAnimation(wizard.gameObject, 0);
-            source.SampleAnimation(wizard.gameObject, Release);
-            for (int i = 0; i < bones.Length; i++)
-            {
-                bones[i].localRotation = idleRot[i] * Quaternion.Inverse(sourceRot[i]) * bones[i].localRotation;
-                bones[i].localPosition = idlePos[i] + bones[i].localPosition - sourcePos[i];
-            }
-            AimArm(actor.transform, arm, forearm, hand, wand);
-            var releaseArm = arm.localRotation;
-            var releaseForearm = forearm.localRotation;
-            var releaseHand = hand.localRotation;
             var rotations = bones.Select(_ => new List<Quaternion>()).ToArray();
             var positions = bones.Select(_ => new List<Vector3>()).ToArray();
+            var wandRotations = new List<Quaternion>();
             float releaseError = 0, maxWrist = 0, maxWristTime = 0;
             float maxFootDeviation = 0, maxEmptyForearm = 0;
             for (int sample = 0; sample < Samples.Length; sample++)
@@ -151,17 +144,21 @@ public static class LightningBasedWandAttackSetup
                 emptyHand.localRotation = idleRot[emptyHandIndex];
                 maxEmptyForearm = Mathf.Max(maxEmptyForearm,
                     Quaternion.Angle(idleRot[emptyForearmIndex], emptyForearm.localRotation));
-                // Keep the Lightning trajectory except around release. Solve the
-                // aiming pose through shoulder and elbow so the wrist stays relaxed.
-                float anticipation = Mathf.Clamp01(t / Release);
-                float aimWeight = (1f - (1f - anticipation) * (1f - anticipation)) *
-                    (1f - Mathf.SmoothStep(0, 1, Mathf.InverseLerp(.26f, .55f, t)));
-                if (aimWeight > 0)
-                {
-                    arm.localRotation = Quaternion.Slerp(arm.localRotation, releaseArm, aimWeight);
-                    forearm.localRotation = Quaternion.Slerp(forearm.localRotation, releaseForearm, aimWeight);
-                    hand.localRotation = Quaternion.Slerp(hand.localRotation, releaseHand, aimWeight);
-                }
+                // Extend the neutral limb from the shoulder. A small swing
+                // angle alone cannot detect the old 111-degree wrist twist.
+                arm.localRotation = idleArm;
+                forearm.localRotation = idleForearm;
+                hand.localRotation = idleHand;
+                AimArm(actor.transform, arm, forearm, hand);
+                Quaternion aimedArm = arm.localRotation;
+                float aimWeight = Mathf.SmoothStep(0, 1, Mathf.InverseLerp(0, .18f, t)) *
+                    (1f - Mathf.SmoothStep(0, 1, Mathf.InverseLerp(.3f, .6f, t)));
+                arm.localRotation = Quaternion.Slerp(idleArm, aimedArm, aimWeight);
+                wand.localRotation = Quaternion.Slerp(socketRotation, castWandRotation, aimWeight);
+                wandRotations.Add(wand.localRotation);
+                if (Quaternion.Angle(hand.localRotation, idleHand) > .1f ||
+                    Vector3.Angle(forearm.position-arm.position, hand.position-forearm.position) > .1f)
+                    throw new Exception("Cast arm bent or wrist twisted.");
                 if (Mathf.Abs(t - Release) < .0001f)
                     releaseError = Vector3.Angle(wand.forward, actor.transform.forward);
                 float wrist = Vector3.Angle(hand.up, hand.position - forearm.position);
@@ -183,8 +180,7 @@ public static class LightningBasedWandAttackSetup
                 for (int i = 0; i < grip.Length; i++)
                     if (Quaternion.Angle(grip[i].localRotation, fingerIdle[i]) > .1f)
                         throw new Exception("Wand finger grip changed: " + grip[i].name);
-                if (Vector3.Distance(wand.localPosition, socketPosition) > .0001f ||
-                    Quaternion.Angle(wand.localRotation, socketRotation) > .01f)
+                if (Vector3.Distance(wand.localPosition, socketPosition) > .0001f)
                     throw new Exception("Wand socket shifted.");
                 if (Vector3.Distance(wizard.localPosition, rootPosition) > .0001f ||
                     Quaternion.Angle(wizard.localRotation, rootRotation) > .01f)
@@ -205,6 +201,10 @@ public static class LightningBasedWandAttackSetup
                         WriteCurve(clip, path, "m_LocalPosition." + "xyz"[axis],
                             positions[i].Select(p => p[axis]).ToArray());
             }
+            string wandPath = AnimationUtility.CalculateTransformPath(wand, wizard);
+            for (int axis = 0; axis < 4; axis++)
+                WriteCurve(clip, wandPath, "m_LocalRotation." + "xyzw"[axis],
+                    wandRotations.Select(q => q[axis]).ToArray());
             clip.EnsureQuaternionContinuity();
             var settings = AnimationUtility.GetAnimationClipSettings(clip);
             settings.startTime = 0; settings.stopTime = Duration; settings.loopTime = false;
@@ -238,35 +238,13 @@ public static class LightningBasedWandAttackSetup
         finally { UnityEngine.Object.DestroyImmediate(actor); }
     }
 
-    static void AimArm(Transform root, Transform arm, Transform elbow, Transform hand, Transform wand)
+    static void AimArm(Transform root, Transform arm, Transform elbow, Transform hand)
     {
-        float upper = Vector3.Distance(arm.position, elbow.position);
-        float lower = Vector3.Distance(elbow.position, hand.position);
-        Vector3 offset = (root.right * .09f - root.up * .08f + root.forward * .72f) * (upper + lower);
-        float distance = Mathf.Clamp(offset.magnitude, Mathf.Abs(upper - lower) + .001f,
-            (upper + lower) * .985f);
-        Vector3 direction = offset.normalized;
-        Vector3 bend = Vector3.ProjectOnPlane(root.right * .3f - root.up, direction).normalized;
-        float along = (upper * upper - lower * lower + distance * distance) / (2 * distance);
-        Vector3 elbowTarget = arm.position + direction * along +
-            bend * Mathf.Sqrt(Mathf.Max(0, upper * upper - along * along));
-        Vector3 handTarget = arm.position + direction * distance;
-        arm.rotation = Quaternion.FromToRotation(elbow.position - arm.position,
-            elbowTarget - arm.position) * arm.rotation;
-        elbow.rotation = Quaternion.FromToRotation(hand.position - elbow.position,
-            handTarget - elbow.position) * elbow.rotation;
-        Vector3 axis = (hand.position - elbow.position).normalized;
-        Vector3 shaft = Vector3.ProjectOnPlane(wand.forward, axis);
-        Vector3 target = Vector3.ProjectOnPlane(root.forward, axis);
-        if (shaft.sqrMagnitude > .0001f && target.sqrMagnitude > .0001f)
-            elbow.rotation = Quaternion.AngleAxis(Vector3.SignedAngle(shaft, target, axis), axis) * elbow.rotation;
-        hand.rotation = Quaternion.FromToRotation(wand.forward, root.forward) * hand.rotation;
-        Vector3 upPlane = Vector3.ProjectOnPlane(hand.up, root.forward);
-        Vector3 armPlane = Vector3.ProjectOnPlane(hand.position - elbow.position, root.forward);
-        if (upPlane.sqrMagnitude > .0001f && armPlane.sqrMagnitude > .0001f)
-            hand.rotation = Quaternion.AngleAxis(
-                Mathf.Clamp(Vector3.SignedAngle(upPlane, armPlane, root.forward), -78f, 78f),
-                root.forward) * hand.rotation;
+        arm.rotation = Quaternion.FromToRotation(hand.position - arm.position,
+            root.forward) * arm.rotation;
+        Vector3 back = Vector3.ProjectOnPlane(hand.right, root.forward);
+        arm.rotation = Quaternion.AngleAxis(Vector3.SignedAngle(back, root.right,
+            root.forward), root.forward) * arm.rotation;
     }
 
     static void WriteCurve(AnimationClip clip, string path, string property, float[] values)
