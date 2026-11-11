@@ -10,6 +10,8 @@ services:
         UNITY_VERSION: ${UNITY_VERSION:-6000.3.24f1}
       secrets:
         - unity_license
+        - unity_email
+        - unity_password
     image: wizard-duel-server:latest
     ports:
       # 클라이언트는 7777에 고정으로 접속한다(LobbyNetwork.port).
@@ -22,6 +24,11 @@ services:
         max-size: "10m"
         max-file: "3"
 
+# 빌드할 때만 쓰는 Unity 라이선스와 계정. secrets 폴더는 git에 올라가지 않는다.
 secrets:
   unity_license:
     file: ${UNITY_LICENSE_FILE:-./secrets/Unity_lic.ulf}
+  unity_email:
+    file: ./secrets/unity_email
+  unity_password:
+    file: ./secrets/unity_password

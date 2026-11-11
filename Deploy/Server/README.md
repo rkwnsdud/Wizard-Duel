@@ -2,10 +2,11 @@
 
 리눅스 서버에서 저장소를 받아 `bash Deploy/Server/build.sh` 한 번으로 전용 서버를 빌드하고 실행한다.
 
-- `build.sh`: 현재 브랜치가 `main`인지와 라이선스 파일을 확인한 뒤 `git pull --ff-only`, `docker compose up -d --build`를 실행하고, 로그에 `[Lobby] Listening`이 나올 때까지 최대 60초 기다린다.
-- `Dockerfile`: 1단계에서 `unityci/editor` 이미지로 `Assets/Scenes/Main.unity`를 Linux Dedicated Server로 빌드한다(`LinuxServerBuild.Build`). 2단계에서는 빌드 결과만 `ubuntu:22.04`에 담아 `-server`로 실행한다.
+- `build.sh`: 현재 브랜치가 `main`인지와 Unity secret 파일 세 개를 확인한 뒤 `git pull --ff-only`, `docker compose up -d --build`를 실행하고, 로그에 `[Lobby] Listening`이 나올 때까지 최대 60초 기다린다.
+- `Dockerfile`: 1단계에서 `unityci/editor` 이미지로 `unity-build.sh`를 실행해 `Assets/Scenes/Main.unity`를 Linux Dedicated Server로 빌드한다(`LinuxServerBuild.Build`). 2단계에서는 빌드 결과만 `ubuntu:22.04`에 담아 `-server`로 실행한다.
+- `unity-build.sh`: 빌드 컨테이너 안에서 Unity 라이선스를 활성화하고, 빌드한 뒤, 라이선스를 반납한다. 빌드가 실패해도 반납은 한다.
 - `compose.yaml`: UDP 7777을 열고, 서버가 죽으면 다시 띄운다(`restart: unless-stopped`).
-- `Dockerfile.dockerignore`: 빌드 컨텍스트로 `Assets`, `Packages`, `ProjectSettings`만 보낸다.
+- `Dockerfile.dockerignore`: 빌드 컨텍스트로 `Assets`, `Packages`, `ProjectSettings`와 `unity-build.sh`만 보낸다.
 
 에디터에서는 **Tools > Wizard Duel > Build Linux Server**로 같은 빌드를 `Build/LinuxServer/`에 만들 수 있다. 이 메뉴는 Unity Hub에서 **Linux Dedicated Server Build Support** 모듈을 설치해야 동작한다. 도커 빌드는 이미지에 이 모듈이 들어 있어서 필요 없다.
 
@@ -20,20 +21,33 @@
    cat ~/.ssh/id_ed25519.pub
    git clone git@github.com:rkwnsdud/Wizard-Duel.git
    ```
-5. **Unity 라이선스**: PC의 `C:\ProgramData\Unity\Unity_lic.ulf`를 서버의 `Deploy/Server/secrets/Unity_lic.ulf`로 복사하고 권한을 600으로 둔다. 이 폴더는 `.gitignore`에 들어 있다. 빌드 중에만 secret으로 컨테이너에 들어가고 이미지에는 남지 않는다.
+5. **Unity 라이선스와 계정**: 빌드 컨테이너가 Unity 라이선스를 직접 활성화한다. `.ulf` 파일을 그대로 넣으면 Unity가 라이선스로 인식하지 못하고 종료 코드 198("No valid Unity Editor license")로 끝난다. 그래서 GameCI와 같은 방식으로 `.ulf`에서 시리얼을 꺼내 Unity 계정 이메일·비밀번호와 함께 활성화하고, 빌드가 끝나면 반납한다. 아래 세 파일을 `Deploy/Server/secrets/`에 둔다. 이 폴더는 `.gitignore`에 들어 있고, 빌드 중에만 secret으로 컨테이너에 들어가 이미지에는 남지 않는다.
+
+   | 파일 | 내용 |
+   |---|---|
+   | `Unity_lic.ulf` | PC의 `C:\ProgramData\Unity\Unity_lic.ulf`. 시리얼을 꺼내는 데만 쓴다. |
+   | `unity_email` | 라이선스가 등록된 Unity 계정 이메일 |
+   | `unity_password` | 그 계정의 비밀번호 |
+
    서버에서 폴더를 만든다.
    ```bash
    mkdir -p ~/Wizard-Duel/Deploy/Server/secrets
    ```
-   PC에서 파일을 보낸다(`<계정>@<서버>`는 실제 접속 정보로 바꾼다).
+   PC에서 라이선스 파일을 보낸다(`<계정>@<서버>`는 실제 접속 정보로 바꾼다).
    ```bash
    scp "C:/ProgramData/Unity/Unity_lic.ulf" <계정>@<서버>:~/Wizard-Duel/Deploy/Server/secrets/Unity_lic.ulf
    ```
+   서버에서 이메일과 비밀번호를 파일로 만든다. 비밀번호가 셸 기록에 남지 않도록 입력받아 쓴다.
+   ```bash
+   cd ~/Wizard-Duel/Deploy/Server/secrets && read -rp 'Unity email: ' v && printf '%s' "$v" > unity_email && read -rsp 'Unity password: ' v && printf '%s' "$v" > unity_password && unset v && echo
+   ```
    서버에서 권한을 줄인다.
    ```bash
-   chmod 600 ~/Wizard-Duel/Deploy/Server/secrets/Unity_lic.ulf
+   chmod 600 ~/Wizard-Duel/Deploy/Server/secrets/*
    ```
-   이 라이선스 파일은 PC 기준으로 발급된 것이라, 서버 컨테이너에서도 인식되는지는 첫 빌드에서 확인해야 한다. 인식되지 않으면 빌드 로그에 라이선스 오류가 나온다.
+   - 2단계 인증이 켜진 계정은 명령줄 활성화가 실패할 수 있다.
+   - 컨테이너마다 새 기기로 활성화되므로 `unity-build.sh`가 빌드 뒤 `-returnlicense`로 반납한다. 빌드를 강제로 끊어 반납되지 않았다면 Unity 계정 페이지에서 활성화된 기기를 해제한다.
+   - 활성화·반납 로그는 비밀번호와 시리얼을 가리고 관련 줄만 보여 준다.
 
 ## 실행
 
@@ -45,7 +59,7 @@ bash Deploy/Server/build.sh
 - `Assets`, `Packages`, `ProjectSettings`가 그대로면 Unity 빌드를 건너뛰고 컨테이너도 다시 띄우지 않는다. 문서만 바뀐 pull이 여기에 해당한다.
 - 빌드가 실패하면 기존 컨테이너가 그대로 돌아간다.
 - 로그 보기: `docker compose -f Deploy/Server/compose.yaml logs -f`
-- 클라이언트 접속: `WizardDuel.exe -join <서버 IP>`. 클라이언트도 서버와 같은 커밋으로 빌드해야 한다(프로토콜 버전·맵 지문이 맞아야 한다).
+- 클라이언트 접속: `WizardDuel.exe -join <서버 주소>`. 도메인도 된다(`-join limeskin.kr`). 에디터에서는 **Tools > Wizard Duel > Network Test** 창(Mode: Main)에서 **Build** 후 **Remote Client (limeskin.kr)**를 누른다. 클라이언트도 서버와 같은 커밋으로 빌드해야 한다(프로토콜 버전·맵 지문이 맞아야 한다).
 
 `Deploy/Server/.env`로 기본값을 바꿀 수 있다(git에 올라가지 않는다).
 

@@ -16,10 +16,13 @@ if [ "$current" != "$branch" ]; then
     echo "[build] 현재 브랜치가 '$current'입니다. '$branch'에서만 배포합니다." >&2
     exit 1
 fi
-if [ ! -f "$license" ]; then
-    echo "[build] Unity 라이선스 파일이 없습니다: $license (Deploy/Server/README.md 참고)" >&2
-    exit 1
-fi
+# Unity 빌드에 쓰는 secret 파일이 모두 있어야 한다(만드는 법은 README.md).
+for secret in "$license" ./secrets/unity_email ./secrets/unity_password; do
+    if [ ! -s "$secret" ]; then
+        echo "[build] Unity secret 파일이 없거나 비어 있습니다: $secret (Deploy/Server/README.md 참고)" >&2
+        exit 1
+    fi
+done
 
 git -C "$repo_root" pull --ff-only origin "$branch"
 
