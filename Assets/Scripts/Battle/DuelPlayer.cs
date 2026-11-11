@@ -155,7 +155,9 @@ public sealed class DuelPlayer : NetworkBehaviour, IAttackAuthority, IShotSink
     /// <summary>서버에서 상태이상 틱 피해를 넣는다. 공격자 보고가 없어 서버가 직접 굴린다.</summary>
     public void ServerApplyStatusTick(int attackerSlot, uint dotAttackId, int tickIndex, float damage)
     {
-        if (!IsServer || !IsSpawned || combat == null || !combatEnabled.Value) return;
+        // NOTE: combatEnabled is input gating for the owner. DoT must still tick on
+        // dummies / remote players whose combat input was never enabled.
+        if (!IsServer || !IsSpawned || combat == null) return;
         if (!combat.TryTakeHit(attackerSlot, dotAttackId, tickIndex, damage, out bool defeatedNow)) return;
         Debug.Log($"[Combat] DoT slot={slot} attacker={attackerSlot} id={dotAttackId} tick={tickIndex} health={combat.Health:F3}");
         health.Value = combat.Health;

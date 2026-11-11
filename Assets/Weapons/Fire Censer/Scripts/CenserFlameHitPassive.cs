@@ -19,7 +19,11 @@ public sealed class CenserFlameHitPassive : MonoBehaviour, IWeaponHitPassive
     public void OnServerHit(DuelPlayer attacker, DuelPlayer target)
     {
         if (attacker == null || target == null) return;
-        if (!target.TryGetComponent(out PlayerStatusEffects status)) return;
+        if (!target.TryGetComponent(out PlayerStatusEffects status))
+        {
+            Debug.LogWarning($"[Censer] Burn skipped: slot={target.Slot} has no PlayerStatusEffects. Attach it to the DuelWizard prefab.", target);
+            return;
+        }
         attacker.ServerInflictStatus(status, tickDamage, tickCount, burnDuration, slowMultiplier, slowDuration);
         Debug.Log($"[Censer] Burn applied to slot={target.Slot} tick={tickDamage}x{tickCount} slow={slowMultiplier}/{slowDuration}s.");
     }

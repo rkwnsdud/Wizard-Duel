@@ -47,6 +47,26 @@ public class PlayerAttack : MonoBehaviour
     // Remote players keep their poses even though their input component is disabled.
     public bool IsWeaponPoseActive(WeaponBase weapon) => weapon != null && currentWeapon == weapon;
 
+#if UNITY_EDITOR
+    // Offline weapon swap test: 1 = first child weapon, 2 = second child weapon.
+    // Editor-only. Stripped from builds.
+    void Update()
+    {
+        if (Keyboard.current == null) return;
+        if (Keyboard.current.digit1Key.wasPressedThisFrame) EditorSwapWeapon(0);
+        else if (Keyboard.current.digit2Key.wasPressedThisFrame) EditorSwapWeapon(1);
+    }
+
+    void EditorSwapWeapon(int index)
+    {
+        WeaponBase[] weapons = GetComponentsInChildren<WeaponBase>(true);
+        if (index < 0 || index >= weapons.Length) return;
+        if (TryEquipWeapon(weapons[index]))
+            Debug.Log($"[Test] Equipped {weapons[index].name} via key {index + 1}.", weapons[index]);
+    }
+#endif
+
+
     private float pendingChargeRatio;
     private bool hasFired;
 
