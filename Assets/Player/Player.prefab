@@ -269,6 +269,10 @@ MonoBehaviour:
   m_Name:
   m_EditorClassIdentifier: Assembly-CSharp::PlayerWeaponInventory
   storedWeapon: {fileID: 0}
+  pickupSound: {fileID: 8300000, guid: 8af778b5c4884a0dada1f401cbcf439d, type: 3}
+  swapSound: {fileID: 8300000, guid: 798aee167cb7428b81e293b3ca1d852e, type: 3}
+  pickupVolume: 0.8
+  swapVolume: 0.8
 --- !u!114 &7654100000000000001
 MonoBehaviour:
   m_ObjectHideFlags: 0

@@ -149,14 +149,14 @@ PrefabInstance:
     - target: {fileID: 6880158743967379202, guid: a1cc0d0fb37c35449bd995841e69ab7a, type: 3}
       propertyPath: currentWeapon
       value: 
-      objectReference: {fileID: 3408941888141757619}
+      objectReference: {fileID: 3119380825590425957}
     m_RemovedComponents: []
     m_RemovedGameObjects:
     - {fileID: 7304179585884765599, guid: a1cc0d0fb37c35449bd995841e69ab7a, type: 3}
     m_AddedGameObjects:
     - targetCorrespondingSourceObject: {fileID: 8004607256499747338, guid: a1cc0d0fb37c35449bd995841e69ab7a, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 4340013173032741177}
+      addedObject: {fileID: 5568052572342993333}
     - targetCorrespondingSourceObject: {fileID: 8004607256499747338, guid: a1cc0d0fb37c35449bd995841e69ab7a, type: 3}
       insertIndex: -1
       addedObject: {fileID: 5891751215637185266}
@@ -201,7 +201,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.NetworkObject
-  GlobalObjectIdHash: 0
+  GlobalObjectIdHash: 3448558476
   InScenePlacedSourceGlobalObjectIdHash: 0
   m_InScenePlacedDisabledByDefault: 0
   DeferredDespawnTick: 0
@@ -325,13 +325,57 @@ PrefabInstance:
   m_Modification:
     serializedVersion: 3
     m_TransformParent: {fileID: 2525174313372251855}
-    m_Modifications: []
+    m_Modifications:
+    - target: {fileID: 1501417940360527516, guid: a797a62da8b406b42ad029f43ef9cd46, type: 3}
+      propertyPath: m_Name
+      value: BasicWand
+      objectReference: {fileID: 0}
+    - target: {fileID: 3759419378231829450, guid: a797a62da8b406b42ad029f43ef9cd46, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: -0.0354
+      objectReference: {fileID: 0}
+    - target: {fileID: 3759419378231829450, guid: a797a62da8b406b42ad029f43ef9cd46, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0.1328
+      objectReference: {fileID: 0}
+    - target: {fileID: 3759419378231829450, guid: a797a62da8b406b42ad029f43ef9cd46, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0.0304
+      objectReference: {fileID: 0}
+    - target: {fileID: 3759419378231829450, guid: a797a62da8b406b42ad029f43ef9cd46, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: -0.43970728
+      objectReference: {fileID: 0}
+    - target: {fileID: 3759419378231829450, guid: a797a62da8b406b42ad029f43ef9cd46, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0.11589537
+      objectReference: {fileID: 0}
+    - target: {fileID: 3759419378231829450, guid: a797a62da8b406b42ad029f43ef9cd46, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0.8612196
+      objectReference: {fileID: 0}
+    - target: {fileID: 3759419378231829450, guid: a797a62da8b406b42ad029f43ef9cd46, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0.2269948
+      objectReference: {fileID: 0}
+    - target: {fileID: 3759419378231829450, guid: a797a62da8b406b42ad029f43ef9cd46, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3759419378231829450, guid: a797a62da8b406b42ad029f43ef9cd46, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3759419378231829450, guid: a797a62da8b406b42ad029f43ef9cd46, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: a797a62da8b406b42ad029f43ef9cd46, type: 3}
---- !u!114 &3408941888141757619 stripped
+--- !u!114 &3119380825590425957 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 5918805252675816218, guid: a797a62da8b406b42ad029f43ef9cd46, type: 3}
   m_PrefabInstance: {fileID: 8748689029136786047}
@@ -342,7 +386,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 23e8bdbba6a2e3e43894e0951db70f68, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BasicWandWeapon
---- !u!4 &4340013173032741177 stripped
+--- !u!4 &5568052572342993333 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 3759419378231829450, guid: a797a62da8b406b42ad029f43ef9cd46, type: 3}
   m_PrefabInstance: {fileID: 8748689029136786047}

@@ -26,7 +26,7 @@ MonoBehaviour:
     icon: {fileID: 21300000, guid: 245cae59c528e354385fb9ff88576a87, type: 3}
     displayName: Explosion Magic Book
   - prefab: {fileID: 8220961399317443507, guid: c9cf41e51711fb8409d5e098e9ccd5fd, type: 3}
-    icon: {fileID: 0}
+    icon: {fileID: 21300000, guid: 719510d595664cb08a6d70c1f04ef3a2, type: 3}
     displayName: Fire Censer
   - prefab: {fileID: 2628519176157115817, guid: 95fd674484863744eba3ed7901f22076, type: 3}
     icon: {fileID: 21300000, guid: 7201c7fed2ed38d42a5e95ecb4409316, type: 3}

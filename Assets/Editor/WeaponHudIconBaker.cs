@@ -5,9 +5,10 @@ using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
-// Run from Tools > Wizard Duel > Bake weapon HUD icons, or with
+// Run from Tools > Wizard Duel > Bake missing weapon HUD icons, or with
 // -batchmode -executeMethod WeaponHudIconBaker.BakeAll.
-// The scene is held in memory only; no existing scene or weapon prefab is saved.
+// Existing icon artwork is never overwritten. The scene is held in memory only;
+// no existing scene or weapon prefab is saved.
 public static class WeaponHudIconBaker
 {
     private const string OutputFolder = "Assets/UI/WeaponIcons";
@@ -39,7 +40,7 @@ public static class WeaponHudIconBaker
         new IconSource("Assets/Weapons/Fire Censer/DuelFireCenser.prefab", "FireCenser", "Fire Censer", new Vector3(0, 0, -24))
     };
 
-    [MenuItem("Tools/Wizard Duel/Bake weapon HUD icons")]
+    [MenuItem("Tools/Wizard Duel/Bake missing weapon HUD icons")]
     public static void BakeAll()
     {
         Directory.CreateDirectory(OutputFolder);
@@ -87,7 +88,11 @@ public static class WeaponHudIconBaker
 
             var captured = new bool[Sources.Length];
             for (int i = 0; i < Sources.Length; i++)
-                captured[i] = Bake(Sources[i], camera, captureScene);
+            {
+                string iconPath = OutputFolder + "/" + Sources[i].File + ".png";
+                captured[i] = AssetDatabase.LoadAssetAtPath<Sprite>(iconPath) != null ||
+                              Bake(Sources[i], camera, captureScene);
+            }
 
             AssetDatabase.Refresh();
             BuildCatalog(captured);
@@ -133,7 +138,7 @@ public static class WeaponHudIconBaker
             if (entry.FindPropertyRelative("prefab").objectReferenceValue == null)
                 throw new InvalidOperationException("Catalog prefab missing at entry " + i);
             bool hasIcon = entry.FindPropertyRelative("icon").objectReferenceValue != null;
-            if (i != 4 && !hasIcon)
+            if (!hasIcon)
                 throw new InvalidOperationException("Catalog icon missing at entry " + i);
             if (hasIcon && i != 5) iconCount++;
         }
@@ -220,7 +225,11 @@ public static class WeaponHudIconBaker
                 importer.textureType = TextureImporterType.Sprite;
                 importer.spriteImportMode = SpriteImportMode.Single;
                 importer.alphaIsTransparency = true;
-                importer.mipmapEnabled = false;
+                // Detailed source art is shown at roughly 50 UI pixels. Mipmaps
+                // prefilter it before reduction; compression adds visible blocks.
+                importer.mipmapEnabled = source.File != "LightOrb";
+                importer.textureCompression = TextureImporterCompression.Uncompressed;
+                importer.filterMode = source.File == "LightOrb" ? FilterMode.Bilinear : FilterMode.Trilinear;
                 importer.SaveAndReimport();
                 Debug.Log("Baked " + path + " from " + source.Path);
             }

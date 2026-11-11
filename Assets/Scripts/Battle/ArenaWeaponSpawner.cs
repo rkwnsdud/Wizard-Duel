@@ -30,6 +30,8 @@ public sealed class ArenaWeaponSpawner : MonoBehaviour
     readonly HashSet<ulong> needsApply = new HashSet<ulong>();
     readonly List<ulong> applied = new List<ulong>();
     uint epoch, revision, requestSequence, pendingRequest, acknowledgedRequest;
+    byte pendingAction;
+    Type pendingEquippedType, pendingStoredType;
     bool running, registered;
     PlayerWeaponInventory pendingInventory;
     WeaponSpawnNotification notification;
@@ -164,6 +166,9 @@ public sealed class ArenaWeaponSpawner : MonoBehaviour
         if (!Running || RequestPending || player == null || !player.IsSpawned || !player.IsLocalPlayer ||
             !player.CanUseInventory || !attack.CanChangeWeapon || (action == 1 && inventory.StoredWeapon == null)) return false;
         pendingInventory = inventory;
+        pendingAction = action;
+        pendingEquippedType = attack.CurrentWeapon != null ? attack.CurrentWeapon.GetType() : null;
+        pendingStoredType = inventory.StoredWeapon != null ? inventory.StoredWeapon.GetType() : null;
         pendingRequest = ++requestSequence;
         acknowledgedRequest = 0;
         attack.InventoryChangePending = true;
@@ -352,9 +357,24 @@ public sealed class ArenaWeaponSpawner : MonoBehaviour
 
     void ReleaseRequest()
     {
-        if (pendingInventory != null) pendingInventory.GetComponent<PlayerAttack>().InventoryChangePending = false;
+        if (pendingInventory != null)
+        {
+            var attack = pendingInventory.GetComponent<PlayerAttack>();
+            attack.InventoryChangePending = false;
+            if (Running && pendingRequest != 0 && acknowledgedRequest == pendingRequest)
+            {
+                Type equipped = attack.CurrentWeapon != null ? attack.CurrentWeapon.GetType() : null;
+                Type stored = pendingInventory.StoredWeapon != null ? pendingInventory.StoredWeapon.GetType() : null;
+                if (pendingAction == 0 && (equipped != pendingEquippedType || stored != pendingStoredType))
+                    pendingInventory.PlayPickupSound();
+                else if (pendingAction == 1 && equipped == pendingStoredType && stored == pendingEquippedType)
+                    pendingInventory.PlaySwapSound();
+            }
+        }
         pendingInventory = null;
         pendingRequest = acknowledgedRequest = 0;
+        pendingAction = 0;
+        pendingEquippedType = pendingStoredType = null;
     }
 
     void ReconcileVisuals(IReadOnlyDictionary<uint, SpawnedWeapon> drops)

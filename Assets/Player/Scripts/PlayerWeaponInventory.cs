@@ -9,6 +9,12 @@ public class PlayerWeaponInventory : MonoBehaviour
 
     [SerializeField]
     private WeaponBase storedWeapon;
+    [Header("Inventory sounds")]
+    private AudioSource feedbackSource;
+    [SerializeField] private AudioClip pickupSound;
+    [SerializeField] private AudioClip swapSound;
+    [SerializeField, Range(0f, 1f)] private float pickupVolume = 0.8f;
+    [SerializeField, Range(0f, 1f)] private float swapVolume = 0.8f;
 
     public WeaponBase StoredWeapon => storedWeapon;
     public event Action<WeaponBase> StoredWeaponChanged;
@@ -49,6 +55,7 @@ public class PlayerWeaponInventory : MonoBehaviour
 
         storedWeapon = previousWeapon;
         StoredWeaponChanged?.Invoke(storedWeapon);
+        PlaySwapSound();
         return true;
     }
 
@@ -109,7 +116,27 @@ public class PlayerWeaponInventory : MonoBehaviour
         {
             Destroy(nearbyPickup.gameObject);
             nearbyPickup = null;
+            PlayPickupSound();
         }
+    }
+
+    // Networked inventory changes call these after the local request is confirmed.
+    public void PlayPickupSound() => PlayFeedback(pickupSound, pickupVolume);
+    public void PlaySwapSound() => PlayFeedback(swapSound, swapVolume);
+
+    private void PlayFeedback(AudioClip clip, float volume)
+    {
+        if (clip == null) return;
+        var player = GetComponent<DuelPlayer>();
+        if (player != null && player.IsSpawned && !player.IsOwner) return;
+        if (feedbackSource == null)
+        {
+            feedbackSource = gameObject.AddComponent<AudioSource>();
+            feedbackSource.playOnAwake = false;
+            feedbackSource.spatialBlend = 0f;
+            feedbackSource.priority = 96;
+        }
+        feedbackSource.PlayOneShot(clip, volume);
     }
 
     // 무기 프리팹으로 실제 무기 생성

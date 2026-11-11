@@ -70,7 +70,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8934436442198238892, guid: a1cc0d0fb37c35449bd995841e69ab7a, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
-      value:
+      value: 
       objectReference: {fileID: 2100000, guid: 6e43de37d5f8346409feff39c7a7debf, type: 2}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -101,9 +101,9 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.NetworkObject
-  GlobalObjectIdHash: 0
+  GlobalObjectIdHash: 4289146116
   InScenePlacedSourceGlobalObjectIdHash: 0
   m_InScenePlacedDisabledByDefault: 0
   DeferredDespawnTick: 0
@@ -128,7 +128,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e96cb6065543e43c4a752faaa1468eb1, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.Components.NetworkTransform
   ShowTopMostFoldoutHeaderGroup: 1
   NetworkTransformExpanded: 0
@@ -174,7 +174,15 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 311aad7fe0f5a03498c26dda824e618c, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NetworkDemoPlayer
   ShowTopMostFoldoutHeaderGroup: 1
   slot: 1
+  spawnEffectDuration: 1.35
+  spawnRuneRadius: 1.35
+  spawnFloorOffset: 0.06
+  spawnRuneRotationSpeed: 240
+  spawnParticleRiseSpeed: 2.1
+  spawnParticleCount: 36
+  blueSpawnColor: {r: 0.08, g: 1.4, b: 2.2, a: 1}
+  redSpawnColor: {r: 2.2, g: 0.22, b: 0.035, a: 1}
