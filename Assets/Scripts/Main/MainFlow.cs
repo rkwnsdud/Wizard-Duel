@@ -281,7 +281,7 @@ public class MainFlow : MonoBehaviour
     {
         "The room code is invalid." => "유효하지 않은 맵 코드예요. 코드를 다시 확인해 주세요.",
         "This room already has two players." => "이미 두 명이 참가한 대기실이에요.",
-        "A room already exists." => "서버에 이미 대기실이 있어요. 맵 코드로 참가해 주세요.",
+        LobbyDirectory.ServerFull => "서버에 방이 가득 찼어요. 잠시 후 다시 시도해 주세요.",
         "Enter a six-digit room code." => "숫자 6자리 맵 코드를 입력해 주세요.",
         RoomClosed => "상대가 나가서 대기실이 닫혔어요.",
         "The battle map could not be generated." => "전투 맵을 만들지 못해 대기실에서 나왔어요.",

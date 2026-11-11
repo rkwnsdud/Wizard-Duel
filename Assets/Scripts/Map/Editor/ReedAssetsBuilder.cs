@@ -6,7 +6,7 @@ using Object = UnityEngine.Object;
 
 // 갈대 부시 에셋(이슈 #93)을 만든다: 색 그라데이션 텍스처, 불투명·반투명 머티리얼, 미리보기 메시, Reeds 프리팹.
 // 칸마다 실제 모양은 실행 중에 ReedPatch가 이웃 칸에 맞춰 만들고, 프리팹의 미리보기 메시는 사방이 부시인 칸 모양이다.
-// 색이나 ReedPatch 기본값을 바꾸면 Tools > Wizard Duel > Rebuild Reed Assets를 다시 실행한다.
+// 색이나 ReedPatch 기본값을 바꾸면 ReedAssetsBuilder.Rebuild()를 다시 부른다(메뉴는 없다).
 public static class ReedAssetsBuilder
 {
     public const string Folder = "Assets/map/Bushes";
@@ -34,7 +34,6 @@ public static class ReedAssetsBuilder
         new[] { Rgb(0.50f, 0.40f, 0.30f), Rgb(0.72f, 0.62f, 0.48f), Rgb(0.88f, 0.81f, 0.66f), Rgb(0.96f, 0.92f, 0.80f) },
     };
 
-    [MenuItem("Tools/Wizard Duel/Rebuild Reed Assets")]
     public static void Rebuild()
     {
         EnsureFolder(Folder + "/Materials");

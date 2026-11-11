@@ -1,0 +1,34 @@
+# 리눅스 전용 서버 컨테이너. 보통은 build.sh로 실행한다(UNITY_VERSION을 채우고 시작 로그를 확인한다).
+name: wizard-duel
+
+services:
+  server:
+    build:
+      context: ../..
+      dockerfile: Deploy/Server/Dockerfile
+      args:
+        UNITY_VERSION: ${UNITY_VERSION:-6000.3.24f1}
+      secrets:
+        - unity_license
+        - unity_email
+        - unity_password
+    image: wizard-duel-server:latest
+    ports:
+      # 클라이언트는 7777에 고정으로 접속한다(LobbyNetwork.port).
+      - "7777:7777/udp"
+    restart: unless-stopped
+    stop_grace_period: 10s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+# 빌드할 때만 쓰는 Unity 라이선스와 계정. secrets 폴더는 git에 올라가지 않는다.
+secrets:
+  unity_license:
+    file: ${UNITY_LICENSE_FILE:-./secrets/Unity_lic.ulf}
+  unity_email:
+    file: ./secrets/unity_email
+  unity_password:
+    file: ./secrets/unity_password

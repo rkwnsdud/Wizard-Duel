@@ -1,0 +1,7 @@
+# Dockerfile 옆에 두는 전용 ignore 파일. 경로는 빌드 컨텍스트(저장소 루트) 기준이다.
+# Unity 빌드에 필요한 세 폴더와 빌드 스크립트만 보낸다. Library·Temp·Build·.git·secrets 등은 보내지 않는다.
+*
+!Assets
+!Packages
+!ProjectSettings
+!Deploy/Server/unity-build.sh

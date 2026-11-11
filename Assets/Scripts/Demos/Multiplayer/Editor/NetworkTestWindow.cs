@@ -9,6 +9,7 @@ using UnityEngine;
 using Debug = UnityEngine.Debug;
 
 // Tools > Wizard Duel > Network Test: 테스트 빌드를 만들고 전용 서버와 클라이언트를 띄우거나 강제 종료한다.
+// Remote Client는 로컬 서버 대신 원격 리눅스 서버(RemoteServerAddress)에 접속하는 클라이언트를 띄운다.
 public class NetworkTestWindow : EditorWindow
 {
     const string NetworkDemoScenePath = "Assets/Scenes/NetworkDemo.unity";
@@ -18,7 +19,10 @@ public class NetworkTestWindow : EditorWindow
     const string MainExePath = "Build/LobbyTest/WizardDuel.exe";
     const string MainLogDir = "Logs/LobbyTest";
     const string ServerArgs = "-batchmode -nographics -server";
-    const string ClientArgs = "-join 127.0.0.1 -screen-fullscreen 0 -screen-width 1280 -screen-height 720";
+    const string ClientWindowArgs = "-screen-fullscreen 0 -screen-width 1280 -screen-height 720";
+    const string LocalServerAddress = "127.0.0.1";
+    // Deploy/Server로 띄운 리눅스 전용 서버. Main 씬 서버라 Main 빌드로만 접속한다.
+    const string RemoteServerAddress = "limeskin.kr";
     const string RunningKey = "NetworkTestWindow.Running";
     const string ModeKey = "NetworkTestWindow.Mode";
 
@@ -89,6 +93,11 @@ public class NetworkTestWindow : EditorWindow
         if (GUILayout.Button("1v1")) EditorApplication.delayCall += () => { Launch(selectedMode, "server", ServerArgs); LaunchClient(selectedMode); LaunchClient(selectedMode); };
         GUILayout.EndHorizontal();
 
+        // 원격 서버와 같은 커밋으로 빌드한 클라이언트여야 접속이 거절되지 않는다.
+        GUI.enabled = built && selectedMode == TestMode.Main;
+        if (GUILayout.Button($"Remote Client ({RemoteServerAddress})"))
+            EditorApplication.delayCall += () => LaunchClient(selectedMode, "remote", RemoteServerAddress);
+
         GUI.enabled = true;
         foreach (var (name, process) in Running())
         {
@@ -117,11 +126,12 @@ public class NetworkTestWindow : EditorWindow
         OnFocus();
     }
 
-    static void LaunchClient(TestMode selectedMode)
+    // 이름 뒤 번호는 같은 접두어끼리 늘린다(client1, client2 / remote1, remote2). 로그도 이 이름으로 남는다.
+    static void LaunchClient(TestMode selectedMode, string prefix = "client", string address = LocalServerAddress)
     {
         int number = 1;
-        while (Running().Exists(entry => entry.name == $"client{number}")) number++;
-        Launch(selectedMode, $"client{number}", ClientArgs);
+        while (Running().Exists(entry => entry.name == $"{prefix}{number}")) number++;
+        Launch(selectedMode, $"{prefix}{number}", $"-join {address} {ClientWindowArgs}");
     }
 
     static void Launch(TestMode selectedMode, string name, string args)

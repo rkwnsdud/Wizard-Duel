@@ -18,6 +18,8 @@ public sealed class DuelPlayer : NetworkBehaviour, IAttackAuthority, IShotSink
     public int Slot => slot;
     // 서버에서 체력이 0이 되는 순간 한 번 불린다.
     public event Action<DuelPlayer> Defeated;
+    // 서버에만 있다. 이 플레이어가 속한 방의 판. DuelArena가 소환하기 전에 넣는다.
+    public DuelMatch Match { get; set; }
 
     readonly NetworkVariable<bool> combatEnabled = new NetworkVariable<bool>(false,
         NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
@@ -154,8 +156,9 @@ public sealed class DuelPlayer : NetworkBehaviour, IAttackAuthority, IShotSink
     [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Owner)]
     void ReportHitRpc(NetworkObjectReference target, uint attackId, int hitIndex, float damage)
     {
+        // 서버에는 여러 방의 플레이어가 함께 있다. 같은 판의 플레이어만 맞힐 수 있다.
         if (!combatEnabled.Value || !target.TryGet(out NetworkObject obj, NetworkManager) ||
-            !obj.TryGetComponent(out DuelPlayer player) ||
+            !obj.TryGetComponent(out DuelPlayer player) || player.Match != Match ||
             !player.combat.TryTakeHit(slot, attackId, hitIndex, damage, out bool defeatedNow)) return;
         Debug.Log($"[Combat] Hit slot={player.slot} attacker={slot} id={attackId} hit={hitIndex} health={player.combat.Health:F3}");
         player.health.Value = player.combat.Health;
