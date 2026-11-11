@@ -5,18 +5,12 @@ using UnityEditor.Build.Reporting;
 using UnityEngine;
 
 // Main 씬을 리눅스 전용 서버(Dedicated Server)로 빌드한다.
-// Deploy/Server/Dockerfile이 배치 모드로 Build()를 부르고, 에디터에서는 메뉴로 같은 빌드를 만든다.
+// Deploy/Server/Dockerfile이 배치 모드로 Build()를 부른다.
 public static class LinuxServerBuild
 {
     const string ScenePath = "Assets/Scenes/Main.unity";
     const string DefaultOutputDir = "Build/LinuxServer";
     const string ExecutableName = "WizardDuel.x86_64";
-
-    [MenuItem("Tools/Wizard Duel/Build Linux Server")]
-    static void BuildFromMenu()
-    {
-        if (Run(DefaultOutputDir)) EditorUtility.RevealInFinder(Path.Combine(DefaultOutputDir, ExecutableName));
-    }
 
     // 배치 모드 진입점: unity-editor -batchmode -executeMethod LinuxServerBuild.Build -buildOutput /out
     // -quit 대신 직접 종료해 빌드 실패를 종료 코드 1로 알린다.

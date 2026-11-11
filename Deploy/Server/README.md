@@ -8,8 +8,6 @@
 - `compose.yaml`: UDP 7777을 열고, 서버가 죽으면 다시 띄운다(`restart: unless-stopped`).
 - `Dockerfile.dockerignore`: 빌드 컨텍스트로 `Assets`, `Packages`, `ProjectSettings`와 `unity-build.sh`만 보낸다.
 
-에디터에서는 **Tools > Wizard Duel > Build Linux Server**로 같은 빌드를 `Build/LinuxServer/`에 만들 수 있다. 이 메뉴는 Unity Hub에서 **Linux Dedicated Server Build Support** 모듈을 설치해야 동작한다. 도커 빌드는 이미지에 이 모듈이 들어 있어서 필요 없다.
-
 ## 서버 준비 (처음 한 번)
 
 1. **사양**: x86_64, RAM 8GB 이상, 디스크 여유 20GB 이상을 권장한다. Unity 에디터 이미지만 5.7GB이고, 첫 빌드에서 에셋을 전부 가져온다.
