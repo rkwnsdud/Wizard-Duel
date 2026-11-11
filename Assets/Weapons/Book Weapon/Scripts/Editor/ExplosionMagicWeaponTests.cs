@@ -7,7 +7,7 @@ using UnityEngine;
 using UnityEngine.TestTools;
 using Object = UnityEngine.Object;
 
-public class ExplosionMagicWeaponTests
+public class ExplosionMagicWeaponTests : PlayModeTestFixture
 {
     static readonly Vector3 Origin = new Vector3(21000f, 1f, 21000f);
     const int WallLayer = 9;
@@ -18,7 +18,6 @@ public class ExplosionMagicWeaponTests
     PlayerHealth owner;
     ExplosionMagicWeapon weapon;
     Transform firePoint;
-    readonly List<GameObject> spawned = new List<GameObject>();
 
     sealed class ShotSink : IShotSink
     {
@@ -38,10 +37,8 @@ public class ExplosionMagicWeaponTests
         }
     }
 
-    [UnitySetUp]
-    public IEnumerator SetUp()
+    protected override IEnumerator SetUpInPlayMode()
     {
-        yield return new EnterPlayMode();
         root = new GameObject("Explosion magic test owner");
         root.SetActive(false);
         root.transform.SetPositionAndRotation(Origin, Quaternion.LookRotation(Vector3.forward));
@@ -57,35 +54,22 @@ public class ExplosionMagicWeaponTests
         typeof(ExplosionMagicWeapon).GetField("firePoint", BindingFlags.Instance | BindingFlags.NonPublic)
             .SetValue(weapon, firePoint);
         root.SetActive(true);
+        yield break;
     }
 
-    [UnityTearDown]
-    public IEnumerator TearDown()
-    {
-        foreach (GameObject go in spawned)
-            if (go != null) Object.Destroy(go);
-        spawned.Clear();
-        foreach (ExplosionFireball fireball in Object.FindObjectsByType<ExplosionFireball>(FindObjectsSortMode.None))
-            Object.Destroy(fireball.gameObject);
-        Object.Destroy(root);
-        yield return new ExitPlayMode();
-    }
-
-    PlayerHealth Target(Vector3 offset)
+    static PlayerHealth Target(Vector3 offset)
     {
         var target = new GameObject("Explosion magic test target");
         target.transform.position = Origin + offset;
         target.AddComponent<BoxCollider>();
-        spawned.Add(target);
         return target.AddComponent<PlayerHealth>();
     }
 
-    void Wall(Vector3 offset, Vector3 size)
+    static void Wall(Vector3 offset, Vector3 size)
     {
         var wall = new GameObject("Explosion magic test wall") { layer = WallLayer };
         wall.transform.position = Origin + offset;
         wall.AddComponent<BoxCollider>().size = size;
-        spawned.Add(wall);
     }
 
     // Update보다 먼저 한 번에 사거리 끝까지 진행시켜 프레임 시간과 무관하게 판정한다.
@@ -207,19 +191,22 @@ public class ExplosionMagicWeaponTests
         Assert.That(victims, Has.No.Member(behindWall));
     }
 
-    [UnityTest]
-    public IEnumerator TwoBoneIK_ReachesTargetAndKeepsBoneLengths()
+}
+
+// 트랜스폼 계산뿐이라 플레이 모드 없이 가벼운 테스트로 돈다.
+public class TwoBoneIKTests
+{
+    [Test]
+    public void Solve_ReachesTargetAndKeepsBoneLengths()
     {
-        var shoulder = new GameObject("IK shoulder").transform;
-        shoulder.position = Origin + new Vector3(5f, 0f, 0f);
+        var shoulder = new GameObject("IK shoulder") { hideFlags = HideFlags.HideAndDontSave }.transform;
+        shoulder.position = new Vector3(5f, 0f, 0f);
         var elbow = new GameObject("IK elbow").transform;
         elbow.SetParent(shoulder, false);
         elbow.localPosition = new Vector3(0f, 1f, 0f);
         var hand = new GameObject("IK hand").transform;
         hand.SetParent(elbow, false);
         hand.localPosition = new Vector3(0f, 1f, 0f);
-        spawned.Add(shoulder.gameObject);
-        yield return null;
 
         Vector3 target = shoulder.position + new Vector3(1f, 1f, 0.5f);
         Vector3 hint = shoulder.position + new Vector3(0f, 0f, 1f);
@@ -233,6 +220,7 @@ public class ExplosionMagicWeaponTests
         Vector3 elbowSide = Vector3.ProjectOnPlane(elbow.position - shoulder.position, axis);
         Vector3 hintSide = Vector3.ProjectOnPlane(hint - shoulder.position, axis);
         Assert.That(Vector3.Dot(elbowSide, hintSide), Is.GreaterThan(0f));
+        Object.DestroyImmediate(shoulder.gameObject);
     }
 }
 #endif

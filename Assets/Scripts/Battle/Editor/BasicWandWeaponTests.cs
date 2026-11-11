@@ -7,7 +7,7 @@ using UnityEngine;
 using UnityEngine.TestTools;
 using Object = UnityEngine.Object;
 
-public class BasicWandWeaponTests
+public class BasicWandWeaponTests : PlayModeTestFixture
 {
     sealed class Sink : IShotSink
     {
@@ -21,12 +21,6 @@ public class BasicWandWeaponTests
             Target = target;
         }
     }
-
-    [UnitySetUp]
-    public IEnumerator SetUp() { yield return new EnterPlayMode(); }
-
-    [UnityTearDown]
-    public IEnumerator TearDown() { yield return new ExitPlayMode(); }
 
     static BasicWandWeapon CreateWand(out PlayerHealth owner)
     {

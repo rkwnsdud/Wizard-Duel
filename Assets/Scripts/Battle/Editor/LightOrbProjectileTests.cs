@@ -7,7 +7,7 @@ using UnityEngine;
 using UnityEngine.TestTools;
 using Object = UnityEngine.Object;
 
-public class LightOrbProjectileTests
+public class LightOrbProjectileTests : PlayModeTestFixture
 {
     static readonly Vector3 Origin = new Vector3(10000f, 2f, 10000f);
     static readonly MethodInfo Advance = typeof(LightOrbProjectile).GetMethod("Advance",
@@ -28,12 +28,6 @@ public class LightOrbProjectileTests
             Damage = damage;
         }
     }
-
-    [UnitySetUp]
-    public IEnumerator SetUp() { yield return new EnterPlayMode(); }
-
-    [UnityTearDown]
-    public IEnumerator TearDown() { yield return new ExitPlayMode(); }
 
     static PlayerHealth Player(float x, int layer = 0)
     {
