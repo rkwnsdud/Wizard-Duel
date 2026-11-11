@@ -13,11 +13,14 @@ public class StartScreen : MonoBehaviour
     const string JoinHint = "숫자 6자리를 입력하고 Enter를 눌러요";
 
     public event Action CreateRequested;
+    public event Action AiRequested;
     public event Action<string> JoinRequested;
     public event Action JoinCanceled;
 
     [SerializeField] Button joinMenuButton;
     [SerializeField] GameObject joinBox;
+    [Tooltip("코드 입력 상자가 열려 있는 동안 숨길 메뉴 버튼. 함께 보이면 메뉴가 화면 아래로 넘친다.")]
+    [SerializeField] GameObject aiMenuButton;
     [SerializeField] TMP_InputField codeField;
     [SerializeField] TMP_Text joinButtonLabel;
     [SerializeField] TMP_Text joinMessage;
@@ -30,7 +33,7 @@ public class StartScreen : MonoBehaviour
     // 대기실에서 돌아오면 메뉴를 처음 상태로 되돌린다.
     void OnEnable()
     {
-        joinBox.SetActive(false);
+        ShowJoinBox(false);
         SetConnecting(false);
         codeField.SetTextWithoutNotify("");
         // 씬을 처음 열 때는 EventSystem이 아직 없을 수 있고, 그때는 EventSystem이 알아서 첫 버튼을 고른다.
@@ -48,11 +51,17 @@ public class StartScreen : MonoBehaviour
         if (!connecting) CreateRequested?.Invoke();
     }
 
+    // "AI 대전" 버튼이 부른다. 서버에 접속하지 않고 봇과 바로 한 판을 치른다.
+    public void StartAiDuel()
+    {
+        if (!connecting) AiRequested?.Invoke();
+    }
+
     public void OpenJoin()
     {
         if (creating) return;
         if (!connecting) joinMessage.text = JoinHint;
-        joinBox.SetActive(true);
+        ShowJoinBox(true);
         codeField.ActivateInputField();
     }
 
@@ -82,7 +91,7 @@ public class StartScreen : MonoBehaviour
     {
         creating = false;
         SetConnecting(false);
-        joinBox.SetActive(true);
+        ShowJoinBox(true);
         joinMessage.text = $"<color=#FF9D9D>{reason}</color>";
         codeField.ActivateInputField();
     }
@@ -146,10 +155,17 @@ public class StartScreen : MonoBehaviour
         if (connecting) CancelJoin();
         else if (joinBox.activeSelf)
         {
-            joinBox.SetActive(false);
+            ShowJoinBox(false);
             joinMenuButton.Select();
         }
         else notice.SetActive(false);
+    }
+
+    // 코드 입력 상자를 열면 그 높이만큼 아래 메뉴가 밀린다. 화면을 넘지 않게 그동안 AI 대전 버튼을 숨긴다.
+    void ShowJoinBox(bool open)
+    {
+        joinBox.SetActive(open);
+        if (aiMenuButton != null) aiMenuButton.SetActive(!open);
     }
 
     void SetConnecting(bool value)

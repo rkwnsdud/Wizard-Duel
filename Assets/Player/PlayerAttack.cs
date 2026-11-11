@@ -64,6 +64,7 @@ public class PlayerAttack : MonoBehaviour
     // 온라인 전투에서 DuelPlayer가 넣는다. 없으면 오프라인으로 바로 공격한다.
     public IAttackAuthority Authority { get; set; }
     public WeaponBase Weapon => currentWeapon;
+    public float MaxChargeTime => maxChargeTime;
 
     // Equipment must be parented to this player's socket first. Switching during
     // charge/cast is rejected so animation events cannot fire a different weapon.
@@ -225,6 +226,17 @@ public class PlayerAttack : MonoBehaviour
         HideChargePreview(currentWeapon);
 
         CommitAttack(chargeRatio);
+    }
+
+    // 입력 없이 공격을 시작한다(AI 대전의 봇). 차징 시간은 부르는 쪽이 직접 기다린 뒤 그만큼의 비율을 넘긴다.
+    // 차징하지 않는 무기는 비율을 0으로 본다. 쿨다운·공격 중·사망이면 거절한다.
+    public bool TryStartAttack(float chargeRatio)
+    {
+        if (currentWeapon == null || IsAttacking || isCharging || IsOnCooldown ||
+            (playerHealth != null && playerHealth.IsDead))
+            return false;
+        CommitAttack(currentWeapon is IChargeableWeapon ? Mathf.Clamp01(chargeRatio) : 0f);
+        return IsAttacking;
     }
 
     private void CommitAttack(float chargeRatio)

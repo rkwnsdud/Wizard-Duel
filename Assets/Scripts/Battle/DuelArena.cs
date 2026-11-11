@@ -75,13 +75,19 @@ public sealed class DuelArena : MonoBehaviour
     // 다른 방이 같은 프레임에 준비해도 서로의 맵을 건드리지 않는다. 만들 수 없는 설정이면 null이다.
     public DuelMatch Prepare(MapGenerationSettings settings)
     {
+        DuelMatch match = PrepareLocal(settings);
+        if (match != null) Clear();
+        return match;
+    }
+
+    // AI 대전의 판을 준비한다. 로컬 호스트가 서버와 클라이언트를 겸하므로 세운 맵을 지우지 않고 그 위에서 싸운다.
+    public DuelMatch PrepareLocal(MapGenerationSettings settings)
+    {
         if (!Build(settings)) return null;
         var spawns = new Pose[map.SpawnPoints.Length];
         for (int slot = 0; slot < spawns.Length; slot++)
             spawns[slot] = new Pose(map.SpawnPoints[slot].position, map.SpawnPoints[slot].rotation);
-        var match = new DuelMatch(Fingerprint, spawns);
-        Clear();
-        return match;
+        return new DuelMatch(Fingerprint, spawns);
     }
 
     // 서버에서 방장과 참가자를 각자의 스폰 위치에 소환하고, 스폰 이펙트가 끝나면 전투 입력을 켠다.
@@ -93,26 +99,52 @@ public sealed class DuelArena : MonoBehaviour
         var spawned = new DuelPlayer[owners.Length];
         for (int slot = 0; slot < owners.Length; slot++)
         {
-            Pose spawn = match.Spawns[slot];
-            NetworkObject player = Instantiate(playerPrefabs[slot], spawn.position, spawn.rotation);
+            NetworkObject player = Create(match, slot, out spawned[slot]);
             // Netcode는 플레이어 오브젝트끼리는 가시성 판정 없이 서로의 관찰자로 넣는다. 자동 관찰자를 끄고
             // 소환한 뒤 이 방의 두 명에게만 보여 준다. 나중에 접속한 클라이언트의 동기화와 공격 RPC는 이 판정을 따른다.
             player.SpawnWithObservers = false;
             player.CheckObjectVisibility = clientId => clientId == host || clientId == guest;
-            spawned[slot] = player.GetComponent<DuelPlayer>();
-            if (spawned[slot] != null)
-            {
-                spawned[slot].Match = match;
-                spawned[slot].Defeated += defeated => OnPlayerDefeated(match, defeated);
-                match.Duelists.Add(spawned[slot]);
-            }
             player.SpawnAsPlayerObject(owners[slot]);
             player.NetworkShow(host);
             player.NetworkShow(guest);
-            match.Players.Add(player);
-            Debug.Log($"[Arena] Player-{slot + 1} owner={owners[slot]} position={spawn.position} rotation={spawn.rotation}");
+            Debug.Log($"[Arena] Player-{slot + 1} owner={owners[slot]} position={player.transform.position} rotation={player.transform.rotation}");
         }
         match.Combat = StartCoroutine(EnableCombat(match, spawned, combatEnabled));
+    }
+
+    // AI 대전: 로컬 호스트가 방장 자리(슬롯 0)의 내 플레이어와 참가자 자리(슬롯 1)의 봇을 모두 소유한다.
+    // 봇은 플레이어 오브젝트가 아니어서 카메라와 부시 가시성 판정은 내 플레이어가 맡고, 입력 대신 DuelBot이 움직인다.
+    // PrepareLocal로 세운 맵이 그대로 있어야 한다. 봇은 그 맵의 격자로 길을 찾는다.
+    public void SpawnAgainstBot(DuelMatch match, ulong owner, DuelBotTuning tuning, Action combatEnabled, Action<int> playerDefeated)
+    {
+        match.PlayerDefeated = playerDefeated;
+        var spawned = new DuelPlayer[2];
+        NetworkObject me = Create(match, 0, out spawned[0]);
+        NetworkObject opponent = Create(match, 1, out spawned[1]);
+        DuelBot bot = opponent.gameObject.AddComponent<DuelBot>();
+        bot.Initialize(new BotGrid(map.GeneratedLayout, map.transform), spawned[0], tuning);
+        spawned[1].AttachBot(bot);
+        me.SpawnAsPlayerObject(owner);
+        opponent.SpawnWithOwnership(owner);
+        Debug.Log($"[Arena] Player-1 owner={owner} position={me.transform.position} rotation={me.transform.rotation}");
+        Debug.Log($"[Arena] Player-2 bot owner={owner} position={opponent.transform.position} rotation={opponent.transform.rotation}");
+        match.Combat = StartCoroutine(EnableCombat(match, spawned, combatEnabled));
+    }
+
+    // 슬롯의 프리팹을 그 판의 스폰 자리에 만들고 판에 넣는다. 소환은 부른 쪽에서 한다.
+    NetworkObject Create(DuelMatch match, int slot, out DuelPlayer duelist)
+    {
+        Pose spawn = match.Spawns[slot];
+        NetworkObject player = Instantiate(playerPrefabs[slot], spawn.position, spawn.rotation);
+        duelist = player.GetComponent<DuelPlayer>();
+        if (duelist != null)
+        {
+            duelist.Match = match;
+            duelist.Defeated += defeated => OnPlayerDefeated(match, defeated);
+            match.Duelists.Add(duelist);
+        }
+        match.Players.Add(player);
+        return player;
     }
 
     void OnPlayerDefeated(DuelMatch match, DuelPlayer player)

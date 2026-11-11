@@ -20,6 +20,9 @@ public sealed class DuelPlayer : NetworkBehaviour, IAttackAuthority, IShotSink
     public event Action<DuelPlayer> Defeated;
     // 서버에만 있다. 이 플레이어가 속한 방의 판. DuelArena가 소환하기 전에 넣는다.
     public DuelMatch Match { get; set; }
+    // AI 대전의 봇인지. 봇은 로컬 호스트가 소유하지만 키보드·마우스를 읽지 않고 DuelBot이 움직인다.
+    // 이 화면에서는 상대이므로 카메라를 가져가지 않고, 걷기 애니메이션과 부시 노출도 상대 플레이어처럼 처리한다.
+    public bool IsBot => bot != null;
 
     readonly NetworkVariable<bool> combatEnabled = new NetworkVariable<bool>(false,
         NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
@@ -36,6 +39,7 @@ public sealed class DuelPlayer : NetworkBehaviour, IAttackAuthority, IShotSink
     // 서버에만 있다.
     DuelCombatState combat;
     uint attackId;
+    DuelBot bot;
 
     IWeapon Weapon => attack.Weapon as IWeapon;
 
@@ -47,10 +51,13 @@ public sealed class DuelPlayer : NetworkBehaviour, IAttackAuthority, IShotSink
         bushVisibility = GetComponent<PlayerBushVisibility>();
     }
 
+    // DuelArena가 봇을 소환하기 전에 부른다.
+    public void AttachBot(DuelBot driver) => bot = driver;
+
     public override void OnNetworkSpawn()
     {
         Debug.Log($"[Player] Spawned slot={slot} owner={OwnerClientId} local={IsOwner} position={transform.position} rotation={transform.rotation}.");
-        name = $"Player-{slot + 1}" + (IsOwner ? " (Me)" : "");
+        name = $"Player-{slot + 1}" + (IsBot ? " (Bot)" : IsOwner ? " (Me)" : "");
         previousPosition = transform.position;
         attack.Authority = this;
         if (IsServer)
@@ -62,7 +69,7 @@ public sealed class DuelPlayer : NetworkBehaviour, IAttackAuthority, IShotSink
         ApplyHealth(health.Value);
         combatEnabled.OnValueChanged += OnCombatEnabledChanged;
         if (IsClient) PlaySpawnEffect();
-        if (IsOwner) FollowWithCamera();
+        if (IsOwner && !IsBot) FollowWithCamera();
         // 부시 가시성은 이 클라이언트의 내 캐릭터가 판정한다. 오프라인 테스트의 더미는 호스트 소유지만 플레이어 오브젝트가 아니다.
         if (bushVisibility != null) bushVisibility.IsLocal = IsLocalPlayer;
         // 상대 플레이어는 내 입력을 읽으면 안 되므로 항상 꺼 둔다.
@@ -99,8 +106,10 @@ public sealed class DuelPlayer : NetworkBehaviour, IAttackAuthority, IShotSink
 
     void IAttackAuthority.StartAttack(float chargeRatio)
     {
-        if (IsSpawned && IsOwner && combatEnabled.Value && !playerHealth.IsDead)
-            PlayAttackRpc(chargeRatio);
+        if (!IsSpawned || !IsOwner || !combatEnabled.Value || playerHealth.IsDead) return;
+        // 봇의 공격 시작을 받을 상대 클라이언트가 없으므로, 받은 쪽이 세던 부시 노출을 여기서 센다.
+        if (IsBot && bushVisibility != null) bushVisibility.Reveal();
+        PlayAttackRpc(chargeRatio);
     }
 
     [Rpc(SendTo.NotOwner, InvokePermission = RpcInvokePermission.Owner)]
@@ -239,15 +248,19 @@ public sealed class DuelPlayer : NetworkBehaviour, IAttackAuthority, IShotSink
     {
         // 상대도 공격자의 물리 판정에 잡히도록 콜라이더를 켜 둔다. 입력은 소유자만 받는다.
         if (TryGetComponent(out CharacterController controller)) controller.enabled = IsClient && (!IsOwner || enabled);
-        if (TryGetComponent(out PlayerMovement movement)) movement.enabled = enabled;
-        if (TryGetComponent(out PlayerAim aim)) aim.enabled = enabled;
-        if (TryGetComponent(out PlayerAttack attack)) attack.enabled = enabled;
+        // 봇은 입력 컴포넌트를 끈 채로 두고 DuelBot만 켠다.
+        bool input = enabled && !IsBot;
+        if (TryGetComponent(out PlayerMovement movement)) movement.enabled = input;
+        if (TryGetComponent(out PlayerAim aim)) aim.enabled = input;
+        if (TryGetComponent(out PlayerAttack attack)) attack.enabled = input;
+        if (IsBot) bot.enabled = enabled;
     }
 
     void LateUpdate()
     {
         // 쓰러지면 PlayerHealth가 애니메이터를 끈다.
-        if (!IsClient || !IsSpawned || IsOwner || !animator.enabled) return;
+        // 내 캐릭터는 PlayerMovement가 걷기 값을 넣는다. 상대와 봇은 움직인 거리로 넣는다.
+        if (!IsClient || !IsSpawned || (IsOwner && !IsBot) || !animator.enabled) return;
         Vector3 displacement = transform.position - previousPosition;
         displacement.y = 0f;
         // 시전 중에는 소유자의 PlayerMovement처럼 걷기 값을 0으로 둔다.

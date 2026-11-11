@@ -2,7 +2,7 @@ using UnityEngine;
 
 // Online duel lightning: IWeapon reports hits, while Fire/FireCharged are local.
 // The original LightningWeapon and LightningBolt remain independent.
-public sealed class DuelLightningWeapon : WeaponBase, IChargeableWeapon, IWeapon
+public sealed class DuelLightningWeapon : WeaponBase, IChargeableWeapon, IWeapon, IWeaponReach
 {
     [SerializeField] private LightningEffect effectPrefab;
     [SerializeField] private GameObject hitEffectPrefab;
@@ -19,6 +19,8 @@ public sealed class DuelLightningWeapon : WeaponBase, IChargeableWeapon, IWeapon
     [SerializeField] private float maxHitWidth = 0.8f;
     [SerializeField] private float hitHeight = 2f;
     [SerializeField] private LayerMask blockerMask = (1 << 9) | (1 << 10);
+
+    public float ReachAt(float charge) => Mathf.Lerp(minRange, maxRange, Mathf.Clamp01(charge));
 
     private Vector3 AimDirection => GetComponentInParent<PlayerAim>().transform.forward;
 

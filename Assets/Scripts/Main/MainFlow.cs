@@ -1,9 +1,11 @@
 using System.Collections;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 // 서버의 대기실 상태를 화면에 반영한다. 전환 중에 받은 최신 상태도 전환이 끝난 뒤 적용한다.
 // 서버가 전투 준비를 알리면 대기실을 잠그고, 내 플레이어가 소환되면 대기실을 걷고 카메라를 넘긴다.
 // 승부가 나면 승자를 띄우고, 서버가 다음 판 로비를 알리면 같은 방의 대기실로 돌아온다.
+// AI 대전은 서버와 로비 화면 없이 시작 화면에서 바로 전투로 들어갔다가, 끝나면 시작 화면으로 돌아온다.
 public class MainFlow : MonoBehaviour
 {
     // 다음 판 로비를 받은 뒤 내 플레이어가 디스폰되기를 기다리는 최대 시간.
@@ -18,6 +20,7 @@ public class MainFlow : MonoBehaviour
     [SerializeField] Toast toast;
     [SerializeField] ResultBanner resultBanner;
     [SerializeField] LobbyNetwork network;
+    [SerializeField] AiDuel aiDuel;
 
     DuelSettings settings = new DuelSettings();
     NetworkLobbySnapshot latest;
@@ -34,6 +37,9 @@ public class MainFlow : MonoBehaviour
         startScreen.CreateRequested += Create;
         startScreen.JoinRequested += Join;
         startScreen.JoinCanceled += Cancel;
+        startScreen.AiRequested += StartAiDuel;
+        aiDuel.Finished += OnAiDuelFinished;
+        aiDuel.Ended += OnAiDuelEnded;
         lobby.SettingsChanged += OnSettingsChanged;
         lobby.StartRequested += RequestStart;
         lobby.LeaveRequested += Leave;
@@ -50,6 +56,9 @@ public class MainFlow : MonoBehaviour
         startScreen.CreateRequested -= Create;
         startScreen.JoinRequested -= Join;
         startScreen.JoinCanceled -= Cancel;
+        startScreen.AiRequested -= StartAiDuel;
+        aiDuel.Finished -= OnAiDuelFinished;
+        aiDuel.Ended -= OnAiDuelEnded;
         lobby.SettingsChanged -= OnSettingsChanged;
         lobby.StartRequested -= RequestStart;
         lobby.LeaveRequested -= Leave;
@@ -61,9 +70,16 @@ public class MainFlow : MonoBehaviour
         network.StartRejected -= OnStartRejected;
     }
 
+    void Update()
+    {
+        // AI 대전은 혼자 하는 판이라 Esc로 언제든 그만둘 수 있다. 정리가 끝나면 OnAiDuelEnded가 시작 화면을 올린다.
+        if (aiDuel.IsRunning && transition == null && Keyboard.current != null &&
+            Keyboard.current.escapeKey.wasPressedThisFrame) aiDuel.Stop();
+    }
+
     void Create()
     {
-        if (transition != null || network.IsBusy) return;
+        if (transition != null || network.IsBusy || aiDuel.IsRunning) return;
         creating = true;
         settings = new DuelSettings { Map = backdrop.Current }.Clone();
         backdrop.HoldTitle();
@@ -73,13 +89,58 @@ public class MainFlow : MonoBehaviour
 
     void Join(string code)
     {
-        if (transition != null || network.IsBusy)
+        if (transition != null || network.IsBusy || aiDuel.IsRunning)
         {
             startScreen.ShowJoinError("연결을 정리하고 있어요. 잠시 후 다시 시도해 주세요.");
             return;
         }
         creating = false;
         network.Join(code);
+    }
+
+    // 시작 화면 맵의 설정 그대로 전투 맵을 세우고 봇과 한 판을 치른다.
+    void StartAiDuel()
+    {
+        if (transition != null || network.IsBusy || aiDuel.IsRunning) return;
+        settings = new DuelSettings { Map = backdrop.Current }.Clone();
+        transition = StartCoroutine(EnterAiDuel());
+    }
+
+    IEnumerator EnterAiDuel()
+    {
+        backdrop.HoldTitle();
+        yield return startTransition.Hide();
+        if (!aiDuel.Begin(settings.ToMapSettings()))
+        {
+            backdrop.ShowTitle(settings, true);
+            yield return startTransition.Show();
+            startScreen.ShowNotice("AI 대전을 시작할 수 없어요. 잠시 후 다시 시도해 주세요.");
+            transition = null;
+            yield break;
+        }
+        // 같은 설정의 전투 맵이 같은 자리에 섰으므로 시작 화면 맵을 감춘다. 호스트라서 내 플레이어가 이미 소환되어 있으니,
+        // 같은 프레임 LateUpdate 전에 배경 카메라를 놓아 내 플레이어를 따라가는 카메라와 겹치지 않게 한다.
+        backdrop.HideMap();
+        backdrop.ReleaseCamera();
+        transition = null;
+    }
+
+    void OnAiDuelFinished(int winnerSlot) => resultBanner.Show(winnerSlot);
+
+    // 승부가 나서 끝났거나 Esc로 그만뒀다. 전투 맵과 플레이어는 AiDuel이 이미 지웠다.
+    void OnAiDuelEnded()
+    {
+        if (transition != null) StopCoroutine(transition);
+        transition = StartCoroutine(LeaveAiDuel());
+    }
+
+    IEnumerator LeaveAiDuel()
+    {
+        resultBanner.Hide();
+        // 감췄던 시작 화면 맵 자리에 새 맵이 솟는다.
+        backdrop.ShowTitle(settings, true);
+        yield return startTransition.Show();
+        transition = null;
     }
 
     void Cancel()
