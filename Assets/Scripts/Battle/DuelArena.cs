@@ -52,7 +52,10 @@ public sealed class DuelArena : MonoBehaviour
     public string Fingerprint { get; private set; }
 
     // 이전 맵을 지우고 설정대로 새로 만든다. 만들 수 없는 설정이면 빈 상태로 두고 false를 돌려준다.
-    public bool Build(MapGenerationSettings settings)
+    // 화면에 그릴 맵이므로 움직이지 않는 조각의 렌더러를 합쳐 만든다.
+    public bool Build(MapGenerationSettings settings) => Build(settings, true);
+
+    bool Build(MapGenerationSettings settings, bool combineRenderers)
     {
         if (map == null) return false;
         if (background == null) background = GetComponentInChildren<ArenaBackgroundBuilderNew>(true);
@@ -61,7 +64,7 @@ public sealed class DuelArena : MonoBehaviour
             background.gameObject.SetActive(true);
         try
         {
-            map.Generate(settings);
+            map.Generate(settings, combineRenderers);
             Fingerprint = MapFingerprint.Compute(map.GeneratedLayout, map.SpawnPoints);
         }
         catch (Exception exception)
@@ -85,15 +88,18 @@ public sealed class DuelArena : MonoBehaviour
     // 다른 방이 같은 프레임에 준비해도 서로의 맵을 건드리지 않는다. 만들 수 없는 설정이면 null이다.
     public DuelMatch Prepare(MapGenerationSettings settings)
     {
-        DuelMatch match = PrepareLocal(settings);
+        // 지문과 스폰 자리만 쓰고 곧바로 지울 맵이라 렌더러는 합치지 않는다.
+        DuelMatch match = PrepareMatch(settings, false);
         if (match != null) Clear();
         return match;
     }
 
     // AI 대전의 판을 준비한다. 로컬 호스트가 서버와 클라이언트를 겸하므로 세운 맵을 지우지 않고 그 위에서 싸운다.
-    public DuelMatch PrepareLocal(MapGenerationSettings settings)
+    public DuelMatch PrepareLocal(MapGenerationSettings settings) => PrepareMatch(settings, true);
+
+    DuelMatch PrepareMatch(MapGenerationSettings settings, bool combineRenderers)
     {
-        if (!Build(settings)) return null;
+        if (!Build(settings, combineRenderers)) return null;
         var spawns = new Pose[map.SpawnPoints.Length];
         for (int slot = 0; slot < spawns.Length; slot++)
             spawns[slot] = new Pose(map.SpawnPoints[slot].position, map.SpawnPoints[slot].rotation);

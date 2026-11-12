@@ -26,7 +26,11 @@ public class ArenaBackgroundBuilderNew : MonoBehaviour
     static bool groundShaderMissing;
     // 이번 Rebuild로 깐 바닥 타일과 장식. 맵이 블록과 함께 내놓아(ProceduralMap.Pieces) 물결로 같이 움직인다.
     // FarGround는 조각들이 가라앉아 사라지는 바닥이라 넣지 않는다.
+    // 렌더러를 합쳐 만든 배경(전투 맵)에서는 합쳐진 조각은 오브젝트가 없어 여기에 들어가지 않는다.
     readonly List<Transform> pieces = new List<Transform>();
+    // 렌더러를 합쳐 만든 배경에서만 쓴다. 합친 오브젝트와 런타임 메시를 들고 있다가 다시 만들 때 지운다.
+    MapRendererCombiner combiner;
+    bool combining;
     // 마지막으로 배경을 만든 레이아웃. Start에서 같은 맵의 배경을 다시 만들지 않으려고 기억한다.
     MapLayout builtLayout;
     bool built;
@@ -81,11 +85,18 @@ public class ArenaBackgroundBuilderNew : MonoBehaviour
     }
 #endif
 
-    public void Rebuild()
+    public void Rebuild() => Rebuild(false);
+
+    // combineRenderers를 켜면 바닥 타일과 정적 장식을 오브젝트로 만들지 않고 청크·머티리얼별 메시로 합친다(MapRendererCombiner).
+    // 자리와 종류를 고르는 난수 순서는 그대로라 보이는 모습은 같다. 조각을 움직이는 미리보기 맵에서는 켜지 않는다.
+    public void Rebuild(bool combineRenderers)
     {
         if (map == null) map = GetComponentInParent<ProceduralMap>();
         if (map == null) map = FindSingleMap();
         if (backgroundRoot == null) backgroundRoot = transform;
+        combiner?.Clear();
+        combining = combineRenderers;
+        if (combining && combiner == null) combiner = new MapRendererCombiner();
         for (int i = backgroundRoot.childCount - 1; i >= 0; i--)
         {
             GameObject child = backgroundRoot.GetChild(i).gameObject;
@@ -130,6 +141,20 @@ public class ArenaBackgroundBuilderNew : MonoBehaviour
             if (decoSet.Contains(m)) PlaceMirroredDeco(a, m, layout, rand);
             else PlaceMirroredDeco(a, a, layout, rand);
         }
+        if (combining) combiner.Build(backgroundRoot);
+    }
+
+    void OnDestroy()
+    {
+        // 런타임에 만든 메시는 오브젝트가 사라져도 남으므로 직접 지운다.
+        combiner?.Clear();
+    }
+
+    // Instantiate(prefab, position, rotation, backgroundRoot)로 만든 오브젝트의 backgroundRoot 기준 행렬. 스케일은 프리팹 그대로다.
+    Matrix4x4 LocalMatrix(GameObject prefab, Vector3 position, Quaternion rotation)
+    {
+        return Matrix4x4.TRS(backgroundRoot.InverseTransformPoint(position),
+            Quaternion.Inverse(backgroundRoot.rotation) * rotation, prefab.transform.localScale);
     }
 
     static Vector2Int MirrorCell(Vector2Int c, MapLayout layout)
@@ -151,6 +176,8 @@ public class ArenaBackgroundBuilderNew : MonoBehaviour
         {
             if (prefab == null) return;
             Quaternion rot = ResolveRotation(prefab.transform.rotation, yaw, settings);
+            // 합칠 수 있으면 오브젝트를 만들지 않는다. 만들자마자 지우던 콜라이더도 생기지 않는다.
+            if (combining && combiner.Add(prefab, LocalMatrix(prefab, pos, rot))) return;
             go = Instantiate(prefab, pos, rot, backgroundRoot);
         }
         else
@@ -205,6 +232,15 @@ public class ArenaBackgroundBuilderNew : MonoBehaviour
         Vector3 pos = CellToWorld(c, layout);
         // 예외없이 원본 보정대로: 수동 드래그 자세(X-90 같은 축 보정 포함)를 살리고 Yaw만 곱한다.
         Quaternion rot = ResolveRotation(prefab.transform.rotation, yaw, settings);
+        // 애니메이터·파티클·조명·스크립트가 없는 정적 장식은 만들지 않고 합친다. GroundSnap과 같은 계산으로 바닥에 맞춘다.
+        if (combining && combiner.TryGetFirstRendererMinY(prefab,
+                backgroundRoot.localToWorldMatrix * LocalMatrix(prefab, pos, rot), out float minY))
+        {
+            Vector3 snapped = pos;
+            snapped.y += decoGroundY + settings.yOffset - minY;
+            // 뒤집힌 스케일처럼 합치지 못하는 자리면 아래에서 원래대로 만든다.
+            if (combiner.Add(prefab, LocalMatrix(prefab, snapped, rot))) return;
+        }
         var go = Instantiate(prefab, pos, rot, backgroundRoot);
         go.name = "Deco_" + c.x + "_" + c.y;
         StripColliders(go);
