@@ -22,10 +22,12 @@ public class ScreenTransition : MonoBehaviour
     }
 
     // 점점 빨라지며 내려가 사라진 뒤 화면을 끈다. 다음에 다시 켜도 제자리에 있도록 위치를 되돌려 둔다.
+    // 걷던 도중에 멈췄다가 다시 부르면 처음부터 다시 나타나지 않고 그 자리에서 이어서 걷는다.
     public IEnumerator Hide()
     {
         SetInteractable(false);
-        for (float time = 0f; time < hideDuration; time += Time.unscaledDeltaTime)
+        float start = Mathf.Sqrt(Mathf.Clamp01(1f - group.alpha)) * hideDuration;
+        for (float time = start; time < hideDuration; time += Time.unscaledDeltaTime)
         {
             float t = time / hideDuration;
             Apply(1f - t * t);

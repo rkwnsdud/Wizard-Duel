@@ -362,6 +362,9 @@ public class LobbyInputTests : PlayModeTestFixture
         TitleBackdrop backdrop = Field<TitleBackdrop>(flow, "backdrop");
         ProceduralMap titleMap = Field<ProceduralMap>(backdrop, "map");
         OpenLobby(true);
+        // 실제 흐름처럼 대기실과 함께 모형 마법사 무대도 켜 둔다.
+        LobbyStage stage = Field<LobbyStage>(flow, "stage");
+        stage.gameObject.SetActive(true);
         SetField(flow, "wantsLobby", true);
         SetField(flow, "lobbyVisible", true);
         NetworkLobbySnapshot preparing = Snapshot(0, 7301);
@@ -370,24 +373,61 @@ public class LobbyInputTests : PlayModeTestFixture
         preparing.Phase = LobbyPhase.Preparing;
         SetField(network, "inLobby", true);
         SetField(network, "currentSnapshot", preparing);
+        Camera view = Field<Camera>(backdrop, "viewCamera");
+        CameraFollow follow = view.GetComponent<CameraFollow>();
+        List<UnityEngine.Rendering.Universal.ScriptableRendererFeature> occlusion = ActiveOcclusion();
+        yield return null;
+        // 시작 화면·대기실 카메라는 맵 중심 둘레를 돌기만 해서 중심까지 거리가 그대로다. 내려가면 이 거리가 확 줄어든다.
+        float lobbyDistance = Vector3.Distance(view.transform.position, titleMap.transform.position);
 
         InvokeFlow("OnSnapshot", preparing);
         yield return WaitForFrames(2);
         Assert.That(titleMap.gameObject.activeSelf, Is.False, "The battle map takes the preview's place.");
         Assert.That(Field<Button>(lobby, "startButton").interactable, Is.False);
-        Assert.That(lobby.gameObject.activeSelf, Is.True, "The lobby stays until the local player spawns.");
+        yield return new WaitForSecondsRealtime(0.5f);
+        Assert.That(lobby.gameObject.activeSelf, Is.False, "The lobby UI leaves while the camera dives to my spawn.");
+        Assert.That(stage.gameObject.activeSelf, Is.True, "The mock wizards stay until the local player spawns.");
         Assert.That(Field<bool>(flow, "battleVisible"), Is.False);
         Assert.That(Field<Coroutine>(flow, "transition"), Is.Not.Null);
+        Assert.That(Field<object>(backdrop, "blend").ToString(), Is.EqualTo("Enter"));
+        Assert.That(follow.Held, Is.True, "The dive keeps the follow camera off the camera until it lands.");
+        Assert.That(Vector3.Distance(view.transform.position, titleMap.transform.position), Is.LessThan(lobbyDistance - 5f),
+            "The camera is diving toward my spawn.");
+        Assert.That(view.orthographic, Is.False);
+        foreach (var feature in occlusion) Assert.That(feature.isActive, Is.False, "SSAO pauses while the projections blend.");
 
         SetField(network, "inLobby", false);
         InvokeFlow("OnClosed", "A player left, so the room was closed.");
         yield return new WaitForSecondsRealtime(1.5f);
         Assert.That(start.gameObject.activeSelf, Is.True);
         Assert.That(lobby.gameObject.activeSelf, Is.False);
+        Assert.That(stage.gameObject.activeSelf, Is.False);
         Assert.That(titleMap.gameObject.activeSelf, Is.True);
         Assert.That(Field<Coroutine>(flow, "transition"), Is.Null);
         Assert.That(Field<bool>(flow, "lobbyVisible"), Is.False);
         Assert.That(Field<bool>(flow, "battleVisible"), Is.False);
+        // 내려가다 접속이 끊기면 그 자리에서 시작 화면 구도로 빠져나오고, 붙잡았던 것을 모두 되돌린다.
+        Assert.That(Field<object>(backdrop, "blend").ToString(), Is.EqualTo("None"));
+        Assert.That(Field<bool>(backdrop, "released"), Is.False);
+        Assert.That(follow.Held, Is.False);
+        Assert.That(follow.enabled, Is.False);
+        Assert.That(view.orthographic, Is.False);
+        foreach (var feature in occlusion) Assert.That(feature.isActive, Is.True, "Leaving mid-dive turns SSAO back on.");
+    }
+
+    // 지금 켜져 있는 SSAO 렌더러 기능. 전투로 내려가는 동안에만 꺼졌다가 다시 켜져야 한다.
+    static List<UnityEngine.Rendering.Universal.ScriptableRendererFeature> ActiveOcclusion()
+    {
+        var features = new List<UnityEngine.Rendering.Universal.ScriptableRendererFeature>();
+        if (!(UnityEngine.Rendering.GraphicsSettings.currentRenderPipeline is UnityEngine.Rendering.Universal.UniversalRenderPipelineAsset pipeline))
+            return features;
+        foreach (UnityEngine.Rendering.Universal.ScriptableRendererData data in pipeline.rendererDataList)
+        {
+            if (data == null) continue;
+            foreach (UnityEngine.Rendering.Universal.ScriptableRendererFeature feature in data.rendererFeatures)
+                if (feature is UnityEngine.Rendering.Universal.ScreenSpaceAmbientOcclusion && feature.isActive) features.Add(feature);
+        }
+        return features;
     }
 
     [UnityTest]

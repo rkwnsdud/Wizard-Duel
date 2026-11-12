@@ -8,9 +8,13 @@ using Random = UnityEngine.Random;
 
 // 화면 뒤에 맵을 띄우고 카메라를 맞춘다. 시작 화면에서는 맵을 주기적으로 새로 만들며 천천히 돌고,
 // 대기실에서는 받은 설정의 맵을 미리보기로 세워 둔다. 두 화면 사이에서는 맵을 그대로 두고 카메라만 옮길 수 있다.
+// 전투가 시작되면 카메라가 대기실 자리에서 내 스폰 지점으로 내려가 내 플레이어를 따라가는 전투 카메라가 되고,
+// 결과 뒤 대기실로 돌아오면 거꾸로 빠져나온다. 원근(대기실)과 직교(전투) 사이는 CameraView로 섞는다.
 // 안개와 배경색은 씬의 Lighting 설정에 있고, 여기서는 맵 크기에 맞춰 거리만 바꾼다.
 public class TitleBackdrop : MonoBehaviour
 {
+    enum Blend { None, Enter, Exit }
+
     // 길쭉한 맵은 멀리서 보면 가는 띠처럼 보여서 배경에서는 뺀다.
     static readonly MapShape[] Shapes = { MapShape.Circle, MapShape.Donut, MapShape.Rectangle };
 
@@ -50,6 +54,11 @@ public class TitleBackdrop : MonoBehaviour
     [Header("전투")]
     [Tooltip("카메라를 내 플레이어에게 넘긴 뒤의 투영과 안개. DuelOfflineTest 씬과 같은 에셋(Assets/Settings/DuelCamera)을 쓴다.")]
     [SerializeField] DuelCameraSettings battleCamera;
+    [Tooltip("대기실 카메라가 내 스폰 지점으로 내려가 전투 카메라가 되기까지, 또는 전투에서 대기실 구도로 빠져나오기까지 걸리는 시간(초). " +
+        "AI 대전은 소환 뒤 스폰 이펙트(1.35초)와 0.15초가 지나면 조작이 켜지므로 그보다 짧게 둔다.")]
+    [SerializeField, Min(0.1f)] float diveDuration = 1.2f;
+    [Tooltip("내려가고 빠져나오는 빠르기. 0은 출발 장면, 1은 도착 장면이다.")]
+    [SerializeField] AnimationCurve diveCurve = AnimationCurve.EaseInOut(0f, 0f, 1f, 1f);
 
     public Transform[] SpawnPoints => map.SpawnPoints;
     // 지금 서 있는 맵을 만든 설정.
@@ -69,8 +78,28 @@ public class TitleBackdrop : MonoBehaviour
     bool snapDistance = true;
     // 전투 중에는 카메라를 내 플레이어를 따라가는 쪽에 넘기고 건드리지 않는다.
     bool released;
+    // 내 플레이어를 따라가는 카메라. 전투로 내려가는 동안에는 Held로 붙잡아 둔다.
+    CameraFollow follow;
+    // 지금 대기실과 전투 사이를 섞는 중인지와 그 방향.
+    Blend blend;
+    // 섞기를 시작한 순간의 장면. 도중에 방향이 바뀌어도 그때 보이던 장면에서 다시 출발하므로 카메라가 튀지 않는다.
+    CameraView from;
+    // 지난 프레임에 실제로 그린 장면.
+    CameraView shown;
+    // 섞기 진행도(0~1). 시작한 다음 프레임부터 센다.
+    float blendTime;
+    bool blendCounting;
+    // 도착 장면의 방향을 지난 프레임 값 가까이로 풀어 둔 값. 180° 근처에서 반대쪽으로 도는 일이 없다.
+    float targetYaw;
+    // 전투로 내려가며 겨누는 스폰 지점과, 그것이 사라졌을 때 쓸 마지막 위치.
+    Transform diveTarget;
+    Vector3 lastTarget;
+    // 섞는 동안 끈 SSAO. 원근과 직교를 섞은 투영에서는 깊이를 잘못 풀어서 끈다. 프로젝트 에셋 값이라 꼭 다시 켠다.
+    readonly List<ScriptableRendererFeature> pausedOcclusion = new List<ScriptableRendererFeature>();
     UniversalRenderPipelineAsset pipeline;
     float originalShadowDistance;
+    // 시작 화면·대기실에서 쓰는 그림자 거리. 멀리서 내려다볼 때는 기본 거리로는 그림자가 안 생겨서 늘린다.
+    float backdropShadowDistance;
     float originalFieldOfView;
     // 전투 카메라가 직교일 수 있어서, 시작 화면으로 돌아오면 원래 투영으로 되돌린다.
     bool originalOrthographic;
@@ -88,8 +117,10 @@ public class TitleBackdrop : MonoBehaviour
         center = map.transform.position;
         yaw = Random.Range(0f, 360f);
         anchor = screenAnchor;
+        follow = viewCamera.GetComponent<CameraFollow>();
         pipeline = GraphicsSettings.currentRenderPipeline as UniversalRenderPipelineAsset;
         if (pipeline != null) originalShadowDistance = pipeline.shadowDistance;
+        backdropShadowDistance = originalShadowDistance;
         originalFieldOfView = viewCamera.fieldOfView;
         originalOrthographic = viewCamera.orthographic;
         ShowTitle(titleSettings, false);
@@ -97,7 +128,8 @@ public class TitleBackdrop : MonoBehaviour
 
     void OnDisable()
     {
-        // 그림자 거리는 프로젝트 에셋 값이라 꺼질 때 꼭 되돌린다.
+        EndBlend();
+        // 그림자 거리와 SSAO는 프로젝트 에셋 값이라 꺼질 때 꼭 되돌린다.
         if (pipeline != null) pipeline.shadowDistance = originalShadowDistance;
         // 씬을 닫을 때는 카메라가 먼저 사라질 수 있다.
         if (viewCamera == null) return;
@@ -114,11 +146,19 @@ public class TitleBackdrop : MonoBehaviour
 
     // 맵을 주기적으로 바꾸며 도는 시작 화면 배경으로 돌아간다. 새 맵은 settings로 만들고 시드와 형태만 랜덤으로 고른다.
     // keepMap이면 지금 맵을 그대로 두고 카메라만 시작 화면 자리로 옮긴 뒤, 잠시 뒤부터 새 맵으로 바꿔 간다.
+    // 전투로 내려가던 중이었다면 지금 보이는 자리에서 시작 화면 구도로 빠져나오고, 빠져나오던 중이면 목표만 시작 화면으로 바뀐다.
     public void ShowTitle(DuelSettings settings, bool keepMap)
     {
         titleSettings = settings.Clone();
         preview = false;
         if (map == null) return;
+        // 시작 화면에서는 아무도 따라가지 않는다. 디스폰이 늦게 와도 카메라를 두고 다투지 않게 먼저 끈다.
+        if (follow != null)
+        {
+            follow.enabled = false;
+            follow.Held = false;
+        }
+        if (blend == Blend.Enter) StartBlend(Blend.Exit, Shown);
         // 전투에서 돌아오면 감췄던 맵 자리에 새 맵을 솟게 하고, 카메라는 시작 화면 거리로 바로 옮긴다.
         if (released || !map.gameObject.activeSelf) keepMap = false;
         if (released) RestoreProjection();
@@ -219,37 +259,139 @@ public class TitleBackdrop : MonoBehaviour
 
     static MapCell Ground(MapCell cell) => cell == MapCell.Bush ? MapCell.Floor : cell;
 
-    // 전투 준비가 시작되면 같은 자리에 전투 맵이 서므로 미리보기 맵을 감춘다. 카메라는 소환 전까지 그대로 둔다.
+    // 전투 준비가 시작되면 같은 자리에 전투 맵이 서므로 미리보기 맵을 감춘다. 카메라는 Dive를 부를 때까지 그대로 둔다.
+    // 물결 도중에 감추더라도 조각을 제자리에 세워 둔다. 화면에는 보이지 않고, 전투 뒤 다시 켤 때 전투 맵과 같은 높이로 선다.
     public void HideMap()
     {
         StopAllCoroutines();
-        if (map != null) map.gameObject.SetActive(false);
+        if (map != null)
+        {
+            IReadOnlyList<Transform> pieces = map.Pieces;
+            if (homes != null && homes.Length == pieces.Count)
+                for (int p = 0; p < pieces.Count; p++)
+                    if (pieces[p] != null) pieces[p].localPosition = homes[p];
+            map.gameObject.SetActive(false);
+        }
         if (background != null) background.gameObject.SetActive(false);
+    }
+
+    // HideMap으로 전투 맵을 드러낸 뒤 부른다. 카메라가 지금 자리에서 내 스폰 지점으로 내려가 전투 카메라가 된다.
+    // 내 플레이어가 그사이 소환되면 그 플레이어를 겨누고, 다 내려가면 따라가는 카메라에 그대로 넘겨준다.
+    // battleSpawn은 이 클라이언트에 선 전투 맵의 스폰 지점이다. 없으면 미리보기 맵의 같은 슬롯 스폰을 겨눈다.
+    public void Dive(Transform battleSpawn, int slot)
+    {
+        if (released) return;
+        Transform[] spawns = map != null ? map.SpawnPoints : null;
+        diveTarget = battleSpawn != null ? battleSpawn
+            : spawns != null && slot >= 0 && slot < spawns.Length ? spawns[slot] : null;
+        bool following = follow != null && follow.enabled && follow.player != null;
+        if (follow == null || battleCamera == null || (diveTarget == null && !following))
+        {
+            // 겨눌 곳이 없으면 예전처럼 바로 넘긴다.
+            ReleaseCamera();
+            return;
+        }
+        lastTarget = following ? follow.player.position : diveTarget.position;
+        follow.Held = true;
+        StartBlend(Blend.Enter, Shown);
     }
 
     // 결과를 보여 준 뒤 로비 화면으로 돌아올 때 부른다. 내 플레이어를 따라가던 카메라를 되찾고, HideMap으로 꺼 두었던
     // 미리보기 맵을 다시 켠다. 전투 맵이 같은 설정으로 같은 자리에 서 있었으므로 바꿔 끼워도 티가 나지 않는다.
-    // 카메라를 대기실 자리로 옮기는 것은 이어서 부르는 LobbyStage.Show(HoldPreview)가 맡는다.
+    // 카메라는 따라가던 자리(또는 내려가던 도중의 자리)에서 대기실 구도로 빠져나온다. 도착할 대기실 자리는
+    // 이어서 부르는 LobbyStage.Show(HoldPreview)가 정한다.
     public void RetakeCamera()
     {
         // 플레이어 디스폰이 늦게 와도 따라가던 카메라와 겹치지 않게 먼저 끈다.
-        if (viewCamera.TryGetComponent(out CameraFollow follow)) follow.enabled = false;
-        if (released) RestoreProjection();
-        released = false;
+        if (follow != null) follow.enabled = false;
+        if (released)
+        {
+            // 따라가던 카메라는 FollowPose 자리에 있으므로 그 자리에서 내 플레이어 위치를 거꾸로 구한다.
+            Vector3 target = battleCamera.TargetFromCamera(viewCamera.transform.position);
+            RestoreProjection();
+            released = false;
+            StartBlend(Blend.Exit, battleCamera.View(target, originalShadowDistance));
+        }
+        else if (blend == Blend.Enter) StartBlend(Blend.Exit, Shown);
+        if (follow != null) follow.Held = false;
         snapDistance = true;
         if (map == null) return;
         map.gameObject.SetActive(true);
         if (background != null) background.gameObject.SetActive(true);
     }
 
-    // 내 플레이어가 소환되면 카메라를 넘긴다. 렌즈 이동과 늘려 둔 그림자 거리를 되돌리고 투영과 안개를 전투에 맞춘다.
-    public void ReleaseCamera()
+    // 다 내려왔거나 겨눌 곳이 없을 때 카메라를 넘긴다. 렌즈 이동과 늘려 둔 그림자 거리를 되돌리고 투영과 안개를 전투에 맞춘다.
+    void ReleaseCamera()
     {
         released = true;
+        EndBlend();
         StopAllCoroutines();
         if (pipeline != null) pipeline.shadowDistance = originalShadowDistance;
         battleCamera.Apply(viewCamera);
         viewCamera.ResetProjectionMatrix();
+    }
+
+    // 지난 프레임에 그린 장면. 아직 한 번도 그리지 않았으면 지금 배경 장면이다.
+    CameraView Shown => shown.Distance > 0f ? shown : BackdropView();
+
+    void StartBlend(Blend kind, CameraView start)
+    {
+        blend = kind;
+        from = start;
+        targetYaw = start.Yaw;
+        blendTime = 0f;
+        // 전투 맵을 만드느라 멈췄던 프레임의 시간으로 카메라가 한 번에 건너뛰지 않게, 다음 프레임부터 센다.
+        blendCounting = false;
+        PauseOcclusion();
+    }
+
+    void EndBlend()
+    {
+        blend = Blend.None;
+        if (follow != null) follow.Held = false;
+        ResumeOcclusion();
+    }
+
+    void PauseOcclusion()
+    {
+        if (pausedOcclusion.Count > 0 || pipeline == null) return;
+        foreach (ScriptableRendererData data in pipeline.rendererDataList)
+        {
+            if (data == null) continue;
+            foreach (ScriptableRendererFeature feature in data.rendererFeatures)
+            {
+                if (!(feature is ScreenSpaceAmbientOcclusion) || !feature.isActive) continue;
+                feature.SetActive(false);
+                pausedOcclusion.Add(feature);
+            }
+        }
+    }
+
+    void ResumeOcclusion()
+    {
+        foreach (ScriptableRendererFeature feature in pausedOcclusion)
+            if (feature != null) feature.SetActive(true);
+        pausedOcclusion.Clear();
+    }
+
+    // 시작 화면 또는 대기실의 지금 장면.
+    CameraView BackdropView() => CameraView.Perspective(center, anchor, yaw, pitch, distance, originalFieldOfView,
+        new Vector2(distance - 6f, distance + 90f), backdropShadowDistance);
+
+    // 전투로 내려가는 도착 장면. 내 플레이어가 소환되어 있으면 그 자리를, 아니면 스폰 지점을 겨눈다.
+    CameraView BattleView()
+    {
+        if (follow.enabled && follow.player != null) lastTarget = follow.player.position;
+        else if (diveTarget != null) lastTarget = diveTarget.position;
+        return battleCamera.View(lastTarget, originalShadowDistance);
+    }
+
+    // 다 내려왔다. 따라가는 카메라와 같은 자리에 놓고 넘긴다. 내 플레이어가 아직이면 소환될 때 같은 자리에서 이어받는다.
+    void FinishDive()
+    {
+        Pose pose = battleCamera.FollowPose(lastTarget);
+        ReleaseCamera();
+        viewCamera.transform.SetPositionAndRotation(pose.position, pose.rotation);
     }
 
     IEnumerator Cycle(bool keepMap)
@@ -349,8 +491,8 @@ public class TitleBackdrop : MonoBehaviour
         else targetDistance = radius * distanceScale;
         if (snapDistance) distance = targetDistance;
         snapDistance = false;
-        // 멀리서 내려다보면 기본 그림자 거리로는 그림자가 안 생겨서 잠시 늘린다.
-        if (pipeline != null) pipeline.shadowDistance = Mathf.Max(originalShadowDistance, targetDistance + radius * 1.5f);
+        // 멀리서 내려다보면 기본 그림자 거리로는 그림자가 안 생겨서 잠시 늘린다. 실제 적용은 LateUpdate가 한다.
+        backdropShadowDistance = Mathf.Max(originalShadowDistance, targetDistance + radius * 1.5f);
     }
 
     // previewYaw로 볼 때 모든 블록이 previewExtent 안에 들어오는 가장 가까운 카메라 거리.
@@ -417,22 +559,38 @@ public class TitleBackdrop : MonoBehaviour
     {
         if (released) return;
         // 시작 화면에서는 계속 돌고, 대기실에서는 정한 방향 근처에서 조금만 흔들린다.
-        float blend = 1f - Mathf.Exp(-viewSharpness * Time.deltaTime);
-        if (preview) yaw = Mathf.LerpAngle(yaw, previewYaw + Mathf.Sin(Time.time * 0.15f) * previewSway, blend);
+        float smoothing = 1f - Mathf.Exp(-viewSharpness * Time.deltaTime);
+        if (preview) yaw = Mathf.LerpAngle(yaw, previewYaw + Mathf.Sin(Time.time * 0.15f) * previewSway, smoothing);
         else yaw += orbitSpeed * Time.deltaTime;
-        distance = Mathf.Lerp(distance, targetDistance, blend);
-        anchor = Vector2.Lerp(anchor, preview ? previewAnchor : screenAnchor, blend);
+        distance = Mathf.Lerp(distance, targetDistance, smoothing);
+        anchor = Vector2.Lerp(anchor, preview ? previewAnchor : screenAnchor, smoothing);
 
-        RenderSettings.fogStartDistance = distance - 6f;
-        RenderSettings.fogEndDistance = distance + 90f;
-        Quaternion rotation = Quaternion.Euler(pitch, yaw, 0f);
-        viewCamera.transform.SetPositionAndRotation(center - rotation * Vector3.forward * distance, rotation);
+        // 렌즈를 옮겨 맵 중심이 화면 가운데가 아닌 anchor에 오게 한다(CameraView.Projection).
+        CameraView view = BackdropView();
+        if (blend != Blend.None)
+        {
+            if (blendCounting) blendTime = Mathf.Min(1f, blendTime + Time.unscaledDeltaTime / diveDuration);
+            blendCounting = true;
+            // 전투로 내려갈 때는 내 플레이어 쪽으로, 빠져나올 때는 지금 시작 화면·대기실 장면으로 간다.
+            CameraView to = blend == Blend.Enter ? BattleView() : view;
+            targetYaw += Mathf.DeltaAngle(targetYaw, to.Yaw);
+            to.Yaw = targetYaw;
+            if (blendTime >= 1f)
+            {
+                if (blend == Blend.Enter)
+                {
+                    FinishDive();
+                    return;
+                }
+                EndBlend();
+            }
+            else view = CameraView.Lerp(from, to, diveCurve.Evaluate(blendTime));
+        }
 
-        // 렌즈를 옮겨 맵 중심이 화면 가운데가 아닌 anchor에 오게 한다.
-        viewCamera.ResetProjectionMatrix();
-        Matrix4x4 projection = viewCamera.projectionMatrix;
-        projection[0, 2] = 1f - 2f * anchor.x;
-        projection[1, 2] = 1f - 2f * anchor.y;
-        viewCamera.projectionMatrix = projection;
+        shown = view;
+        view.ApplyTo(viewCamera);
+        RenderSettings.fogStartDistance = view.Fog.x;
+        RenderSettings.fogEndDistance = view.Fog.y;
+        if (pipeline != null) pipeline.shadowDistance = view.ShadowDistance;
     }
 }
