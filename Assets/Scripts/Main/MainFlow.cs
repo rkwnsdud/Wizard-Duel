@@ -5,7 +5,7 @@ using UnityEngine.InputSystem;
 // 서버의 대기실 상태를 화면에 반영한다. 전환 중에 받은 최신 상태도 전환이 끝난 뒤 적용한다.
 // 서버가 전투 준비를 알리면 대기실을 잠그고, 내 플레이어가 소환되면 대기실을 걷고 카메라를 넘긴다.
 // 승부가 나면 승자를 띄우고, 서버가 다음 판 로비를 알리면 같은 방의 대기실로 돌아온다.
-// AI 대전은 서버와 로비 화면 없이 시작 화면에서 바로 전투로 들어갔다가, 끝나면 시작 화면으로 돌아온다.
+// AI 대전은 서버 없이 같은 로비 화면을 AI용으로 열어 맵과 무기·난이도를 고르고, 전투가 끝나면 그 로비 화면으로 돌아온다.
 public class MainFlow : MonoBehaviour
 {
     // 다음 판 로비를 받은 뒤 내 플레이어가 디스폰되기를 기다리는 최대 시간.
@@ -31,16 +31,21 @@ public class MainFlow : MonoBehaviour
     bool battleVisible;
     bool creating;
     string exitNotice;
+    // AI 로비 화면에 있거나 거기서 시작한 전투 중이다. 이동안 로비 화면의 이벤트는 서버에 보내지 않고 여기서 처리한다.
+    bool aiLobby;
+    // AI 로비 화면의 "게임 설정" 탭에서 고른 값. 이번 실행 동안 기억한다.
+    AiDuelOptions aiOptions = new AiDuelOptions();
 
     void OnEnable()
     {
         startScreen.CreateRequested += Create;
         startScreen.JoinRequested += Join;
         startScreen.JoinCanceled += Cancel;
-        startScreen.AiRequested += StartAiDuel;
+        startScreen.AiRequested += OpenAiLobby;
         aiDuel.Finished += OnAiDuelFinished;
         aiDuel.Ended += OnAiDuelEnded;
         lobby.SettingsChanged += OnSettingsChanged;
+        lobby.GameSettingsChanged += OnGameSettingsChanged;
         lobby.StartRequested += RequestStart;
         lobby.LeaveRequested += Leave;
         stage.PreviewFailed += OnPreviewFailed;
@@ -56,10 +61,11 @@ public class MainFlow : MonoBehaviour
         startScreen.CreateRequested -= Create;
         startScreen.JoinRequested -= Join;
         startScreen.JoinCanceled -= Cancel;
-        startScreen.AiRequested -= StartAiDuel;
+        startScreen.AiRequested -= OpenAiLobby;
         aiDuel.Finished -= OnAiDuelFinished;
         aiDuel.Ended -= OnAiDuelEnded;
         lobby.SettingsChanged -= OnSettingsChanged;
+        lobby.GameSettingsChanged -= OnGameSettingsChanged;
         lobby.StartRequested -= RequestStart;
         lobby.LeaveRequested -= Leave;
         stage.PreviewFailed -= OnPreviewFailed;
@@ -72,14 +78,14 @@ public class MainFlow : MonoBehaviour
 
     void Update()
     {
-        // AI 대전은 혼자 하는 판이라 Esc로 언제든 그만둘 수 있다. 정리가 끝나면 OnAiDuelEnded가 시작 화면을 올린다.
+        // AI 대전은 혼자 하는 판이라 Esc로 언제든 그만둘 수 있다. 정리가 끝나면 OnAiDuelEnded가 AI 로비 화면을 다시 올린다.
         if (aiDuel.IsRunning && transition == null && Keyboard.current != null &&
             Keyboard.current.escapeKey.wasPressedThisFrame) aiDuel.Stop();
     }
 
     void Create()
     {
-        if (transition != null || network.IsBusy || aiDuel.IsRunning) return;
+        if (transition != null || network.IsBusy || aiLobby) return;
         creating = true;
         settings = new DuelSettings { Map = backdrop.Current }.Clone();
         backdrop.HoldTitle();
@@ -89,7 +95,7 @@ public class MainFlow : MonoBehaviour
 
     void Join(string code)
     {
-        if (transition != null || network.IsBusy || aiDuel.IsRunning)
+        if (transition != null || network.IsBusy || aiLobby)
         {
             startScreen.ShowJoinError("연결을 정리하고 있어요. 잠시 후 다시 시도해 주세요.");
             return;
@@ -98,30 +104,56 @@ public class MainFlow : MonoBehaviour
         network.Join(code);
     }
 
-    // 시작 화면 맵의 설정 그대로 전투 맵을 세우고 봇과 한 판을 치른다.
-    void StartAiDuel()
+    // 시작 화면 맵을 그대로 이어받아 AI 로비 화면을 연다. 서버에 접속하지 않는다.
+    void OpenAiLobby()
     {
-        if (transition != null || network.IsBusy || aiDuel.IsRunning) return;
+        if (transition != null || network.IsBusy || aiLobby) return;
         settings = new DuelSettings { Map = backdrop.Current }.Clone();
-        transition = StartCoroutine(EnterAiDuel());
+        aiLobby = true;
+        transition = StartCoroutine(EnterAiLobby());
     }
 
-    IEnumerator EnterAiDuel()
+    IEnumerator EnterAiLobby()
     {
         backdrop.HoldTitle();
+        stage.gameObject.SetActive(true);
+        stage.Show(settings, true);
         yield return startTransition.Hide();
-        if (!aiDuel.Begin(settings.ToMapSettings()))
+        yield return ShowAiLobby();
+        transition = null;
+    }
+
+    // 무대가 맵을 이어받은 뒤(stage.Show) 로비 화면 UI를 올리고 모형 마법사 둘을 세운다.
+    IEnumerator ShowAiLobby()
+    {
+        lobby.gameObject.SetActive(true);
+        lobby.OpenAi(settings, aiOptions);
+        stage.Reveal();
+        yield return lobbyTransition.Show();
+        // UI가 올라오는 동안 바꾼 맵 설정이 있으면 미리보기에 반영한다.
+        stage.Preview(settings);
+    }
+
+    // 지금 설정대로 전투 맵을 세우고 고른 무기와 난이도로 봇과 한 판을 치른다.
+    IEnumerator EnterAiBattle()
+    {
+        lobby.SetStarting(true);
+        // 맵을 만드는 동안 잠깐 멈추므로, 준비 중인 화면을 한 프레임 먼저 그린다.
+        yield return null;
+        if (!aiDuel.Begin(settings.ToMapSettings(), aiOptions))
         {
-            backdrop.ShowTitle(settings, true);
-            yield return startTransition.Show();
-            startScreen.ShowNotice("AI 대전을 시작할 수 없어요. 잠시 후 다시 시도해 주세요.");
+            lobby.SetStarting(false);
+            toast.Show("AI 대전을 시작할 수 없어요. 맵 설정을 바꿔 다시 시도해 주세요.");
             transition = null;
             yield break;
         }
-        // 같은 설정의 전투 맵이 같은 자리에 섰으므로 시작 화면 맵을 감춘다. 호스트라서 내 플레이어가 이미 소환되어 있으니,
+        // 같은 설정의 전투 맵이 같은 자리에 섰으므로 미리보기 맵을 감춘다. 호스트라서 내 플레이어가 이미 소환되어 있으니,
         // 같은 프레임 LateUpdate 전에 배경 카메라를 놓아 내 플레이어를 따라가는 카메라와 겹치지 않게 한다.
+        stage.StopPreview();
         backdrop.HideMap();
         backdrop.ReleaseCamera();
+        stage.gameObject.SetActive(false);
+        yield return lobbyTransition.Hide();
         transition = null;
     }
 
@@ -131,17 +163,32 @@ public class MainFlow : MonoBehaviour
     void OnAiDuelEnded()
     {
         if (transition != null) StopCoroutine(transition);
-        transition = StartCoroutine(LeaveAiDuel());
+        transition = StartCoroutine(ReturnToAiLobby());
     }
 
-    IEnumerator LeaveAiDuel()
+    // 카메라를 되찾고, 감췄던 미리보기 맵 위로 AI 로비 화면을 다시 올린다. 맵과 게임 설정은 그대로다.
+    IEnumerator ReturnToAiLobby()
     {
         resultBanner.Hide();
-        // 감췄던 시작 화면 맵 자리에 새 맵이 솟는다.
-        backdrop.ShowTitle(settings, true);
-        yield return startTransition.Show();
+        backdrop.RetakeCamera();
+        stage.gameObject.SetActive(true);
+        stage.Show(settings, true);
+        yield return ShowAiLobby();
         transition = null;
     }
+
+    IEnumerator LeaveAiLobby()
+    {
+        stage.Hide();
+        backdrop.ShowTitle(settings, true);
+        yield return lobbyTransition.Hide();
+        stage.gameObject.SetActive(false);
+        yield return startTransition.Show();
+        aiLobby = false;
+        transition = null;
+    }
+
+    void OnGameSettingsChanged(AiDuelOptions changed) => aiOptions = changed.Clone();
 
     void Cancel()
     {
@@ -149,11 +196,26 @@ public class MainFlow : MonoBehaviour
         network.Cancel();
         if (restoreTitle) backdrop.ShowTitle(settings, true);
     }
-    void Leave() => network.Cancel();
+
+    void Leave()
+    {
+        if (!aiLobby)
+        {
+            network.Cancel();
+            return;
+        }
+        // 화면을 바꾸는 중이거나 전투 중에는 로비 화면이 아직 떠 있어도 나가지 않는다.
+        if (transition == null && !aiDuel.IsRunning) transition = StartCoroutine(LeaveAiLobby());
+    }
 
     // 답이 올 때까지 버튼을 잠가 시작 요청이 겹치지 않게 한다.
     void RequestStart()
     {
+        if (aiLobby)
+        {
+            if (transition == null && !aiDuel.IsRunning) transition = StartCoroutine(EnterAiBattle());
+            return;
+        }
         if (network.RequestStart()) lobby.SetStarting(true);
     }
 
@@ -301,9 +363,15 @@ public class MainFlow : MonoBehaviour
         if (wantsLobby) ApplySnapshot();
     }
 
-    // 미리보기는 서버가 확정한 스냅샷으로만 바꾼다.
+    // 미리보기는 서버가 확정한 스냅샷으로만 바꾼다. AI 대전은 서버가 없으니 바로 바꾼다.
     void OnSettingsChanged(DuelSettings changed)
     {
+        if (aiLobby)
+        {
+            settings = changed.Clone();
+            if (transition == null) stage.Preview(settings);
+            return;
+        }
         network.UpdateSettings(changed);
     }
 

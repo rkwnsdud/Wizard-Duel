@@ -15,6 +15,8 @@ public sealed class DuelBotTuning
     [Min(0f)] public float aimError = 6f;
     [Tooltip("상대가 움직이는 쪽으로 미리 겨누는 시간. 0이면 지금 서 있는 곳을 겨눈다.")]
     [Min(0f)] public float aimLead = 0.15f;
+    [Tooltip("날아가는 공격(화염 공, 완드 탄 등)이 닿을 때까지 걸리는 시간 중 미리 겨눠 주는 비율. 0이면 헤아리지 않고 1이면 전부 헤아린다.")]
+    [Range(0f, 1f)] public float projectileLead = 0.5f;
     [Tooltip("공격마다 모을 차징 비율의 범위. 차징하지 않는 무기에는 쓰지 않는다.")]
     public Vector2 chargeRange = new Vector2(0.3f, 0.85f);
     [Tooltip("공격을 마친 뒤 다음 차징을 시작하기까지 쉬는 시간의 범위.")]
@@ -23,6 +25,21 @@ public sealed class DuelBotTuning
     [Range(0f, 1f)] public float dodgeChance = 0.5f;
     [Tooltip("사거리를 알려 주지 않는 무기(IWeaponReach 없음)를 들었을 때 쏘는 거리.")]
     [Min(1f)] public float fallbackReach = 6f;
+
+    // 난이도별 기본값. AiDuel이 BotDifficulty 순서(쉬움·보통·어려움)로 들고 있고 Inspector에서 고칠 수 있다.
+    public static DuelBotTuning Easy() => new DuelBotTuning
+    {
+        reactionTime = 0.6f, turnSpeed = 300f, aimError = 14f, aimLead = 0f, projectileLead = 0f,
+        chargeRange = new Vector2(0.2f, 0.5f), attackPause = new Vector2(0.8f, 1.6f), dodgeChance = 0.15f
+    };
+
+    public static DuelBotTuning Normal() => new DuelBotTuning();
+
+    public static DuelBotTuning Hard() => new DuelBotTuning
+    {
+        reactionTime = 0.2f, turnSpeed = 600f, aimError = 2.5f, aimLead = 0.2f, projectileLead = 1f,
+        chargeRange = new Vector2(0.4f, 1f), attackPause = new Vector2(0.1f, 0.4f), dodgeChance = 0.85f
+    };
 }
 
 // AI 대전에서 봇 캐릭터를 움직이는 두뇌. 사람의 PlayerMovement·PlayerAim·PlayerAttack 입력을 대신한다.
@@ -53,6 +70,10 @@ public sealed class DuelBot : MonoBehaviour
     // 차징 중에 상대를 이 시간 넘게 못 보면 차징을 푼다.
     const float LoseSightAfter = 1.2f;
     const float SearchGoalLifetime = 8f;
+    // 아주 멀리 닿는 무기(빛 반사 구슬)를 들어도 이 거리보다 멀리서 싸우려 하지 않는다. 넓지 않은 맵에서 계속 물러나기만 하지 않게 한다.
+    const float MaxFightingReach = 10f;
+    // 날아가는 공격을 미리 겨눌 때 헤아리는 가장 긴 비행 시간.
+    const float MaxFlightTime = 0.8f;
 
     BotGrid grid;
     DuelBotTuning tuning = new DuelBotTuning();
@@ -205,8 +226,9 @@ public sealed class DuelBot : MonoBehaviour
     float ChargeRatio(float now) =>
         charging && Chargeable && attack.MaxChargeTime > 0f ? Mathf.Clamp01((now - chargeStartedAt) / attack.MaxChargeTime) : 0f;
 
-    float Reach(float charge) =>
-        attack.CurrentWeapon is IWeaponReach reach ? reach.ReachAt(charge) : tuning.fallbackReach;
+    // 지금 든 무기로 싸울 거리. 무기는 판마다 다르므로 그때그때 묻는다.
+    float Reach(float charge) => Mathf.Min(MaxFightingReach,
+        attack.CurrentWeapon is IWeaponReach reach ? reach.ReachAt(charge) : tuning.fallbackReach);
 
     // 다음 공격에서 모을 차징과 조준 오차를 새로 뽑는다.
     void PlanAttack()
@@ -339,11 +361,15 @@ public sealed class DuelBot : MonoBehaviour
             tuning.turnSpeed * Time.deltaTime);
     }
 
-    // 이번 공격의 조준 오차를 더한, 쏘려는 방향.
+    // 이번 공격의 조준 오차를 더한, 쏘려는 방향. 날아가는 공격은 닿을 때까지 상대가 움직일 만큼 더 앞을 겨눈다.
     Vector3 AimDirection()
     {
-        Vector3 lead = Vector3.ClampMagnitude(targetVelocity, PlayerMovement.BaseSpeed * 1.5f) * tuning.aimLead;
-        return Quaternion.Euler(0f, aimOffset, 0f) * Flat(target.position + lead - transform.position);
+        Vector3 toTarget = Flat(target.position - transform.position);
+        float time = tuning.aimLead;
+        if (attack.CurrentWeapon is IWeaponReach reach && reach.ShotSpeed > 0f)
+            time += tuning.projectileLead * Mathf.Min(MaxFlightTime, toTarget.magnitude / reach.ShotSpeed);
+        Vector3 lead = Vector3.ClampMagnitude(targetVelocity, PlayerMovement.BaseSpeed * 1.5f) * time;
+        return Quaternion.Euler(0f, aimOffset, 0f) * (toTarget + lead);
     }
 
     // 차징을 시작하거나, 모은 차징으로 쏜다. 이번 프레임에 공격을 시작했으면 true다.

@@ -1,7 +1,7 @@
 
 using UnityEngine;
 
-public class BasicWandWeapon : WeaponBase, IWeapon
+public class BasicWandWeapon : WeaponBase, IWeapon, IWeaponReach
 {
     [SerializeField] private ArcaneBoltProjectile projectilePrefab;
     [SerializeField] private Transform firePoint;
@@ -9,6 +9,9 @@ public class BasicWandWeapon : WeaponBase, IWeapon
     [SerializeField] private AudioClip fireSound;
 
     private bool presentingOwnShot;
+
+    public float ReachAt(float charge) => projectilePrefab != null ? projectilePrefab.MaxRange : 0f;
+    public float ShotSpeed => projectilePrefab != null ? projectilePrefab.Speed : 0f;
 
     void IWeapon.Fire(uint attackId, Vector3 direction, float charge, IShotSink sink)
     {

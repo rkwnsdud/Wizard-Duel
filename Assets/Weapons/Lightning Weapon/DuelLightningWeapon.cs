@@ -21,6 +21,8 @@ public sealed class DuelLightningWeapon : WeaponBase, IChargeableWeapon, IWeapon
     [SerializeField] private LayerMask blockerMask = (1 << 9) | (1 << 10);
 
     public float ReachAt(float charge) => Mathf.Lerp(minRange, maxRange, Mathf.Clamp01(charge));
+    // 번개는 쏘는 순간 끝까지 닿는다.
+    public float ShotSpeed => 0f;
 
     private Vector3 AimDirection => GetComponentInParent<PlayerAim>().transform.forward;
 

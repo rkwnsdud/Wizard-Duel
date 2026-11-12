@@ -3,7 +3,7 @@ using UnityEngine;
 
 // Online duel fire censer: IWeapon reports hits, while Fire stays for offline use.
 // Melee fan attack. Reports each victim once per swing with an increasing hitIndex.
-public sealed class FireCenserWeapon : WeaponBase, IWeapon
+public sealed class FireCenserWeapon : WeaponBase, IWeapon, IWeaponReach
 {
     [SerializeField, Tooltip("Direct damage applied to each victim in the fan.")]
     private float attackDamage = 20f;
@@ -17,6 +17,10 @@ public sealed class FireCenserWeapon : WeaponBase, IWeapon
     private GameObject attackEffectPrefab;
     [SerializeField] private AudioSource audioSource;
     [SerializeField] private AudioClip fireSound;
+
+    // The fan lands the moment it is swung, out to attackRange.
+    public float ReachAt(float charge) => attackRange;
+    public float ShotSpeed => 0f;
 
     // Owner resolution mirrors DuelLightningWeapon: aim comes from the parent player.
     Vector3 AimDirection
