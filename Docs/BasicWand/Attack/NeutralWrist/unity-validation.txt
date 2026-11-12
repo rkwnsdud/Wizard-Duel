@@ -1,0 +1,4 @@
+Actual Unity clip sampling; scene instances inspected in a preview scene.
+Player: 131 samples (5 ms), wrist <= 0.02798 deg, release aim 0.00000 deg, finger/socket matrix drift 1.475E-006, 474 hand/finger vertices, max Idle-relative surface drift 1.921E-006 m.
+Dummy Player: 131 samples (5 ms), wrist <= 0.02798 deg, release aim 0.00000 deg, finger/socket matrix drift 1.535E-006, 474 hand/finger vertices, max Idle-relative surface drift 1.940E-006 m.
+Sequence order: top row 0 / .08 / .16 / .20 / .26 s; bottom row .35 / .45 / .55 / .60 / .65 s. Surface drift measures preservation of Idle contact, not a new collision fit.
