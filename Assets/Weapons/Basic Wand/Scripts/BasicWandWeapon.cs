@@ -7,8 +7,64 @@ public class BasicWandWeapon : WeaponBase, IWeapon, IWeaponReach
     [SerializeField] private Transform firePoint;
     [SerializeField] private AudioSource audioSource;
     [SerializeField] private AudioClip fireSound;
+    [SerializeField] private RuntimeAnimatorController basePoseController;
+    [SerializeField] private AnimatorOverrideController wandPoseController;
+    [SerializeField] private Mesh originalCharacterMesh;
+    [SerializeField] private Mesh wandGripMesh;
 
     private bool presentingOwnShot;
+    private PlayerAttack poseOwner;
+    private Quaternion idleGripRotation;
+
+    private void Awake() => idleGripRotation = transform.localRotation;
+
+    private void LateUpdate()
+    {
+        // Idle has no wand transform track. Restore the attachment after a
+        // cancelled cast too, even when the animation never reaches its last key.
+        if (poseOwner && (!poseOwner.IsAttacking || poseOwner.AttackingWeapon != this))
+            transform.localRotation = idleGripRotation;
+    }
+
+    private void OnDisable() => transform.localRotation = idleGripRotation;
+
+    // Duel prefabs instantiate their own wand; the PlayerTest scene has these
+    // pose components already. Connect the same grip when the duel wand starts.
+    private void OnEnable() => EnsureGripPose();
+    private void Start() => EnsureGripPose();
+
+    private void EnsureGripPose()
+    {
+        if (!Application.isPlaying || !basePoseController || !wandPoseController ||
+            !originalCharacterMesh || !wandGripMesh) return;
+        PlayerAttack owner = GetComponentInParent<PlayerAttack>(true);
+        if (!owner) return;
+        poseOwner = owner;
+        // The cast's attachment track resolves this child by its prefab name.
+        if (name == "BasicWand(Clone)") name = "BasicWand";
+        Transform wizard = owner.transform.Find("Wizard");
+        if (!wizard || !wizard.TryGetComponent(out Animator animator)) return;
+        MeshRenderer model = GetComponentInChildren<MeshRenderer>(true);
+        if (!model) return;
+
+        BasicWandIdlePose pose = GetComponent<BasicWandIdlePose>();
+        if (!pose)
+        {
+            pose = gameObject.AddComponent<BasicWandIdlePose>();
+            pose.Configure(animator, basePoseController, wandPoseController, model);
+        }
+
+        // A hand mesh can already be configured in an authored preview scene.
+        if (wizard.GetComponent<BasicWandGripSkin>()) return;
+        foreach (SkinnedMeshRenderer skin in wizard.GetComponentsInChildren<SkinnedMeshRenderer>(true))
+        {
+            if (skin.sharedMesh != originalCharacterMesh) continue;
+            BasicWandGripSkin grip = wizard.gameObject.AddComponent<BasicWandGripSkin>();
+            grip.Configure(skin, originalCharacterMesh, wandGripMesh, model,
+                animator, wandPoseController);
+            break;
+        }
+    }
 
     public float ReachAt(float charge) => projectilePrefab != null ? projectilePrefab.MaxRange : 0f;
     public float ShotSpeed => projectilePrefab != null ? projectilePrefab.Speed : 0f;
