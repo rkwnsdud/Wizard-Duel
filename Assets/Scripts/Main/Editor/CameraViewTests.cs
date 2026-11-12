@@ -1,4 +1,5 @@
 #if UNITY_INCLUDE_TESTS
+using System.Collections.Generic;
 using NUnit.Framework;
 using UnityEngine;
 
@@ -12,10 +13,13 @@ public class CameraViewTests
 
     static readonly Vector3 MapCenter = Vector3.zero;
     static readonly Vector3 Spawn = new Vector3(-9f, 0.5f, 4f);
+    // 방장이 Spawn, 참가자가 맵 중심에 대해 180도 대칭인 (9, 0.5, -4)일 때 방장의 전투 카메라 방향과 비슷한 값.
+    const float BattleYaw = 104f;
 
     DuelCameraSettings settings;
     GameObject cameraObject;
     Camera camera;
+    readonly List<GameObject> spawnObjects = new List<GameObject>();
 
     [SetUp]
     public void SetUp()
@@ -34,6 +38,8 @@ public class CameraViewTests
     {
         Object.DestroyImmediate(cameraObject);
         Object.DestroyImmediate(settings);
+        foreach (GameObject spawn in spawnObjects) Object.DestroyImmediate(spawn);
+        spawnObjects.Clear();
     }
 
     // 대기실처럼 맵 중심을 화면 왼쪽에 두고 비스듬히 내려다보는 원근 장면.
@@ -60,13 +66,13 @@ public class CameraViewTests
     [Test]
     public void OrthographicBattleView_MatchesOrthographicCamera_AndFollowPose()
     {
-        CameraView battle = settings.View(Spawn, 50f);
+        CameraView battle = settings.View(Spawn, BattleYaw, 50f);
         camera.orthographic = true;
         camera.orthographicSize = settings.OrthographicSize;
         camera.ResetProjectionMatrix();
 
         AssertMatrix(battle.Projection(Aspect, Near, Far), camera.projectionMatrix);
-        Pose follow = settings.FollowPose(Spawn);
+        Pose follow = settings.FollowPose(Spawn, BattleYaw);
         AssertVector(battle.Position, follow.position);
         Assert.That(Quaternion.Angle(battle.Rotation, follow.rotation), Is.LessThan(0.01f));
         Assert.That(battle.OrthographicWeight, Is.EqualTo(1f));
@@ -75,7 +81,7 @@ public class CameraViewTests
     [Test]
     public void FullyBlendedView_HasFiniteOrthographicMatrix()
     {
-        CameraView end = CameraView.Lerp(Lobby(), settings.View(Spawn, 50f), 1f);
+        CameraView end = CameraView.Lerp(Lobby(), settings.View(Spawn, BattleYaw, 50f), 1f);
         Matrix4x4 projection = end.Projection(Aspect, Near, Far);
         for (int i = 0; i < 16; i++)
             Assert.That(float.IsNaN(projection[i]) || float.IsInfinity(projection[i]), Is.False, $"element {i}");
@@ -88,7 +94,7 @@ public class CameraViewTests
     public void BlendedProjection_EqualsDollyZoomPerspective()
     {
         CameraView lobby = Lobby();
-        CameraView battle = settings.View(Spawn, 50f);
+        CameraView battle = settings.View(Spawn, BattleYaw, 50f);
         Vector3[] points =
         {
             Spawn, MapCenter, new Vector3(12f, 0f, -10f), new Vector3(-15f, 3f, 14f), new Vector3(4f, -1f, 20f)
@@ -139,18 +145,83 @@ public class CameraViewTests
         Assert.That(previous, Is.LessThan(1e-4f));
     }
 
-    [Test]
-    public void FollowPose_MatchesLookAt_AndInvertsFromCameraPosition()
+    [TestCase(0f)]
+    [TestCase(BattleYaw)]
+    [TestCase(-170f)]
+    public void FollowPose_MatchesLookAt_AndInvertsFromCameraPosition(float yaw)
     {
-        Pose pose = settings.FollowPose(Spawn);
-        cameraObject.transform.position = Spawn + new Vector3(0f, settings.Height, -settings.Distance);
+        Pose pose = settings.FollowPose(Spawn, yaw);
+        cameraObject.transform.position = Spawn + Quaternion.Euler(0f, yaw, 0f) * new Vector3(0f, settings.Height, -settings.Distance);
         cameraObject.transform.LookAt(Spawn + Vector3.up * settings.LookHeight);
 
         AssertVector(pose.position, cameraObject.transform.position);
         Assert.That(Quaternion.Angle(pose.rotation, cameraObject.transform.rotation), Is.LessThan(0.01f));
-        AssertVector(settings.TargetFromCamera(pose.position), Spawn);
+        // 로비로 빠져나올 때(TitleBackdrop.RetakeCamera)처럼 카메라가 서 있는 방향으로 내 플레이어 위치를 거꾸로 구한다.
+        AssertVector(settings.TargetFromCamera(pose.position, cameraObject.transform.eulerAngles.y), Spawn);
         Assert.That(Vector3.Distance(pose.position, Spawn + Vector3.up * settings.LookHeight),
             Is.EqualTo(settings.FollowDistance).Within(Tolerance));
+    }
+
+    // 방장과 참가자의 카메라는 160도 벌어지고, 각자 상대 스폰이 화면 위쪽(방장은 오른쪽, 참가자는 왼쪽으로 10도)에 온다.
+    // 마지막 경우는 스폰이 정확히 45도 대각선이다.
+    [TestCase(18f, -8f)]
+    [TestCase(2f, 14f)]
+    [TestCase(-12f, 5f)]
+    [TestCase(-6f, -20f)]
+    [TestCase(15f, 15f)]
+    public void FacingYaw_SpreadsTheTwoCameras_AndPutsTheOpponentAbove(float dx, float dz)
+    {
+        Assert.That(settings.FacingSpread, Is.EqualTo(160f));
+        Vector3 guestSpawn = Spawn + new Vector3(dx, 0f, dz);
+        Transform[] spawns = { NewSpawn(Spawn), NewSpawn(guestSpawn) };
+        Assert.That(settings.TryFacingYaw(spawns, 0, out float host), Is.True);
+        Assert.That(settings.TryFacingYaw(spawns, 1, out float guest), Is.True);
+        Assert.That(Mathf.Abs(Mathf.DeltaAngle(host, guest)), Is.EqualTo(160f).Within(Tolerance));
+
+        AssertOpponentAbove(Spawn, guestSpawn, host, 10f);
+        AssertOpponentAbove(guestSpawn, Spawn, guest, -10f);
+    }
+
+    // 로비 화면은 파랑(방장)이 왼쪽, 빨강이 오른쪽에 오게 본다(TitleBackdrop.Aim). 내려가며 두 사람 모두 80도만 서로 반대로 돈다.
+    [Test]
+    public void FacingYaw_TurnsHalfTheSpreadFromTheLobbyView()
+    {
+        Vector3 guestSpawn = new Vector3(9f, 0.5f, -4f);
+        Vector3 across = guestSpawn - Spawn;
+        float lobbyYaw = Mathf.Atan2(-across.z, across.x) * Mathf.Rad2Deg;
+        float axis = DuelAxis.Yaw(Spawn, guestSpawn);
+        Assert.That(Mathf.DeltaAngle(lobbyYaw, settings.FacingYaw(axis, 0)), Is.EqualTo(80f).Within(Tolerance));
+        Assert.That(Mathf.DeltaAngle(lobbyYaw, settings.FacingYaw(axis, 1)), Is.EqualTo(-80f).Within(Tolerance));
+    }
+
+    [Test]
+    public void TryFacingYaw_NeedsBothSpawns()
+    {
+        Assert.That(settings.TryFacingYaw(null, 0, out _), Is.False);
+        Assert.That(settings.TryFacingYaw(new Transform[1], 0, out _), Is.False);
+        Assert.That(settings.TryFacingYaw(new[] { NewSpawn(Spawn), null }, 0, out _), Is.False);
+    }
+
+    Transform NewSpawn(Vector3 position)
+    {
+        var spawn = new GameObject("CameraView Test Spawn");
+        spawn.transform.position = position;
+        spawnObjects.Add(spawn);
+        return spawn.transform;
+    }
+
+    // mine을 따라가는 yaw 방향 전투 화면에서 opponent가 화면 위쪽에 놓이고, 화면 위 방향에서 tilt도만큼
+    // (양수면 오른쪽, 음수면 왼쪽) 벗어나 있는지 본다.
+    void AssertOpponentAbove(Vector3 mine, Vector3 opponent, float yaw, float tilt)
+    {
+        Vector3 forward = Quaternion.Euler(0f, yaw, 0f) * Vector3.forward;
+        Vector3 toward = Vector3.ProjectOnPlane(opponent - mine, Vector3.up);
+        Assert.That(Vector3.SignedAngle(forward, toward, Vector3.up), Is.EqualTo(tilt).Within(1e-3f), $"yaw={yaw}");
+
+        CameraView battle = settings.View(mine, yaw, 50f);
+        Vector2 screen = ScreenPoint(battle, opponent) - ScreenPoint(battle, mine);
+        Assert.That(screen.y, Is.GreaterThan(0f), $"yaw={yaw} screen={screen}");
+        Assert.That(Mathf.Sign(screen.x), Is.EqualTo(Mathf.Sign(tilt)), $"yaw={yaw} screen={screen}");
     }
 
     static Vector2 ScreenPoint(CameraView view, Vector3 point) =>

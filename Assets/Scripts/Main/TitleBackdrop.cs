@@ -10,6 +10,7 @@ using Random = UnityEngine.Random;
 // 대기실에서는 받은 설정의 맵을 미리보기로 세워 둔다. 두 화면 사이에서는 맵을 그대로 두고 카메라만 옮길 수 있다.
 // 전투가 시작되면 카메라가 대기실 자리에서 내 스폰 지점으로 내려가 내 플레이어를 따라가는 전투 카메라가 되고,
 // 결과 뒤 대기실로 돌아오면 거꾸로 빠져나온다. 원근(대기실)과 직교(전투) 사이는 CameraView로 섞는다.
+// 태양 광원도 같은 빠르기로 두 스폰을 잇는 선에 직교하는 방향으로 돌았다가 돌아온다.
 // 안개와 배경색은 씬의 Lighting 설정에 있고, 여기서는 맵 크기에 맞춰 거리만 바꾼다.
 public class TitleBackdrop : MonoBehaviour
 {
@@ -94,6 +95,12 @@ public class TitleBackdrop : MonoBehaviour
     // 전투로 내려가며 겨누는 스폰 지점과, 그것이 사라졌을 때 쓸 마지막 위치.
     Transform diveTarget;
     Vector3 lastTarget;
+    // 씬의 태양 광원. 전투 중에는 두 스폰을 잇는 선에 직교하게 돌려 두고(DuelAxis.SideLight), 카메라와 함께 돌아간다.
+    // home은 씬에 놓인 방향, battle은 이번 판의 방향, from은 섞기를 시작한 순간의 방향이다.
+    Light sun;
+    Quaternion sunHome;
+    Quaternion sunBattle;
+    Quaternion sunFrom;
     // 섞는 동안 끈 SSAO. 원근과 직교를 섞은 투영에서는 깊이를 잘못 풀어서 끈다. 프로젝트 에셋 값이라 꼭 다시 켠다.
     readonly List<ScriptableRendererFeature> pausedOcclusion = new List<ScriptableRendererFeature>();
     UniversalRenderPipelineAsset pipeline;
@@ -123,12 +130,16 @@ public class TitleBackdrop : MonoBehaviour
         backdropShadowDistance = originalShadowDistance;
         originalFieldOfView = viewCamera.fieldOfView;
         originalOrthographic = viewCamera.orthographic;
+        sun = RenderSettings.sun;
+        if (sun != null) sunHome = sun.transform.rotation;
+        sunBattle = sunHome;
         ShowTitle(titleSettings, false);
     }
 
     void OnDisable()
     {
         EndBlend();
+        SetSun(sunHome);
         // 그림자 거리와 SSAO는 프로젝트 에셋 값이라 꺼질 때 꼭 되돌린다.
         if (pipeline != null) pipeline.shadowDistance = originalShadowDistance;
         // 씬을 닫을 때는 카메라가 먼저 사라질 수 있다.
@@ -161,7 +172,11 @@ public class TitleBackdrop : MonoBehaviour
         if (blend == Blend.Enter) StartBlend(Blend.Exit, Shown);
         // 전투에서 돌아오면 감췄던 맵 자리에 새 맵을 솟게 하고, 카메라는 시작 화면 거리로 바로 옮긴다.
         if (released || !map.gameObject.activeSelf) keepMap = false;
-        if (released) RestoreProjection();
+        if (released)
+        {
+            RestoreProjection();
+            SetSun(sunHome);
+        }
         snapDistance |= released;
         released = false;
         map.gameObject.SetActive(true);
@@ -277,13 +292,16 @@ public class TitleBackdrop : MonoBehaviour
 
     // HideMap으로 전투 맵을 드러낸 뒤 부른다. 카메라가 지금 자리에서 내 스폰 지점으로 내려가 전투 카메라가 된다.
     // 내 플레이어가 그사이 소환되면 그 플레이어를 겨누고, 다 내려가면 따라가는 카메라에 그대로 넘겨준다.
-    // battleSpawn은 이 클라이언트에 선 전투 맵의 스폰 지점이다. 없으면 미리보기 맵의 같은 슬롯 스폰을 겨눈다.
-    public void Dive(Transform battleSpawn, int slot)
+    // 내려가면서 상대 스폰이 화면 위쪽에 오는 전투 카메라 방향(DuelCameraSettings.FacingYaw)으로 돌고,
+    // 광원도 두 스폰을 잇는 선에 직교하는 방향(DuelAxis.SideLight)으로 함께 돈다.
+    // arena는 이 클라이언트에 전투 맵을 세운 곳이다. 맵이 없으면 같은 설정으로 같은 자리에 섰던 미리보기 맵의 스폰을 쓴다.
+    public void Dive(DuelArena arena, int slot)
     {
         if (released) return;
-        Transform[] spawns = map != null ? map.SpawnPoints : null;
-        diveTarget = battleSpawn != null ? battleSpawn
-            : spawns != null && slot >= 0 && slot < spawns.Length ? spawns[slot] : null;
+        Transform[] spawns = arena != null && arena.SpawnPoints != null ? arena.SpawnPoints
+            : map != null ? map.SpawnPoints : null;
+        sunBattle = DuelAxis.TryYaw(spawns, out float axis) ? DuelAxis.SideLight(axis, sunHome) : sunHome;
+        diveTarget = spawns != null && slot >= 0 && slot < spawns.Length ? spawns[slot] : null;
         bool following = follow != null && follow.enabled && follow.player != null;
         if (follow == null || battleCamera == null || (diveTarget == null && !following))
         {
@@ -291,6 +309,8 @@ public class TitleBackdrop : MonoBehaviour
             ReleaseCamera();
             return;
         }
+        // 내 플레이어가 먼저 소환되었으면 DuelPlayer가 같은 스폰으로 이미 정해 두었다. 같은 값이라 덮어써도 된다.
+        if (battleCamera.TryFacingYaw(spawns, slot, out float yaw)) follow.Yaw = yaw;
         lastTarget = following ? follow.player.position : diveTarget.position;
         follow.Held = true;
         StartBlend(Blend.Enter, Shown);
@@ -306,11 +326,12 @@ public class TitleBackdrop : MonoBehaviour
         if (follow != null) follow.enabled = false;
         if (released)
         {
-            // 따라가던 카메라는 FollowPose 자리에 있으므로 그 자리에서 내 플레이어 위치를 거꾸로 구한다.
-            Vector3 target = battleCamera.TargetFromCamera(viewCamera.transform.position);
+            // 따라가던 카메라는 FollowPose 자리에 있으므로 그 자리와 방향에서 내 플레이어 위치를 거꾸로 구한다.
+            float yaw = viewCamera.transform.eulerAngles.y;
+            Vector3 target = battleCamera.TargetFromCamera(viewCamera.transform.position, yaw);
             RestoreProjection();
             released = false;
-            StartBlend(Blend.Exit, battleCamera.View(target, originalShadowDistance));
+            StartBlend(Blend.Exit, battleCamera.View(target, yaw, originalShadowDistance));
         }
         else if (blend == Blend.Enter) StartBlend(Blend.Exit, Shown);
         if (follow != null) follow.Held = false;
@@ -326,6 +347,7 @@ public class TitleBackdrop : MonoBehaviour
         released = true;
         EndBlend();
         StopAllCoroutines();
+        SetSun(sunBattle);
         if (pipeline != null) pipeline.shadowDistance = originalShadowDistance;
         battleCamera.Apply(viewCamera);
         viewCamera.ResetProjectionMatrix();
@@ -338,6 +360,7 @@ public class TitleBackdrop : MonoBehaviour
     {
         blend = kind;
         from = start;
+        if (sun != null) sunFrom = sun.transform.rotation;
         targetYaw = start.Yaw;
         blendTime = 0f;
         // 전투 맵을 만드느라 멈췄던 프레임의 시간으로 카메라가 한 번에 건너뛰지 않게, 다음 프레임부터 센다.
@@ -350,6 +373,11 @@ public class TitleBackdrop : MonoBehaviour
         blend = Blend.None;
         if (follow != null) follow.Held = false;
         ResumeOcclusion();
+    }
+
+    void SetSun(Quaternion rotation)
+    {
+        if (sun != null) sun.transform.rotation = rotation;
     }
 
     void PauseOcclusion()
@@ -383,13 +411,13 @@ public class TitleBackdrop : MonoBehaviour
     {
         if (follow.enabled && follow.player != null) lastTarget = follow.player.position;
         else if (diveTarget != null) lastTarget = diveTarget.position;
-        return battleCamera.View(lastTarget, originalShadowDistance);
+        return battleCamera.View(lastTarget, follow.Yaw, originalShadowDistance);
     }
 
     // 다 내려왔다. 따라가는 카메라와 같은 자리에 놓고 넘긴다. 내 플레이어가 아직이면 소환될 때 같은 자리에서 이어받는다.
     void FinishDive()
     {
-        Pose pose = battleCamera.FollowPose(lastTarget);
+        Pose pose = battleCamera.FollowPose(lastTarget, follow.Yaw);
         ReleaseCamera();
         viewCamera.transform.SetPositionAndRotation(pose.position, pose.rotation);
     }
@@ -583,8 +611,15 @@ public class TitleBackdrop : MonoBehaviour
                     return;
                 }
                 EndBlend();
+                SetSun(sunHome);
             }
-            else view = CameraView.Lerp(from, to, diveCurve.Evaluate(blendTime));
+            else
+            {
+                float t = diveCurve.Evaluate(blendTime);
+                view = CameraView.Lerp(from, to, t);
+                // 해도 카메라와 같은 빠르기로 하늘을 따라 옆으로 돈다. 고도는 그대로다.
+                SetSun(DuelAxis.TurnLight(sunFrom, blend == Blend.Enter ? sunBattle : sunHome, t));
+            }
         }
 
         shown = view;

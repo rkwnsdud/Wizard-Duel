@@ -32,6 +32,8 @@ public sealed class DuelOfflineTest : MonoBehaviour
     float combatAt = -1f;
     float dummyRespawnAt = -1f;
     GUIStyle helpStyle;
+    // 씬에 놓인 태양 방향. 다시 세울 때마다 이 방향에서 두 스폰을 잇는 선에 직교하게 돌린다.
+    Quaternion? sunHome;
 
     // 도움말 상자 아래 무기 변경 패널. 플레이어 WeaponSocket에 들어 있는 무기(꺼진 예비 무기 포함)를 고른다.
     const float WeaponRowHeight = 36f;
@@ -210,7 +212,19 @@ public sealed class DuelOfflineTest : MonoBehaviour
     void FollowPlayer()
     {
         if (player == null || Camera.main == null || !Camera.main.TryGetComponent(out CameraFollow follow)) return;
-        if (follow.Settings != null) follow.Settings.Apply(Camera.main);
+        if (follow.Settings != null)
+        {
+            follow.Settings.Apply(Camera.main);
+            // Main의 방장(파랑)처럼 더미가 있는 상대 스폰 쪽을 화면 위로 둔다.
+            if (follow.Settings.TryFacingYaw(map.SpawnPoints, player.Slot, out float yaw)) follow.Yaw = yaw;
+        }
+        // Main 전투처럼 광원을 두 스폰을 잇는 선에 직교하게 돌린다.
+        Light sun = RenderSettings.sun;
+        if (sun != null && DuelAxis.TryYaw(map.SpawnPoints, out float axis))
+        {
+            sunHome ??= sun.transform.rotation;
+            sun.transform.rotation = DuelAxis.SideLight(axis, sunHome.Value);
+        }
         follow.player = player.transform;
         follow.enabled = true;
     }

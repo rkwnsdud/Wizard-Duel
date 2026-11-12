@@ -164,7 +164,7 @@ public class MainFlow : MonoBehaviour
         // 다 내려가면 넘겨준다. 모형 마법사는 실제 플레이어가 마법진과 함께 나타난 지금 걷는다.
         stage.StopPreview();
         backdrop.HideMap();
-        backdrop.Dive(aiDuel.Arena != null ? aiDuel.Arena.SpawnPoint(0) : null, 0);
+        backdrop.Dive(aiDuel.Arena, 0);
         stage.gameObject.SetActive(false);
         yield return lobbyTransition.Hide();
         transition = null;
@@ -362,7 +362,7 @@ public class MainFlow : MonoBehaviour
     {
         ApplySnapshot();
         int slot = network.IsHost ? 0 : 1;
-        backdrop.Dive(network.Arena != null ? network.Arena.SpawnPoint(slot) : null, slot);
+        backdrop.Dive(network.Arena, slot);
         Coroutine hiding = StartCoroutine(lobbyTransition.Hide());
         while (wantsLobby && !network.HasLocalPlayer) yield return null;
         if (!wantsLobby)
