@@ -17,6 +17,9 @@ public class LightOrbProjectile : MonoBehaviour
     [SerializeField] private AudioClip reflectSound;
     [SerializeField] private GameObject hitEffectPrefab;
 
+    public float BeamSpeed => beamSpeed;
+    public float MaxDistance => maxDistance;
+
     private float currentDistance;
     private Vector3 currentPoint;
     private Vector3 direction;

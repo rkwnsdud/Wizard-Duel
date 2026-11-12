@@ -1,6 +1,6 @@
 using UnityEngine;
 
-public class LightOrbWeapon : WeaponBase, IWeapon
+public class LightOrbWeapon : WeaponBase, IWeapon, IWeaponReach
 {
     [SerializeField, Min(.01f)] private float coreFlashDuration = .18f;
     private Renderer coreRenderer;
@@ -171,6 +171,10 @@ public class LightOrbWeapon : WeaponBase, IWeapon
     [SerializeField] private AudioSource audioSource;
     [SerializeField] private AudioClip lightSound;
     private bool presentingOwnShot;
+
+    // 벽에 튕기지 않고 곧게 갔을 때 빛줄기가 닿는 거리와 빠르기.
+    public float ReachAt(float charge) => lightAttackPrefab != null ? lightAttackPrefab.MaxDistance : 0f;
+    public float ShotSpeed => lightAttackPrefab != null ? lightAttackPrefab.BeamSpeed : 0f;
 
     void IWeapon.Fire(uint attackId, Vector3 direction, float charge, IShotSink sink)
     {

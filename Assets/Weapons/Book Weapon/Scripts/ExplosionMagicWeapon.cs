@@ -3,7 +3,7 @@ using UnityEngine;
 
 // 폭발 마법: 왼손에 책을 들고 오른손에서 화염 공을 쏜다.
 // 공격자만 판정용 화염 공(ExplosionFireball)을 날리고, 연출은 Present로 모든 클라이언트가 같게 재생한다.
-public sealed class ExplosionMagicWeapon : WeaponBase, IWeapon
+public sealed class ExplosionMagicWeapon : WeaponBase, IWeapon, IWeaponReach
 {
     // ShotEvent.Kind. 발사는 Start→Point(벽 또는 사거리 끝), 폭발은 Point가 폭발 중심이다.
     public const byte LaunchKind = 0;
@@ -49,6 +49,9 @@ public sealed class ExplosionMagicWeapon : WeaponBase, IWeapon
     public float Range => range;
     public float ExplosionRadius => explosionRadius;
     public float ExplosionDamage => explosionDamage;
+    // 화염 공은 사거리 끝에서 스스로 터진다. 봇은 폭발 반경을 빼고 화염 공이 닿는 거리만 센다.
+    public float ReachAt(float charge) => range;
+    public float ShotSpeed => speed;
 
     private Vector3 FireOrigin => firePoint != null ? firePoint.position : transform.position;
 

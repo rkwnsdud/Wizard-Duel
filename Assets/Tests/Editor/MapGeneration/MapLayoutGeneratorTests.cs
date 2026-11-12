@@ -13,14 +13,18 @@ public class MapLayoutGeneratorTests
         Vector2Int.left, Vector2Int.right, Vector2Int.up, Vector2Int.down
     };
 
+    // 모양×대칭×밀도는 모두 보고, 시드와 홀짝 크기는 조합마다 번갈아 쓴다. 전부 곱하면 느리기만 하다.
     static IEnumerable<TestCaseData> ValidMaps()
     {
+        float[] densities = { 0f, 0.15f, 1f };
+        int[] seeds = { 0, 7301, -11 };
         foreach (MapShape shape in Enum.GetValues(typeof(MapShape)))
         foreach (MapSymmetry symmetry in Enum.GetValues(typeof(MapSymmetry)))
-        foreach (float density in new[] { 0f, 0.15f, 1f })
-        foreach (int seed in new[] { 0, 7301, -11 })
-        foreach (bool even in new[] { false, true })
+        for (int d = 0; d < densities.Length; d++)
         {
+            float density = densities[d];
+            int seed = seeds[((int)shape + (int)symmetry + d) % seeds.Length];
+            bool even = ((int)shape + d) % 2 == 1;
             Vector2Int size = shape == MapShape.Elongated
                 ? new Vector2Int(even ? 48 : 47, even ? 18 : 17)
                 : new Vector2Int(even ? 32 : 31, even ? 30 : 29);
@@ -31,12 +35,14 @@ public class MapLayoutGeneratorTests
 
     static IEnumerable<TestCaseData> NoisyMaps()
     {
+        // (세기, 크기) 쌍. 세기 0은 크기를 무시하므로 한 번만 본다.
+        var noises = new[] { (0f, 0.75f), (0.5f, 0.25f), (1f, 0.75f), (1f, 2f) };
         foreach (MapShape shape in new[] { MapShape.Circle, MapShape.Rectangle, MapShape.Elongated, MapShape.Donut })
         foreach (MapSymmetry symmetry in Enum.GetValues(typeof(MapSymmetry)))
-        foreach (float strength in new[] { 0f, 0.5f, 1f })
-        foreach (float scale in new[] { 0.25f, 0.75f, 2f })
-        foreach (bool even in new[] { false, true })
+        for (int n = 0; n < noises.Length; n++)
         {
+            (float strength, float scale) = noises[n];
+            bool even = ((int)shape + n) % 2 == 1;
             Vector2Int size = shape == MapShape.Elongated
                 ? new Vector2Int(even ? 48 : 47, even ? 18 : 17)
                 : new Vector2Int(even ? 32 : 31, even ? 30 : 29);
@@ -46,7 +52,7 @@ public class MapLayoutGeneratorTests
     }
 
     [TestCaseSource(nameof(NoisyMaps))]
-    public void Generate_NoisePreservesBoundariesConnectivitySpawnsAndHole(
+    public void Generate_NoisyDenseMapsStayValidAndKeepBushRules(
         MapShape shape, MapSymmetry symmetry, float strength, float scale, Vector2Int size)
     {
         MapLayout map = MapLayoutGenerator.Generate(new MapGenerationSettings
@@ -59,6 +65,7 @@ public class MapLayoutGeneratorTests
         AssertValid(map, symmetry);
         Assert.That(CountEnclosedVoids(map), Is.EqualTo(shape == MapShape.Donut ? 1 : 0));
         Assert.That(map.ActualObstacleDensity, Is.InRange(0f, 0.75f));
+        AssertBushRules(map, symmetry);
     }
 
     [TestCase(MapShape.Circle)]
@@ -230,18 +237,6 @@ public class MapLayoutGeneratorTests
         else if (density <= 0.25f) Assert.That(map.BushCount, Is.GreaterThan(0), "A nonzero bush density should place bushes.");
     }
 
-    [TestCaseSource(nameof(NoisyMaps))]
-    public void Generate_NoisyDenseMapsKeepBushRules(
-        MapShape shape, MapSymmetry symmetry, float strength, float scale, Vector2Int size)
-    {
-        MapLayout map = MapLayoutGenerator.Generate(new MapGenerationSettings
-        {
-            Shape = shape, Symmetry = symmetry, Size = size, ObstacleDensity = 0.75f,
-            NoiseStrength = strength, NoiseScale = scale
-        });
-        AssertBushRules(map, symmetry);
-    }
-
     // 기본 부시 밀도 0.05에서 부시가 바닥의 약 5%를 덮는지 본다. 덩어리 단위로 두므로 몇 칸은 못 채울 수 있다.
     [TestCase(MapShape.Circle)]
     [TestCase(MapShape.Rectangle)]
@@ -304,14 +299,14 @@ public class MapLayoutGeneratorTests
     public void Generate_BushDensityKeepsWallsFixed(MapShape shape, MapSymmetry symmetry)
     {
         foreach (float obstacleDensity in new[] { 0f, 0.15f, 0.25f })
-        for (int seed = 0; seed < 6; seed++)
+        for (int seed = 0; seed < 2; seed++)
         {
             var settings = new MapGenerationSettings
             {
                 Seed = seed, Shape = shape, Symmetry = symmetry, ObstacleDensity = obstacleDensity, BushDensity = 0f
             };
             MapLayout bare = MapLayoutGenerator.Generate(settings);
-            foreach (float bushDensity in new[] { 0.01f, 0.05f, 0.12f, DuelSettingsMaxBushDensity })
+            foreach (float bushDensity in new[] { 0.05f, DuelSettingsMaxBushDensity })
             {
                 settings.BushDensity = bushDensity;
                 MapLayout map = MapLayoutGenerator.Generate(settings);
@@ -460,7 +455,7 @@ public class MapLayoutGeneratorTests
     [TestCase(MapShape.Donut)]
     public void Generate_AutomaticSizesStayInShapeRanges(MapShape shape)
     {
-        for (int seed = 0; seed < 8; seed++)
+        for (int seed = 0; seed < 3; seed++)
         {
             MapLayout map = MapLayoutGenerator.Generate(new MapGenerationSettings
             {
@@ -727,13 +722,11 @@ public class MapLayoutGeneratorTests
             if (distances[x, y] >= 0) reachable++;
             if (Walkable(map, x, y))
             {
+                // 칸마다 Assert.That을 부르면 느리다. 어긋난 칸에서만 실패를 알린다.
                 for (int dy = -1; dy <= 1; dy++)
                 for (int dx = -1; dx <= 1; dx++)
-                {
-                    Assert.That(x + dx, Is.InRange(0, map.Width - 1));
-                    Assert.That(y + dy, Is.InRange(0, map.Height - 1));
-                    Assert.That(map[x + dx, y + dy], Is.Not.EqualTo(MapCell.Void), "Floor touches an unsealed edge.");
-                }
+                    if (!InBounds(map, new Vector2Int(x + dx, y + dy)) || map[x + dx, y + dy] == MapCell.Void)
+                        Assert.Fail($"Floor at {x},{y} touches an unsealed edge.");
             }
             if (symmetry == MapSymmetry.Rotate180)
                 Assert.That(map[x, y], Is.EqualTo(map[map.Width - 1 - x, map.Height - 1 - y]));

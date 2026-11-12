@@ -3,7 +3,7 @@ using UnityEngine;
 
 // Online duel fire censer: IWeapon reports hits, while Fire stays for offline use.
 // Melee fan attack. Reports each victim once per swing with an increasing hitIndex.
-public sealed class FireCenserWeapon : WeaponBase, IWeapon
+public sealed class FireCenserWeapon : WeaponBase, IWeapon, IWeaponReach
 {
     [SerializeField, Tooltip("Direct damage applied to each victim in the fan.")]
     private float attackDamage = 20f;
@@ -17,6 +17,13 @@ public sealed class FireCenserWeapon : WeaponBase, IWeapon
     private GameObject attackEffectPrefab;
     [SerializeField] private AudioSource audioSource;
     [SerializeField] private AudioClip fireSound;
+
+    public float AttackRange => attackRange;
+    public float AttackAngle => attackAngle;
+
+    // The fan lands the moment it is swung, out to attackRange.
+    public float ReachAt(float charge) => attackRange;
+    public float ShotSpeed => 0f;
 
     // Owner resolution mirrors DuelLightningWeapon: aim comes from the parent player.
     Vector3 AimDirection
@@ -40,7 +47,7 @@ public sealed class FireCenserWeapon : WeaponBase, IWeapon
         direction.Normalize();
 
         List<PlayerHealth> victims = Trace(direction);
-        Vector3 start = firePoint != null ? firePoint.position : transform.position;
+        Vector3 start = OwnerGroundPosition();
         // A lethal hit may despawn players, so send the visual first.
         sink.Broadcast(new ShotEvent(attackId, 0, start, start + direction * attackRange, charge));
         for (int i = 0; i < victims.Count; i++)
@@ -52,7 +59,11 @@ public sealed class FireCenserWeapon : WeaponBase, IWeapon
         if (shot.Kind != 0) return;
         if (audioSource != null && fireSound != null)
             audioSource.PlayOneShot(fireSound);
-        WeaponHitEffect.Spawn(attackEffectPrefab, shot.Start);
+        Vector3 direction = shot.Point - shot.Start;
+        direction.y = 0f;
+        if (direction.sqrMagnitude < 0.0001f) direction = AimDirection;
+        WeaponHitEffect.Spawn(attackEffectPrefab, shot.Start, direction.normalized);
+        HideTelegraph();
         Debug.Log($"[Censer] Present attackId={shot.AttackId} origin={shot.Start} range={attackRange} angle={attackAngle}.");
     }
 
@@ -60,8 +71,9 @@ public sealed class FireCenserWeapon : WeaponBase, IWeapon
     {
         Vector3 direction = AimDirection;
         List<PlayerHealth> victims = Trace(direction);
-        Present(new ShotEvent(0, 0, firePoint != null ? firePoint.position : transform.position,
-            (firePoint != null ? firePoint.position : transform.position) + direction * attackRange, 0f));
+        Vector3 ground = OwnerGroundPosition();
+        Present(new ShotEvent(0, 0, ground,
+            ground + direction * attackRange, 0f));
         foreach (PlayerHealth victim in victims)
             victim.TakeDamage(attackDamage);
         Debug.Log($"[Censer] Offline fire hit {victims.Count} target(s) for {attackDamage}.");
@@ -70,16 +82,25 @@ public sealed class FireCenserWeapon : WeaponBase, IWeapon
     List<PlayerHealth> Trace(Vector3 direction)
     {
         List<PlayerHealth> victims = new List<PlayerHealth>();
-        if (firePoint == null || attackRange <= 0f) return victims;
-        Vector3 origin = firePoint.position;
+        if (attackRange <= 0f) return victims;
+        // The preview fan starts at the owner's feet, so the hit test uses the
+        // same ground origin. The hand-held firePoint only feeds visuals.
+        Vector3 ownerPos = OwnerGroundPosition();
+        Vector3 sphereCenter = ownerPos + Vector3.up * 1f;
+        float sphereRadius = attackRange + 2f;
         PlayerHealth owner = GetComponentInParent<PlayerHealth>();
         float halfAngle = attackAngle * 0.5f;
-        foreach (Collider hit in Physics.OverlapSphere(origin, attackRange, ~0, QueryTriggerInteraction.Ignore))
+        foreach (Collider hit in Physics.OverlapSphere(sphereCenter, sphereRadius, ~0, QueryTriggerInteraction.Ignore))
         {
             PlayerHealth candidate = hit.GetComponentInParent<PlayerHealth>();
             if (candidate == null || candidate == owner || candidate.IsDead) continue;
             if (victims.Contains(candidate)) continue;
-            Vector3 toTarget = candidate.transform.position - origin;
+            // Aim is measured from the victim's root so child collider offsets
+            // (crouching dummies, low hitboxes) cannot tilt the fan out of range.
+            Transform targetRoot = candidate.transform;
+            DuelPlayer victimPlayer = candidate.GetComponentInParent<DuelPlayer>();
+            if (victimPlayer != null) targetRoot = victimPlayer.transform;
+            Vector3 toTarget = targetRoot.position - ownerPos;
             toTarget.y = 0f;
             if (toTarget.sqrMagnitude > attackRange * attackRange) continue;
             if (toTarget.sqrMagnitude < 0.0001f) { victims.Add(candidate); continue; }
@@ -89,12 +110,34 @@ public sealed class FireCenserWeapon : WeaponBase, IWeapon
         return victims;
     }
 
+    Vector3 OwnerGroundPosition()
+    {
+        PlayerHealth owner = GetComponentInParent<PlayerHealth>();
+        if (owner != null) return owner.transform.position;
+        DuelPlayer player = GetComponentInParent<DuelPlayer>();
+        if (player != null) return player.transform.position;
+        return transform.position;
+    }
+
+    /// <summary>Shows the ground fan while the swing is winding up.</summary>
+    public void ShowTelegraph()
+    {
+        CenserTelegraph telegraph = GetComponentInChildren<CenserTelegraph>(true);
+        if (telegraph != null) telegraph.Show();
+    }
+
+    /// <summary>Hides the ground fan at swing time or on cancel.</summary>
+    public void HideTelegraph()
+    {
+        CenserTelegraph telegraph = GetComponentInChildren<CenserTelegraph>(true);
+        if (telegraph != null) telegraph.Hide();
+    }
+
     void OnDrawGizmosSelected()
     {
-        if (firePoint == null) return;
-        Vector3 origin = Application.isPlaying ? firePoint.position : firePoint.position;
+        Vector3 origin = OwnerGroundPosition();
         Gizmos.color = new Color(1f, 0.45f, 0f, 0.35f);
-        Vector3 forward = Application.isPlaying ? AimDirection : firePoint.forward;
+        Vector3 forward = Application.isPlaying ? AimDirection : transform.forward;
         forward.y = 0f;
         if (forward.sqrMagnitude < 0.0001f) forward = Vector3.forward;
         forward.Normalize();

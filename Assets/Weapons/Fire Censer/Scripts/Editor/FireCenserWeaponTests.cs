@@ -7,7 +7,7 @@ using UnityEngine;
 using UnityEngine.TestTools;
 using Object = UnityEngine.Object;
 
-public class FireCenserWeaponTests
+public class FireCenserWeaponTests : PlayModeTestFixture
 {
     static readonly Vector3 Origin = new Vector3(20000f, 1f, 20000f);
     GameObject root;
@@ -28,10 +28,8 @@ public class FireCenserWeaponTests
         }
     }
 
-    [UnitySetUp]
-    public IEnumerator SetUp()
+    protected override IEnumerator SetUpInPlayMode()
     {
-        yield return new EnterPlayMode();
         root = new GameObject("Fire censer test owner");
         root.SetActive(false);
         root.transform.position = Origin;
@@ -49,14 +47,10 @@ public class FireCenserWeaponTests
             .SetValue(weapon, firePoint);
         typeof(WeaponBase).GetField("attackCooldown", BindingFlags.Instance | BindingFlags.NonPublic)
             .SetValue(weapon, 1.5f);
+        typeof(WeaponBase).GetField("attackAnimation", BindingFlags.Instance | BindingFlags.NonPublic)
+            .SetValue(weapon, null);
         root.SetActive(true);
-    }
-
-    [UnityTearDown]
-    public IEnumerator TearDown()
-    {
-        Object.Destroy(root);
-        yield return new ExitPlayMode();
+        yield break;
     }
 
     static PlayerHealth Target(Vector3 offset)
@@ -85,11 +79,6 @@ public class FireCenserWeaponTests
         Assert.That(sink.Hits[0].id, Is.EqualTo(7u));
         Assert.That(sink.Hits[0].index, Is.EqualTo(0));
         Assert.That(sink.Order, Is.EqualTo(new[] { "present", "hit" }));
-
-        Object.Destroy(front.gameObject);
-        Object.Destroy(side.gameObject);
-        Object.Destroy(behind.gameObject);
-        Object.Destroy(far.gameObject);
     }
 
     [UnityTest]
@@ -107,9 +96,6 @@ public class FireCenserWeaponTests
         Assert.That(sink.Hits[1].index, Is.EqualTo(1));
         Assert.That(sink.Hits[0].id, Is.EqualTo(9u));
         Assert.That(sink.Hits[1].id, Is.EqualTo(9u));
-
-        Object.Destroy(left.gameObject);
-        Object.Destroy(right.gameObject);
     }
 
     [UnityTest]
@@ -126,8 +112,6 @@ public class FireCenserWeaponTests
         Assert.That(stats.MoveSpeedMultiplier, Is.EqualTo(1.1f).Within(0.0001f));
         passive.OnUnequipped(stats);
         Assert.That(stats.MoveSpeedMultiplier, Is.EqualTo(1f));
-
-        Object.Destroy(statsObject);
     }
 }
 #endif

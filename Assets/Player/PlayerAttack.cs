@@ -27,6 +27,7 @@ public class PlayerAttack : MonoBehaviour
     private RuntimeAnimatorController sourceController;
     private WeaponBase attackingWeapon;
     public WeaponBase AttackingWeapon => attackingWeapon;
+    private float attackAnimSpeed = 1f;
 
     // Pose components can apply/release their controller synchronously on equip,
     // including when the new weapon was already active in the hierarchy.
@@ -46,6 +47,26 @@ public class PlayerAttack : MonoBehaviour
 
     // Remote players keep their poses even though their input component is disabled.
     public bool IsWeaponPoseActive(WeaponBase weapon) => weapon != null && currentWeapon == weapon;
+
+#if UNITY_EDITOR
+    // Offline weapon swap test: 1 = first child weapon, 2 = second child weapon.
+    // Editor-only. Stripped from builds.
+    void Update()
+    {
+        if (Keyboard.current == null) return;
+        if (Keyboard.current.digit1Key.wasPressedThisFrame) EditorSwapWeapon(0);
+        else if (Keyboard.current.digit2Key.wasPressedThisFrame) EditorSwapWeapon(1);
+    }
+
+    void EditorSwapWeapon(int index)
+    {
+        WeaponBase[] weapons = GetComponentsInChildren<WeaponBase>(true);
+        if (index < 0 || index >= weapons.Length) return;
+        if (TryEquipWeapon(weapons[index]))
+            Debug.Log($"[Test] Equipped {weapons[index].name} via key {index + 1}.", weapons[index]);
+    }
+#endif
+
 
     private float pendingChargeRatio;
     private bool hasFired;
@@ -67,6 +88,7 @@ public class PlayerAttack : MonoBehaviour
     // 온라인 전투에서 DuelPlayer가 넣는다. 없으면 오프라인으로 바로 공격한다.
     public IAttackAuthority Authority { get; set; }
     public WeaponBase Weapon => currentWeapon;
+    public float MaxChargeTime => maxChargeTime;
 
     // Equipment must be parented to this player's socket first. Switching during
     // charge/cast is rejected so animation events cannot fire a different weapon.
@@ -181,6 +203,9 @@ public class PlayerAttack : MonoBehaviour
     // already disabled for input, so OnDisable cannot be relied on there.
     public void CancelAttack()
     {
+        if (attackingWeapon is FireCenserWeapon censerOnCancel) censerOnCancel.HideTelegraph();
+        if (animator != null) animator.speed = 1f;
+        attackAnimSpeed = 1f;
         HideChargePreview(currentWeapon);
         if (attackingWeapon != currentWeapon) HideChargePreview(attackingWeapon);
         isCharging = false;
@@ -233,6 +258,17 @@ public class PlayerAttack : MonoBehaviour
         CommitAttack(chargeRatio);
     }
 
+    // 입력 없이 공격을 시작한다(AI 대전의 봇). 차징 시간은 부르는 쪽이 직접 기다린 뒤 그만큼의 비율을 넘긴다.
+    // 차징하지 않는 무기는 비율을 0으로 본다. 쿨다운·공격 중·사망이면 거절한다.
+    public bool TryStartAttack(float chargeRatio)
+    {
+        if (currentWeapon == null || IsAttacking || isCharging || IsOnCooldown ||
+            (playerHealth != null && playerHealth.IsDead))
+            return false;
+        CommitAttack(currentWeapon is IChargeableWeapon ? Mathf.Clamp01(chargeRatio) : 0f);
+        return IsAttacking;
+    }
+
     private void CommitAttack(float chargeRatio)
     {
         PlayAttack(chargeRatio);
@@ -262,6 +298,9 @@ public class PlayerAttack : MonoBehaviour
         // Animation events and online authority use this same attack-start weapon.
         attackingWeapon = currentWeapon;
         ApplyWeaponAnimation();
+        attackAnimSpeed = attackingWeapon != null ? attackingWeapon.AttackAnimSpeed : 1f;
+        if (animator != null) animator.speed = attackAnimSpeed;
+        if (attackingWeapon is FireCenserWeapon censer) censer.ShowTelegraph();
         hasFired = false;
         IsAttacking = true;
         StartAttackCooldown(attackingWeapon);
@@ -310,6 +349,9 @@ public class PlayerAttack : MonoBehaviour
     // 공격 애니메이션 마지막 Animation Event에서 호출
     public void EndAttack()
     {
+        if (attackingWeapon is FireCenserWeapon censer) censer.HideTelegraph();
+        if (animator != null) animator.speed = 1f;
+        attackAnimSpeed = 1f;
         IsAttacking = false;
         attackingWeapon = null;
         pendingChargeRatio = 0f;
