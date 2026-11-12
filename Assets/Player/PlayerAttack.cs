@@ -27,6 +27,7 @@ public class PlayerAttack : MonoBehaviour
     private RuntimeAnimatorController sourceController;
     private WeaponBase attackingWeapon;
     public WeaponBase AttackingWeapon => attackingWeapon;
+    private float attackAnimSpeed = 1f;
 
     // Pose components can apply/release their controller synchronously on equip,
     // including when the new weapon was already active in the hierarchy.
@@ -46,6 +47,26 @@ public class PlayerAttack : MonoBehaviour
 
     // Remote players keep their poses even though their input component is disabled.
     public bool IsWeaponPoseActive(WeaponBase weapon) => weapon != null && currentWeapon == weapon;
+
+#if UNITY_EDITOR
+    // Offline weapon swap test: 1 = first child weapon, 2 = second child weapon.
+    // Editor-only. Stripped from builds.
+    void Update()
+    {
+        if (Keyboard.current == null) return;
+        if (Keyboard.current.digit1Key.wasPressedThisFrame) EditorSwapWeapon(0);
+        else if (Keyboard.current.digit2Key.wasPressedThisFrame) EditorSwapWeapon(1);
+    }
+
+    void EditorSwapWeapon(int index)
+    {
+        WeaponBase[] weapons = GetComponentsInChildren<WeaponBase>(true);
+        if (index < 0 || index >= weapons.Length) return;
+        if (TryEquipWeapon(weapons[index]))
+            Debug.Log($"[Test] Equipped {weapons[index].name} via key {index + 1}.", weapons[index]);
+    }
+#endif
+
 
     private float pendingChargeRatio;
     private bool hasFired;
@@ -182,6 +203,9 @@ public class PlayerAttack : MonoBehaviour
     // already disabled for input, so OnDisable cannot be relied on there.
     public void CancelAttack()
     {
+        if (attackingWeapon is FireCenserWeapon censerOnCancel) censerOnCancel.HideTelegraph();
+        if (animator != null) animator.speed = 1f;
+        attackAnimSpeed = 1f;
         HideChargePreview(currentWeapon);
         if (attackingWeapon != currentWeapon) HideChargePreview(attackingWeapon);
         isCharging = false;
@@ -274,6 +298,9 @@ public class PlayerAttack : MonoBehaviour
         // Animation events and online authority use this same attack-start weapon.
         attackingWeapon = currentWeapon;
         ApplyWeaponAnimation();
+        attackAnimSpeed = attackingWeapon != null ? attackingWeapon.AttackAnimSpeed : 1f;
+        if (animator != null) animator.speed = attackAnimSpeed;
+        if (attackingWeapon is FireCenserWeapon censer) censer.ShowTelegraph();
         hasFired = false;
         IsAttacking = true;
         StartAttackCooldown(attackingWeapon);
@@ -322,6 +349,9 @@ public class PlayerAttack : MonoBehaviour
     // 공격 애니메이션 마지막 Animation Event에서 호출
     public void EndAttack()
     {
+        if (attackingWeapon is FireCenserWeapon censer) censer.HideTelegraph();
+        if (animator != null) animator.speed = 1f;
+        attackAnimSpeed = 1f;
         IsAttacking = false;
         attackingWeapon = null;
         pendingChargeRatio = 0f;

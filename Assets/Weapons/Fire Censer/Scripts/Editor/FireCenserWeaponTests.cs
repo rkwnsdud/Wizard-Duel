@@ -47,6 +47,8 @@ public class FireCenserWeaponTests : PlayModeTestFixture
             .SetValue(weapon, firePoint);
         typeof(WeaponBase).GetField("attackCooldown", BindingFlags.Instance | BindingFlags.NonPublic)
             .SetValue(weapon, 1.5f);
+        typeof(WeaponBase).GetField("attackAnimation", BindingFlags.Instance | BindingFlags.NonPublic)
+            .SetValue(weapon, null);
         root.SetActive(true);
         yield break;
     }
