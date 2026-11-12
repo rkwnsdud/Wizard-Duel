@@ -20,9 +20,10 @@ public class StartScreen : MonoBehaviour
     [Tooltip("아무것도 고르지 않은 채 방향키를 누르면 여기부터 고른다.")]
     [SerializeField] Button firstMenuButton;
     [SerializeField] Button joinMenuButton;
+    [Tooltip("맵 코드를 입력하는 모달. 화면 전체를 덮어 뒤의 메뉴를 가린다.")]
     [SerializeField] GameObject joinBox;
-    [Tooltip("코드 입력 상자가 열려 있는 동안 숨길 메뉴 버튼. 함께 보이면 메뉴가 화면 아래로 넘친다.")]
-    [SerializeField] GameObject aiMenuButton;
+    [Tooltip("모달이 열려 있는 동안 방향키로 뒤의 메뉴가 골라지지 않게 잠근다.")]
+    [SerializeField] CanvasGroup menu;
     [SerializeField] TMP_InputField codeField;
     [SerializeField] TMP_Text joinButtonLabel;
     [SerializeField] TMP_Text joinMessage;
@@ -93,12 +94,22 @@ public class StartScreen : MonoBehaviour
         AiRequested?.Invoke();
     }
 
+    // "코드로 참가" 버튼이 부른다. 메뉴 위에 코드 입력 모달을 띄운다.
     public void OpenJoin()
     {
         if (creating) AbandonConnection();
         if (!connecting) joinMessage.text = JoinHint;
         ShowJoinBox(true);
         codeField.ActivateInputField();
+    }
+
+    // 모달의 닫기 버튼과 바깥 어두운 부분이 부른다. 접속 중이었다면 그 접속도 그만둔다.
+    public void CloseJoin()
+    {
+        AbandonConnection();
+        ShowJoinBox(false);
+        EventSystem events = EventSystem.current;
+        if (events != null) events.SetSelectedGameObject(null);
     }
 
     // 입력 칸에서 Enter를 누르면 호출된다.
@@ -188,7 +199,7 @@ public class StartScreen : MonoBehaviour
 #endif
     }
 
-    // Esc는 접속 취소, 입력 상자 닫기, 알림 닫기 순서로 한 단계씩 물러난다.
+    // Esc는 접속 취소, 모달 닫기, 알림 닫기 순서로 한 단계씩 물러난다.
     void Back()
     {
         if (connecting) CancelJoin();
@@ -200,11 +211,10 @@ public class StartScreen : MonoBehaviour
         else notice.SetActive(false);
     }
 
-    // 코드 입력 상자를 열면 그 높이만큼 아래 메뉴가 밀린다. 화면을 넘지 않게 그동안 AI 대전 버튼을 숨긴다.
     void ShowJoinBox(bool open)
     {
         joinBox.SetActive(open);
-        if (aiMenuButton != null) aiMenuButton.SetActive(!open);
+        if (menu != null) menu.interactable = !open;
     }
 
     void SetConnecting(bool value)
