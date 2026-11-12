@@ -125,6 +125,77 @@ public class BotGridTests
     }
 
     [Test]
+    public void IsShielded_NeedsAWallAcrossTheWholeBody()
+    {
+        BotGrid grid = Grid(null,
+            ".....",
+            "..#..",
+            ".....");
+        Vector3 shooter = grid.CenterOf(new Vector2Int(0, 1));
+        Vector3 behindWall = grid.CenterOf(new Vector2Int(4, 1));
+        Vector3 besideWall = grid.CenterOf(new Vector2Int(4, 0));
+
+        Assert.That(grid.IsShielded(shooter, behindWall, 0.35f), Is.True);
+        Assert.That(grid.IsShielded(behindWall, shooter, 0.35f), Is.True, "Cover works both ways.");
+        Assert.That(grid.IsShielded(shooter, grid.CenterOf(new Vector2Int(1, 1)), 0.35f), Is.False, "Nothing stands in between.");
+        Assert.That(grid.IsShielded(shooter, besideWall, 0.35f), Is.False, "The shot passes beside the wall.");
+        Assert.That(grid.IsShielded(shooter, shooter, 0.35f), Is.False);
+    }
+
+    [Test]
+    public void TryFindCover_FindsAReachableCellBehindAWall()
+    {
+        BotGrid grid = Grid(NewRoot(new Vector3(30f, 0f, -12f)),
+            ".......",
+            "...#...",
+            "...#...",
+            "...#...",
+            ".......");
+        Vector3 threat = grid.CenterOf(new Vector2Int(0, 2));
+        Vector2Int start = new Vector2Int(2, 2);
+        Vector3 from = grid.CenterOf(start);
+
+        Assert.That(grid.IsShielded(threat, from, 0.35f), Is.False, "The bot starts in the open.");
+        Assert.That(grid.TryFindCover(from, threat, 6, 0.35f, 1.5f, out Vector3 cover), Is.True);
+        Vector2Int cell = grid.CellAt(cover);
+        Assert.That(grid.IsWalkable(cell), Is.True);
+        Assert.That(grid.IsShielded(threat, cover, 0.35f), Is.True);
+        var path = new List<Vector2Int>();
+        Assert.That(grid.FindPath(start, cell, path), Is.True);
+        Assert.That(path.Count, Is.LessThanOrEqualTo(6));
+
+        Assert.That(grid.TryFindCover(from, threat, 2, 0.35f, 1.5f, out _), Is.False, "Two steps do not get around the wall.");
+        // 숨을 곳이 모두 위협 가까이에 있으면 고르지 않는다.
+        Assert.That(grid.TryFindCover(from, threat, 6, 0.35f, 20f, out _), Is.False);
+    }
+
+    [Test]
+    public void TryFindCover_FailsInAnOpenField()
+    {
+        BotGrid grid = Grid(null,
+            ".....",
+            ".....",
+            ".....");
+        Vector3 from = grid.CenterOf(new Vector2Int(3, 1));
+
+        Assert.That(grid.TryFindCover(from, grid.CenterOf(new Vector2Int(0, 1)), 8, 0.35f, 1f, out Vector3 cover), Is.False);
+        Assert.That(cover, Is.EqualTo(from));
+    }
+
+    [Test]
+    public void TryFindCover_StaysPutWhenAlreadyBehindAWall()
+    {
+        BotGrid grid = Grid(null,
+            ".....",
+            "..#..",
+            ".....");
+        Vector3 from = grid.CenterOf(new Vector2Int(4, 1));
+
+        Assert.That(grid.TryFindCover(from, grid.CenterOf(new Vector2Int(0, 1)), 4, 0.35f, 1f, out Vector3 cover), Is.True);
+        Assert.That(cover, Is.EqualTo(from));
+    }
+
+    [Test]
     public void TryNearestWalkable_FindsTheClosestFloorWithinRange()
     {
         BotGrid grid = Grid(null,

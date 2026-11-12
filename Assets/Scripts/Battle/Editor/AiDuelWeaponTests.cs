@@ -84,6 +84,13 @@ public class AiDuelWeaponTests
         Assert.That(easy.dodgeChance, Is.LessThan(normal.dodgeChance));
         Assert.That(normal.dodgeChance, Is.LessThan(hard.dodgeChance));
         Assert.That(easy.projectileLead, Is.LessThan(hard.projectileLead));
+        // 어려울수록 더 자주 숨고, 더 멀리 물러나고, 체력이 더 많이 남았을 때부터 몸을 사린다.
+        Assert.That(easy.coverUse, Is.LessThan(normal.coverUse));
+        Assert.That(normal.coverUse, Is.LessThan(hard.coverUse));
+        Assert.That(easy.keepDistance, Is.LessThan(normal.keepDistance));
+        Assert.That(normal.keepDistance, Is.LessThan(hard.keepDistance));
+        Assert.That(easy.cautiousHealth, Is.LessThan(normal.cautiousHealth));
+        Assert.That(normal.cautiousHealth, Is.LessThan(hard.cautiousHealth));
     }
 
     // 로비 화면의 무기 버튼은 씬에 놓여 있다. 카탈로그에 무기를 더하면 버튼도 더해야 고를 수 있다.

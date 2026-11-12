@@ -25,12 +25,19 @@ public sealed class DuelBotTuning
     [Range(0f, 1f)] public float dodgeChance = 0.5f;
     [Tooltip("사거리를 알려 주지 않는 무기(IWeaponReach 없음)를 들었을 때 쏘는 거리.")]
     [Min(1f)] public float fallbackReach = 6f;
+    [Tooltip("공격을 마치고 다음 공격을 준비하는 동안 벽 뒤로 숨을 확률. 준비하다가 맞았을 때도 이 확률로 숨는다.")]
+    [Range(0f, 1f)] public float coverUse = 0.6f;
+    [Tooltip("다음 공격을 준비하는 동안 물러나 거리를 벌리는 정도. 0이면 가까이에서 맴돌고 1이면 사거리 끝까지 물러난다.")]
+    [Range(0f, 1f)] public float keepDistance = 0.6f;
+    [Tooltip("체력이 이 비율 아래로 내려가면 몸을 사린다. 더 멀리서 싸우고 더 자주 숨는다.")]
+    [Range(0f, 1f)] public float cautiousHealth = 0.4f;
 
     // 난이도별 기본값. AiDuel이 BotDifficulty 순서(쉬움·보통·어려움)로 들고 있고 Inspector에서 고칠 수 있다.
     public static DuelBotTuning Easy() => new DuelBotTuning
     {
         reactionTime = 0.6f, turnSpeed = 300f, aimError = 14f, aimLead = 0f, projectileLead = 0f,
-        chargeRange = new Vector2(0.2f, 0.5f), attackPause = new Vector2(0.8f, 1.6f), dodgeChance = 0.15f
+        chargeRange = new Vector2(0.2f, 0.5f), attackPause = new Vector2(0.8f, 1.6f), dodgeChance = 0.15f,
+        coverUse = 0.2f, keepDistance = 0.25f, cautiousHealth = 0.2f
     };
 
     public static DuelBotTuning Normal() => new DuelBotTuning();
@@ -38,13 +45,16 @@ public sealed class DuelBotTuning
     public static DuelBotTuning Hard() => new DuelBotTuning
     {
         reactionTime = 0.2f, turnSpeed = 600f, aimError = 2.5f, aimLead = 0.2f, projectileLead = 1f,
-        chargeRange = new Vector2(0.4f, 1f), attackPause = new Vector2(0.1f, 0.4f), dodgeChance = 0.85f
+        chargeRange = new Vector2(0.4f, 1f), attackPause = new Vector2(0.1f, 0.4f), dodgeChance = 0.85f,
+        coverUse = 0.9f, keepDistance = 1f, cautiousHealth = 0.5f
     };
 }
 
 // AI 대전에서 봇 캐릭터를 움직이는 두뇌. 사람의 PlayerMovement·PlayerAim·PlayerAttack 입력을 대신한다.
 // 사람과 같은 규칙을 따른다: 같은 빠르기로 걷고, 시전 중에는 움직이거나 돌지 못하고, 차징한 시간만큼만 세게 쏘고,
 // 부시에 숨은 상대는 같은 부시에 들어가거나 상대가 공격할 때만 본다(BushVisibilityRules).
+// 무작정 달려들지 않는다: 쏘고 나서 다음 공격을 준비하는 동안에는 물러나 거리를 벌리거나 벽 뒤로 숨고,
+// 쏠 준비가 되면 다시 나와 겨눈다. 체력이 적거나 무기 사거리가 다르면 그에 맞춰 거리를 잡는다.
 // 벽은 물리 판정 대신 맵 격자(BotGrid)로 보고, 실제 명중은 무기의 온라인 판정(IWeapon)이 정한다.
 // 전투가 켜져 있는 동안만 DuelPlayer가 이 컴포넌트를 켠다.
 [DisallowMultipleComponent]
@@ -74,6 +84,23 @@ public sealed class DuelBot : MonoBehaviour
     const float MaxFightingReach = 10f;
     // 날아가는 공격을 미리 겨눌 때 헤아리는 가장 긴 비행 시간.
     const float MaxFlightTime = 0.8f;
+    // 다음 공격을 준비하는 동안 물러나는 가장 먼 거리와, 쏠 준비가 된 채로 물러나는 가장 먼 거리(사거리 대비).
+    const float ReloadRetreatRatio = 1f;
+    const float ReadyRetreatRatio = 0.75f;
+    // 준비하는 동안 물러난 거리에서 이만큼 더 벌어져야 다시 따라붙는다.
+    const float ReapproachMargin = 1.5f;
+    // 두 무기의 사거리가 이만큼 넘게 차이 나면 거리를 다르게 잡는다.
+    const float OutrangeMargin = 1.5f;
+    // 숨을 곳은 걸어서 이 칸 수 안에서 찾고, 상대에게 이보다 가까운 곳에는 숨지 않는다.
+    const int CoverSearchSteps = 6;
+    const float CoverMinDistance = 2.5f;
+    const float CoverArrive = 0.2f;
+    const float CoverRecheck = 0.3f;
+    // 다음 공격까지 이만큼도 남지 않았으면 숨으러 가지 않고, 숨어도 이 시간을 넘기지 않는다.
+    const float MinHideTime = 0.7f;
+    const float MaxHideTime = 4f;
+    // 차징이 다 차기 이만큼 전에 숨은 곳에서 나선다.
+    const float PeekLead = 0.3f;
 
     BotGrid grid;
     DuelBotTuning tuning = new DuelBotTuning();
@@ -106,6 +133,13 @@ public sealed class DuelBot : MonoBehaviour
     Vector3 dodgeDirection;
     float dodgeFrom;
     float dodgeUntil;
+
+    // 벽 뒤에 숨으러 가는 중이거나 숨어 있다.
+    bool hiding;
+    Vector3 coverPoint;
+    float coverCheckAt;
+    float hideUntil;
+    float lastHealth;
 
     bool casting;
     bool charging;
@@ -152,6 +186,8 @@ public sealed class DuelBot : MonoBehaviour
         strafeSign = Random.value < 0.5f ? -1f : 1f;
         strafeFlipAt = now + Random.Range(0.7f, 2f);
         dodgeUntil = 0f;
+        hiding = false;
+        lastHealth = health != null ? health.CurrentHealth : 0f;
         casting = false;
         charging = false;
         nextChargeAt = now;
@@ -167,10 +203,13 @@ public sealed class DuelBot : MonoBehaviour
         Perceive(now);
 
         Vector3 move = Vector3.zero;
+        bool hurt = health.CurrentHealth < lastHealth;
+        lastHealth = health.CurrentHealth;
         if (attack.IsAttacking)
         {
             // 시전 중에는 사람이 조작할 때처럼 이동과 조준이 멈춘다.
             casting = true;
+            hiding = false;
         }
         else
         {
@@ -179,7 +218,10 @@ public sealed class DuelBot : MonoBehaviour
                 casting = false;
                 nextChargeAt = now + Random.Range(tuning.attackPause.x, tuning.attackPause.y);
                 PlanAttack();
+                PlanCover(now);
             }
+            // 쏠 수 없는 동안 맞았으면 맞고만 있지 않고 숨을 곳을 찾는다.
+            else if (hurt && !hiding && Reloading(now)) PlanCover(now);
             move = ChooseMove(now);
             Aim(move, now);
             if (TryAttack(now)) move = Vector3.zero;
@@ -247,25 +289,144 @@ public sealed class DuelBot : MonoBehaviour
             if (CanStep(dodgeDirection)) return dodgeDirection;
             dodgeUntil = 0f;
         }
-        if (!visible) return Search(now);
+        if (!visible)
+        {
+            hiding = false;
+            return Search(now);
+        }
+        if (hiding)
+        {
+            Vector3 toCover = Hide(now);
+            if (hiding) return toCover;
+        }
 
         Vector3 toTarget = Flat(target.position - position);
         float distance = toTarget.magnitude;
         float reach = Reach(Mathf.Max(plannedCharge, ChargeRatio(now)));
-        if (distance > reach * ApproachRatio || !grid.HasClearLine(position, target.position, ShotRadius))
-            return Follow(target.position, now);
+        bool reloading = Reloading(now);
+        float keepAway = KeepAway(reach, reloading);
+        bool lineOfFire = grid.HasClearLine(position, target.position, ShotRadius);
+        if (reloading)
+        {
+            // 쏠 수 없는 동안에는 굳이 다가가지 않는다. 너무 멀어졌을 때만 따라붙고, 벽에 가려 있으면 그 자리에서 기다린다.
+            if (distance > Mathf.Max(reach, keepAway + ReapproachMargin)) return Follow(target.position, now);
+            if (!lineOfFire) return Vector3.zero;
+        }
+        else if (distance > reach * ApproachRatio || !lineOfFire) return Follow(target.position, now);
 
-        // 쏠 수 있는 거리에서는 상대 둘레를 옆으로 돌고, 너무 가까우면 비스듬히 물러난다. 막히면 반대쪽으로 돈다.
+        // 쏠 수 있는 거리에서는 상대 둘레를 옆으로 돌고, 지키려는 거리보다 가까우면 물러난다. 막히면 반대쪽으로 돈다.
         Vector3 forward = distance > 0.01f ? toTarget / distance : transform.forward;
         if (now >= strafeFlipAt) FlipStrafe(now);
+        if (distance < keepAway)
+        {
+            Vector3 back = BackOff(forward);
+            if (back != Vector3.zero) return back;
+        }
         for (int attempt = 0; attempt < 2; attempt++)
         {
             Vector3 side = Vector3.Cross(Vector3.up, forward) * strafeSign;
-            Vector3 wanted = distance < reach * RetreatRatio ? (side - forward).normalized : side;
-            if (CanStep(wanted)) return wanted;
+            if (CanStep(side)) return side;
             FlipStrafe(now);
         }
         return Vector3.zero;
+    }
+
+    // 공격을 마친 뒤 쉬는 중이거나 무기 쿨다운이 돌고 있어 아직 쏠 수 없다.
+    bool Reloading(float now) => now < nextChargeAt || attack.IsOnCooldown;
+
+    bool Cautious => health.MaxHealth > 0f && health.CurrentHealth / health.MaxHealth < tuning.cautiousHealth;
+
+    // 상대 무기가 닿는 가장 먼 거리.
+    float TheirReach() => targetAttack != null && targetAttack.CurrentWeapon is IWeaponReach reach ? reach.ReachAt(1f) : tuning.fallbackReach;
+
+    // 상대가 이 거리 안으로 들어오면 물러난다.
+    float KeepAway(float reach, bool reloading)
+    {
+        float mine = Reach(1f), theirs = TheirReach();
+        float ratio = RetreatRatio;
+        if (reloading)
+        {
+            // 상대가 훨씬 멀리 닿으면 물러나 봐야 맞기만 한다. 그때는 붙어서 맴돈다.
+            if (theirs <= mine + OutrangeMargin) ratio = Mathf.Lerp(RetreatRatio, ReloadRetreatRatio, tuning.keepDistance);
+        }
+        else
+        {
+            if (Cautious) ratio = Mathf.Lerp(RetreatRatio, ReadyRetreatRatio, tuning.keepDistance);
+            // 내가 훨씬 멀리 닿으면 상대 사거리 밖에서 쏜다.
+            if (mine > theirs + OutrangeMargin && reach > 0f)
+                ratio = Mathf.Max(ratio, Mathf.Lerp(RetreatRatio, Mathf.Min(ReadyRetreatRatio, (theirs + 0.75f) / reach), tuning.keepDistance));
+        }
+        return reach * ratio;
+    }
+
+    // 상대에게서 멀어지는 걸음. 돌던 쪽으로 비스듬히 물러나고, 막히면 반대쪽 비스듬히, 그다음 곧장 뒤로 물러난다.
+    Vector3 BackOff(Vector3 forward)
+    {
+        Vector3 side = Vector3.Cross(Vector3.up, forward) * strafeSign;
+        Vector3 wanted = (side - forward).normalized;
+        if (CanStep(wanted)) return wanted;
+        wanted = (-side - forward).normalized;
+        if (CanStep(wanted))
+        {
+            strafeSign = -strafeSign;
+            return wanted;
+        }
+        return CanStep(-forward) ? -forward : Vector3.zero;
+    }
+
+    // 지금부터 쏠 수 있게 되기까지 걸리는 시간.
+    float WaitBeforeFiring(float now)
+    {
+        float wait = Mathf.Max(0f, nextChargeAt - now, attack.CooldownRemaining);
+        if (Chargeable) wait += Mathf.Max(0f, plannedCharge - ChargeRatio(now)) * attack.MaxChargeTime;
+        return wait;
+    }
+
+    // 다음 공격을 준비하는 동안 숨을지 정한다. 상대가 보이고, 숨을 만큼 시간이 남았고, 가까이에 가려진 곳이 있을 때만 숨는다.
+    void PlanCover(float now)
+    {
+        hiding = false;
+        if (!visible || WaitBeforeFiring(now) < MinHideTime) return;
+        // 체력이 적거나 상대가 훨씬 멀리 닿으면 더 자주 숨는다.
+        bool wary = Cautious || TheirReach() > Reach(1f) + OutrangeMargin;
+        if (Random.value >= (wary ? Mathf.Lerp(tuning.coverUse, 1f, 0.5f) : tuning.coverUse)) return;
+        if (!grid.TryFindCover(transform.position, target.position, CoverSearchSteps, BodyRadius, CoverMinDistance, out coverPoint)) return;
+        hiding = true;
+        coverCheckAt = now + CoverRecheck;
+        hideUntil = now + MaxHideTime;
+    }
+
+    // 숨을 곳으로 가서 머문다. 쏠 때가 됐거나 더는 가려지지 않으면 hiding을 끄고, 그러면 호출한 쪽이 평소처럼 움직인다.
+    Vector3 Hide(float now)
+    {
+        if (now >= hideUntil || ReadyToPeek(now))
+        {
+            hiding = false;
+            return Vector3.zero;
+        }
+        if (now >= coverCheckAt)
+        {
+            coverCheckAt = now + CoverRecheck;
+            // 상대가 돌아 들어와 가려지지 않게 됐으면 다른 곳을 찾는다.
+            if (!grid.IsShielded(target.position, coverPoint, BodyRadius) &&
+                !grid.TryFindCover(transform.position, target.position, CoverSearchSteps, BodyRadius, CoverMinDistance, out coverPoint))
+            {
+                hiding = false;
+                return Vector3.zero;
+            }
+        }
+        if (Flat(coverPoint - transform.position).sqrMagnitude <= CoverArrive * CoverArrive) return Vector3.zero;
+        return Follow(coverPoint, now);
+    }
+
+    // 숨은 곳에서 나설 때가 됐는지. 차징하는 무기는 벽 뒤에서 거의 다 모은 뒤에 나선다.
+    bool ReadyToPeek(float now)
+    {
+        if (Reloading(now)) return false;
+        if (!Chargeable) return true;
+        // 여기서는 멀어서 차징을 시작하지 못한다면 나가서 다가간다. 시작할 수 있으면 TryAttack이 이번 프레임에 시작한다.
+        if (!charging) return Aware(now) && Flat(target.position - transform.position).magnitude > Reach(1f) + EngageMargin;
+        return (plannedCharge - ChargeRatio(now)) * attack.MaxChargeTime <= PeekLead;
     }
 
     void FlipStrafe(float now)

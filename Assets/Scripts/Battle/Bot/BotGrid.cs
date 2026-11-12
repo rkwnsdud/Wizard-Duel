@@ -17,6 +17,8 @@ public sealed class BotGrid
     };
 
     readonly bool[,] walkable;
+    // 벽이 선 칸. 공격을 막아 뒤에 숨을 수 있다. 바닥이 없는 빈 칸은 걸을 수 없지만 공격은 지나간다.
+    readonly bool[,] solid;
     readonly int[,] bushIds;
     readonly float[] penalty;
     readonly Transform root;
@@ -29,24 +31,26 @@ public sealed class BotGrid
     readonly int[] visit;
     readonly List<int> heap = new List<int>();
     readonly List<float> heapKeys = new List<float>();
+    readonly List<int> queue = new List<int>();
     int search;
 
     public int Width { get; }
     public int Height { get; }
 
     // root는 맵 블록을 깐 부모다. 없으면 맵 중심이 월드 원점에 있다고 본다.
-    public BotGrid(MapLayout layout, Transform root) : this(Walkable(layout), BushIds(layout), root)
+    public BotGrid(MapLayout layout, Transform root) : this(Walkable(layout), Solid(layout), BushIds(layout), root)
     {
     }
 
-    // walkable[x, y]가 참인 칸만 걸을 수 있다. 부시는 없는 맵으로 본다.
-    public BotGrid(bool[,] walkable, Transform root = null) : this(walkable, null, root)
+    // walkable[x, y]가 참인 칸만 걸을 수 있다. 걸을 수 없는 칸은 모두 벽이고 부시는 없는 맵으로 본다.
+    public BotGrid(bool[,] walkable, Transform root = null) : this(walkable, Inverse(walkable), null, root)
     {
     }
 
-    BotGrid(bool[,] walkable, int[,] bushIds, Transform root)
+    BotGrid(bool[,] walkable, bool[,] solid, int[,] bushIds, Transform root)
     {
         this.walkable = walkable;
+        this.solid = solid;
         this.bushIds = bushIds;
         this.root = root;
         Width = walkable.GetLength(0);
@@ -73,6 +77,24 @@ public sealed class BotGrid
             for (int y = 0; y < layout.Height; y++)
                 cells[x, y] = layout[x, y] == MapCell.Floor || layout[x, y] == MapCell.Bush;
         return cells;
+    }
+
+    static bool[,] Solid(MapLayout layout)
+    {
+        var cells = new bool[layout.Width, layout.Height];
+        for (int x = 0; x < layout.Width; x++)
+            for (int y = 0; y < layout.Height; y++)
+                cells[x, y] = layout[x, y] == MapCell.Wall;
+        return cells;
+    }
+
+    static bool[,] Inverse(bool[,] cells)
+    {
+        var inverse = new bool[cells.GetLength(0), cells.GetLength(1)];
+        for (int x = 0; x < cells.GetLength(0); x++)
+            for (int y = 0; y < cells.GetLength(1); y++)
+                inverse[x, y] = !cells[x, y];
+        return inverse;
     }
 
     static int[,] BushIds(MapLayout layout)
@@ -209,6 +231,76 @@ public sealed class BotGrid
 
     bool LocalWalkable(float x, float z) => IsWalkable(
         Mathf.RoundToInt(x / CellSize + (Width - 1) * 0.5f), Mathf.RoundToInt((Height - 1) * 0.5f - z / CellSize));
+
+    // from에서 쏜 공격이 벽에 막혀 to에 선 몸(반지름 halfWidth)에 닿지 않는지.
+    // 몸의 가운데와 양옆 끝으로 가는 선이 모두 벽에 막혀야 가려진 것으로 본다.
+    public bool IsShielded(Vector3 from, Vector3 to, float halfWidth)
+    {
+        Vector3 a = root != null ? root.InverseTransformPoint(from) : from;
+        Vector3 b = root != null ? root.InverseTransformPoint(to) : to;
+        a.y = b.y = 0f;
+        Vector3 along = b - a;
+        if (along.sqrMagnitude < 0.0001f) return false;
+        Vector3 side = new Vector3(-along.z, 0f, along.x).normalized * halfWidth;
+        return HitsWall(a, b) && HitsWall(a, b + side) && HitsWall(a, b - side);
+    }
+
+    bool HitsWall(Vector3 a, Vector3 b)
+    {
+        int samples = Mathf.Max(1, Mathf.CeilToInt(Vector3.Distance(a, b) / (CellSize * 0.1f)));
+        for (int i = 0; i <= samples; i++)
+        {
+            Vector3 point = Vector3.Lerp(a, b, (float)i / samples);
+            int x = Mathf.RoundToInt(point.x / CellSize + (Width - 1) * 0.5f);
+            int y = Mathf.RoundToInt((Height - 1) * 0.5f - point.z / CellSize);
+            if (x >= 0 && y >= 0 && x < Width && y < Height && solid[x, y]) return true;
+        }
+        return false;
+    }
+
+    // from에서 걸어서 maxSteps칸 안에 있는, threat의 공격이 벽에 가려 닿지 않는 칸 가운데 가장 가까운 곳을 찾는다.
+    // threat에서 minDistance보다 가까운 칸은 숨을 곳으로 고르지 않고, 그런 칸을 지나서 가는 길도 고르지 않는다.
+    public bool TryFindCover(Vector3 from, Vector3 threat, int maxSteps, float halfWidth, float minDistance, out Vector3 cover)
+    {
+        cover = from;
+        Vector2Int start = CellAt(from);
+        if (!IsWalkable(start) && !TryNearestWalkable(start, 2, out start)) return false;
+
+        search++;
+        queue.Clear();
+        int first = start.y * Width + start.x;
+        visit[first] = search;
+        cost[first] = 0f;
+        queue.Add(first);
+        for (int head = 0; head < queue.Count; head++)
+        {
+            int current = queue[head];
+            int cx = current % Width, cy = current / Width;
+            Vector3 center = CenterOf(new Vector2Int(cx, cy));
+            Vector3 offset = center - threat;
+            offset.y = 0f;
+            bool far = offset.sqrMagnitude >= minDistance * minDistance;
+            if (far && IsShielded(threat, center, halfWidth))
+            {
+                cover = center;
+                return true;
+            }
+            // 지금 서 있는 칸에서는 어느 쪽으로든 나갈 수 있다.
+            if (cost[current] >= maxSteps || (!far && head > 0)) continue;
+            for (int s = 0; s < Steps.Length; s++)
+            {
+                int nx = cx + Steps[s].x, ny = cy + Steps[s].y;
+                if (!IsWalkable(nx, ny)) continue;
+                if (s >= 4 && (!IsWalkable(cx + Steps[s].x, cy) || !IsWalkable(cx, cy + Steps[s].y))) continue;
+                int next = ny * Width + nx;
+                if (visit[next] == search) continue;
+                visit[next] = search;
+                cost[next] = cost[current] + 1f;
+                queue.Add(next);
+            }
+        }
+        return false;
+    }
 
     // 여덟 방향 이동에서 남은 거리의 하한.
     static float Estimate(Vector2Int from, Vector2Int to)

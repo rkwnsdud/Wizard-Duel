@@ -17075,6 +17075,9 @@ MonoBehaviour:
     attackPause: {x: 0.8, y: 1.6}
     dodgeChance: 0.15
     fallbackReach: 6
+    coverUse: 0.2
+    keepDistance: 0.25
+    cautiousHealth: 0.2
   - reactionTime: 0.35
     turnSpeed: 420
     aimError: 6
@@ -17084,6 +17087,9 @@ MonoBehaviour:
     attackPause: {x: 0.2, y: 0.8}
     dodgeChance: 0.5
     fallbackReach: 6
+    coverUse: 0.6
+    keepDistance: 0.6
+    cautiousHealth: 0.4
   - reactionTime: 0.2
     turnSpeed: 600
     aimError: 2.5
@@ -17093,6 +17099,9 @@ MonoBehaviour:
     attackPause: {x: 0.1, y: 0.4}
     dodgeChance: 0.85
     fallbackReach: 6
+    coverUse: 0.9
+    keepDistance: 1
+    cautiousHealth: 0.5
 --- !u!1 &1372609898
 GameObject:
   m_ObjectHideFlags: 0
