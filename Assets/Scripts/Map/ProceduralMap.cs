@@ -25,6 +25,8 @@ public class ProceduralMap : MonoBehaviour, ISpawnPointProvider
     const float cellSize = 1f;
     readonly List<IBlock> blocks = new List<IBlock>();
     readonly List<Transform> pieces = new List<Transform>();
+    // 렌더러를 합쳐 만든 맵에서만 쓴다. 합친 오브젝트와 런타임 메시를 들고 있다가 맵을 지울 때 함께 지운다.
+    MapRendererCombiner combiner;
 
     public MapLayout GeneratedLayout { get; private set; }
     // 깐 부시 칸과 덩어리. 맵을 지우면 null이다. 전투 맵이면 DuelArena가 BushField.Active로 등록한다.
@@ -32,6 +34,7 @@ public class ProceduralMap : MonoBehaviour, ISpawnPointProvider
     public IReadOnlyList<IBlock> Blocks => blocks;
     // 맵을 이루는 조각 전체. 앞쪽은 Blocks와 같은 순서의 블록이고, 그 뒤에 배경이 깐 바닥 타일과 장식이 온다.
     // 배경도 맵의 일부라서 시작 화면·로비 화면의 물결은 이 목록을 함께 움직인다.
+    // 렌더러를 합친 맵에서는 바닥·벽 블록에 콜라이더만 있고 합쳐진 배경 조각은 목록에 없어서, 이 목록을 움직여도 화면은 따라오지 않는다.
     public IReadOnlyList<Transform> Pieces => pieces;
     public Transform[] SpawnPoints { get; private set; }
 
@@ -58,39 +61,54 @@ public class ProceduralMap : MonoBehaviour, ISpawnPointProvider
         };
     }
 
-    public void Generate(MapGenerationSettings settings)
+    public void Generate(MapGenerationSettings settings) => Generate(settings, false);
+
+    // combineRenderers를 켜면 바닥·벽·배경 바닥·정적 장식의 메시를 청크와 머티리얼별로 합쳐 렌더러 수를 줄인다(MapRendererCombiner).
+    // 레이아웃과 콜라이더, 블록 목록은 그대로다. 합친 조각은 따로 움직일 수 없으므로 전투 맵만 켠다.
+    // 물결로 조각을 움직이는 시작 화면·로비 화면 미리보기 맵(TitleBackdrop)은 켜지 않는다.
+    public void Generate(MapGenerationSettings settings, bool combineRenderers)
     {
         MapLayout generatedLayout = MapLayoutGenerator.Generate(settings);
         BlockFactory blockFactory = GetComponent<BlockFactory>();
         blockFactory.ValidateConfiguration();
-        blockFactory.Initialize(settings.Seed);
         DestroyBlocks();
+        if (combineRenderers && combiner == null) combiner = new MapRendererCombiner();
+        blockFactory.Initialize(settings.Seed, combineRenderers ? combiner : null);
 
         GeneratedLayout = generatedLayout;
         SpawnPoints = blockFactory.SpawnPoints;
         string[] layout = generatedLayout.ToLayout();
         Bushes = new BushField(layout, transform, cellSize);
-        for (int z = 0; z < layout.Length; z++)
+        try
         {
-            for (int x = 0; x < layout[z].Length; x++)
+            for (int z = 0; z < layout.Length; z++)
             {
-                Vector3 position = new Vector3(
-                    (x - (layout[z].Length - 1) * 0.5f) * cellSize, 0f,
-                    ((layout.Length - 1) * 0.5f - z) * cellSize);
-                foreach (IBlock block in blockFactory.CreateCell(layout[z][x], position, transform))
+                for (int x = 0; x < layout[z].Length; x++)
                 {
-                    blocks.Add(block);
-                    Bushes.Add(x, z, block);
+                    Vector3 position = new Vector3(
+                        (x - (layout[z].Length - 1) * 0.5f) * cellSize, 0f,
+                        ((layout.Length - 1) * 0.5f - z) * cellSize);
+                    foreach (IBlock block in blockFactory.CreateCell(layout[z][x], position, transform))
+                    {
+                        blocks.Add(block);
+                        Bushes.Add(x, z, block);
+                    }
                 }
             }
+            blocks.AddRange(blockFactory.CreateSpawns(transform));
+            if (combineRenderers) combiner.Build(transform);
         }
-        blocks.AddRange(blockFactory.CreateSpawns(transform));
+        finally
+        {
+            // 블록을 깔다가 예외가 나도 콜라이더 템플릿이 맵 아래에 남지 않게 한다.
+            blockFactory.ReleaseTemplates();
+        }
         // 맵 블록을 다 깔고 나서 배경을 갱신한다. (서버/클라 모두 map.Generate를
         // 거치므로 NetworkDemo에서 따로 호출할 필요가 없다.)
         // 같은 오브젝트에 붙은 배경(=자식)만 갱신한다. 같은 씬의 다른 맵(타이틀/전투) 배경을 건드리지 않는다.
         // TitleBackdrop.HideMap처럼 맵이 꺼진 뒤 첫 생성이라면 자식이 비활성일 수 있으니 비활성 포함으로 찾는다.
         if (background == null) background = GetComponentInChildren<ArenaBackgroundBuilderNew>(true);
-        if (background != null) background.Rebuild();
+        if (background != null) background.Rebuild(combineRenderers);
         // 배경 오브젝트 자체가 꺼져 있으면(HideMap) 다음에 켜질 때 Rebuild하도록 표시만 해 둔다.
         // Rebuild는 자식 파괴/생성이라 비활성 상태에서도 안전하게 돈다.
 
@@ -106,7 +124,12 @@ public class ProceduralMap : MonoBehaviour, ISpawnPointProvider
         SpawnPoints = null;
     }
 
-    void OnDestroy() => BushField.Deactivate(Bushes);
+    void OnDestroy()
+    {
+        BushField.Deactivate(Bushes);
+        // 런타임에 만든 메시는 오브젝트가 사라져도 남으므로 직접 지운다.
+        combiner?.Clear();
+    }
 
     void DestroyBlocks()
     {
@@ -124,5 +147,6 @@ public class ProceduralMap : MonoBehaviour, ISpawnPointProvider
         }
         blocks.Clear();
         pieces.Clear();
+        combiner?.Clear();
     }
 }

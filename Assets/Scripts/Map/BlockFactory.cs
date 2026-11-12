@@ -14,11 +14,22 @@ public class BlockFactory : MonoBehaviour
     System.Random random;
     readonly List<Vector3>[] spawnCells = { new List<Vector3>(), new List<Vector3>() };
 
+    // 렌더러를 합치는 맵(전투 맵)에서만 쓴다. 합칠 블록은 렌더러를 뗀 템플릿으로 만들어 콜라이더만 남긴다.
+    MapRendererCombiner combiner;
+    readonly Dictionary<Block, Block> colliderTemplates = new Dictionary<Block, Block>();
+    GameObject templateHolder;
+
     public Transform[] SpawnPoints { get; private set; }
 
-    public void Initialize(int seed)
+    public void Initialize(int seed) => Initialize(seed, null);
+
+    // combiner를 넘기면 바닥·벽 블록의 메시는 combiner에 모으고 블록에는 콜라이더만 만든다.
+    // 블록을 깔 부모(CreateCell의 parent)는 combiner.Build에 넘길 부모와 같아야 한다. 다 깔고 나면 ReleaseTemplates를 부른다.
+    public void Initialize(int seed, MapRendererCombiner combiner)
     {
         ValidateConfiguration();
+        ReleaseTemplates();
+        this.combiner = combiner;
         random = new System.Random(seed);
         SpawnPoints = new Transform[2];
         foreach (List<Vector3> cells in spawnCells) cells.Clear();
@@ -93,6 +104,49 @@ public class BlockFactory : MonoBehaviour
     {
         Block block = variants[random.Next(variants.Length)];
         Quaternion rotation = Quaternion.Euler(0f, random.Next(4) * 90f, 0f);
+        if (combiner != null)
+        {
+            // Block.Create가 놓는 자리와 같다: 프리팹의 위치에 칸 위치를 더하고, 회전은 바꾸고, 스케일은 프리팹 그대로다.
+            Transform source = block.transform;
+            Matrix4x4 local = Matrix4x4.TRS(source.localPosition + position, rotation, source.localScale);
+            if (combiner.Add(block.gameObject, local)) block = ColliderTemplate(block);
+        }
         return block.Create(parent, position, rotation);
+    }
+
+    // 블록 프리팹에서 메시 렌더러와, 그것만 있던 자식 오브젝트를 뗀 사본. 칸마다 렌더러를 만들었다 지우지 않도록 변형마다 하나만 만든다.
+    // 꺼진 오브젝트 아래에 두어 사본 자체는 충돌하지 않고, 여기서 만든 블록은 켜진 부모 아래에 놓이므로 바로 충돌한다.
+    Block ColliderTemplate(Block block)
+    {
+        if (colliderTemplates.TryGetValue(block, out Block template)) return template;
+        if (templateHolder == null)
+        {
+            templateHolder = new GameObject("Collider Templates");
+            templateHolder.SetActive(false);
+            templateHolder.transform.SetParent(transform, false);
+        }
+        template = Instantiate(block, templateHolder.transform, false);
+        template.name = block.name;
+        // 사본에 지울 예정인 렌더러가 남아 있으면 그대로 복제되므로 플레이 중에도 바로 지운다.
+        foreach (MeshRenderer renderer in template.GetComponentsInChildren<MeshRenderer>(true)) DestroyImmediate(renderer);
+        foreach (MeshFilter filter in template.GetComponentsInChildren<MeshFilter>(true)) DestroyImmediate(filter);
+        Transform[] children = template.GetComponentsInChildren<Transform>(true);
+        // 자식이 부모보다 뒤에 오므로 뒤에서부터 보면 비게 된 부모도 이어서 지워진다.
+        for (int i = children.Length - 1; i > 0; i--)
+            if (children[i].childCount == 0 && children[i].GetComponents<Component>().Length == 1)
+                DestroyImmediate(children[i].gameObject);
+        colliderTemplates.Add(block, template);
+        return template;
+    }
+
+    // 맵을 다 깐 뒤 부른다. 다음 맵은 프리팹을 다시 읽어 템플릿을 새로 만든다.
+    public void ReleaseTemplates()
+    {
+        combiner = null;
+        colliderTemplates.Clear();
+        if (templateHolder == null) return;
+        if (Application.isPlaying) Destroy(templateHolder);
+        else DestroyImmediate(templateHolder);
+        templateHolder = null;
     }
 }
