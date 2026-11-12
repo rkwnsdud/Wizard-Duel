@@ -17,6 +17,8 @@ public class StartScreen : MonoBehaviour
     public event Action<string> JoinRequested;
     public event Action JoinCanceled;
 
+    [Tooltip("아무것도 고르지 않은 채 방향키를 누르면 여기부터 고른다.")]
+    [SerializeField] Button firstMenuButton;
     [SerializeField] Button joinMenuButton;
     [SerializeField] GameObject joinBox;
     [Tooltip("코드 입력 상자가 열려 있는 동안 숨길 메뉴 버튼. 함께 보이면 메뉴가 화면 아래로 넘친다.")]
@@ -31,14 +33,23 @@ public class StartScreen : MonoBehaviour
     bool creating;
 
     // 대기실에서 돌아오면 메뉴를 처음 상태로 되돌린다.
+    // 버튼을 미리 골라 두지 않는다. 마우스를 올리거나 방향키를 누를 때 비로소 고른다.
     void OnEnable()
     {
         ShowJoinBox(false);
         SetConnecting(false);
         codeField.SetTextWithoutNotify("");
-        // 씬을 처음 열 때는 EventSystem이 아직 없을 수 있고, 그때는 EventSystem이 알아서 첫 버튼을 고른다.
         EventSystem events = EventSystem.current;
-        if (events != null) events.SetSelectedGameObject(events.firstSelectedGameObject);
+        if (events != null) events.SetSelectedGameObject(null);
+    }
+
+    // 게임을 처음 켰을 때도 EventSystem이 첫 버튼을 골라 두지 않게 한다. 입력 모듈은 첫 Update에서 고르므로 그 전에 비운다.
+    void Start()
+    {
+        EventSystem events = EventSystem.current;
+        if (events == null) return;
+        events.firstSelectedGameObject = null;
+        events.SetSelectedGameObject(null);
     }
 
     void Update()
@@ -46,20 +57,45 @@ public class StartScreen : MonoBehaviour
         if (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame) Back();
     }
 
+    // 고른 버튼이 없을 때 방향키를 누르면 첫 메뉴부터 고른다. 이번 프레임의 이동 입력이 한 칸 더 옮기지 않도록
+    // EventSystem이 입력을 다 처리한 뒤(LateUpdate)에 고른다.
+    void LateUpdate()
+    {
+        EventSystem events = EventSystem.current;
+        if (events == null || joinBox.activeSelf || firstMenuButton == null) return;
+        GameObject selected = events.currentSelectedGameObject;
+        if (selected != null && selected.activeInHierarchy) return;
+        if (NavigationPressed()) firstMenuButton.Select();
+    }
+
+    static bool NavigationPressed()
+    {
+        Keyboard keyboard = Keyboard.current;
+        if (keyboard != null && (keyboard.upArrowKey.wasPressedThisFrame || keyboard.downArrowKey.wasPressedThisFrame ||
+            keyboard.leftArrowKey.wasPressedThisFrame || keyboard.rightArrowKey.wasPressedThisFrame ||
+            keyboard.wKey.wasPressedThisFrame || keyboard.sKey.wasPressedThisFrame || keyboard.tabKey.wasPressedThisFrame))
+            return true;
+        Gamepad gamepad = Gamepad.current;
+        return gamepad != null && (gamepad.dpad.up.wasPressedThisFrame || gamepad.dpad.down.wasPressedThisFrame ||
+            gamepad.leftStick.up.wasPressedThisFrame || gamepad.leftStick.down.wasPressedThisFrame);
+    }
+
     public void CreateMap()
     {
         if (!connecting) CreateRequested?.Invoke();
     }
 
-    // "AI 대전" 버튼이 부른다. 서버에 접속하지 않고 봇과 바로 한 판을 치른다.
+    // "AI 대전" 버튼이 부른다. 서버에 접속하지 않고 AI 로비 화면을 연다.
+    // 맵 생성의 답을 기다리는 중이면 그 접속을 그만두고 넘어간다. 서버가 없으면 답이 한참 뒤에야 오기 때문이다.
     public void StartAiDuel()
     {
-        if (!connecting) AiRequested?.Invoke();
+        AbandonConnection();
+        AiRequested?.Invoke();
     }
 
     public void OpenJoin()
     {
-        if (creating) return;
+        if (creating) AbandonConnection();
         if (!connecting) joinMessage.text = JoinHint;
         ShowJoinBox(true);
         codeField.ActivateInputField();
@@ -100,16 +136,19 @@ public class StartScreen : MonoBehaviour
     {
         if (!connecting) return;
         bool wasCreating = creating;
+        AbandonConnection();
+        if (!wasCreating) codeField.ActivateInputField();
+    }
+
+    // 맵 생성이나 참가의 답을 기다리던 접속을 그만두고 메뉴를 다시 쓸 수 있게 한다.
+    void AbandonConnection()
+    {
+        if (!connecting) return;
+        bool wasCreating = creating;
         creating = false;
         SetConnecting(false);
-        if (wasCreating)
-        {
-            notice.SetActive(false);
-            JoinCanceled?.Invoke();
-            return;
-        }
-        joinMessage.text = JoinHint;
-        codeField.ActivateInputField();
+        if (wasCreating) notice.SetActive(false);
+        else joinMessage.text = JoinHint;
         JoinCanceled?.Invoke();
     }
 

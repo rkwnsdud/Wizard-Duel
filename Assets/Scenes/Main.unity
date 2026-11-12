@@ -7727,6 +7727,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9778f53f622abeb408fb901fd2ec2e81, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::StartScreen
+  firstMenuButton: {fileID: 726897897}
   joinMenuButton: {fileID: 1265086224}
   joinBox: {fileID: 61408448}
   aiMenuButton: {fileID: 1275485300}
@@ -23638,7 +23639,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 76c392e42b5098c458856cdf6ecaaaa1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.EventSystems.EventSystem
-  m_FirstSelected: {fileID: 726897894}
+  m_FirstSelected: {fileID: 0}
   m_sendNavigationEvents: 1
   m_DragThreshold: 10
 --- !u!4 &1896109795

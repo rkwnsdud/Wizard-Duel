@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -31,6 +32,8 @@ public class MainFlow : MonoBehaviour
     bool battleVisible;
     bool creating;
     string exitNotice;
+    // 접속을 그만둔 직후처럼 연결을 정리하는 동안 받은 메뉴 요청. 정리가 끝나면 Update에서 실행한다.
+    Action queued;
     // AI 로비 화면에 있거나 거기서 시작한 전투 중이다. 이동안 로비 화면의 이벤트는 서버에 보내지 않고 여기서 처리한다.
     bool aiLobby;
     // AI 로비 화면의 "게임 설정" 탭에서 고른 값. 이번 실행 동안 기억한다.
@@ -78,6 +81,12 @@ public class MainFlow : MonoBehaviour
 
     void Update()
     {
+        if (queued != null && transition == null && !network.IsBusy)
+        {
+            Action run = queued;
+            queued = null;
+            run();
+        }
         // AI 대전은 혼자 하는 판이라 Esc로 언제든 그만둘 수 있다. 정리가 끝나면 OnAiDuelEnded가 AI 로비 화면을 다시 올린다.
         if (aiDuel.IsRunning && transition == null && Keyboard.current != null &&
             Keyboard.current.escapeKey.wasPressedThisFrame) aiDuel.Stop();
@@ -85,7 +94,8 @@ public class MainFlow : MonoBehaviour
 
     void Create()
     {
-        if (transition != null || network.IsBusy || aiLobby) return;
+        if (transition != null || aiLobby || wantsLobby) return;
+        if (Queue(Create)) return;
         creating = true;
         settings = new DuelSettings { Map = backdrop.Current }.Clone();
         backdrop.HoldTitle();
@@ -95,11 +105,12 @@ public class MainFlow : MonoBehaviour
 
     void Join(string code)
     {
-        if (transition != null || network.IsBusy || aiLobby)
+        if (transition != null || aiLobby || wantsLobby)
         {
             startScreen.ShowJoinError("연결을 정리하고 있어요. 잠시 후 다시 시도해 주세요.");
             return;
         }
+        if (Queue(() => Join(code))) return;
         creating = false;
         network.Join(code);
     }
@@ -107,7 +118,8 @@ public class MainFlow : MonoBehaviour
     // 시작 화면 맵을 그대로 이어받아 AI 로비 화면을 연다. 서버에 접속하지 않는다.
     void OpenAiLobby()
     {
-        if (transition != null || network.IsBusy || aiLobby) return;
+        if (transition != null || aiLobby || wantsLobby) return;
+        if (Queue(OpenAiLobby)) return;
         settings = new DuelSettings { Map = backdrop.Current }.Clone();
         aiLobby = true;
         transition = StartCoroutine(EnterAiLobby());
@@ -190,8 +202,16 @@ public class MainFlow : MonoBehaviour
 
     void OnGameSettingsChanged(AiDuelOptions changed) => aiOptions = changed.Clone();
 
+    // 이전 접속을 정리하는 중이면 요청을 맡아 두고 true를 돌려준다. 접속을 그만두자마자 다른 메뉴를 눌러도 먹히게 한다.
+    bool Queue(Action request)
+    {
+        queued = network.IsBusy ? request : null;
+        return queued != null;
+    }
+
     void Cancel()
     {
+        queued = null;
         bool restoreTitle = creating && !wantsLobby;
         network.Cancel();
         if (restoreTitle) backdrop.ShowTitle(settings, true);
@@ -225,6 +245,7 @@ public class MainFlow : MonoBehaviour
     void OnSnapshot(NetworkLobbySnapshot snapshot)
     {
         latest = snapshot;
+        queued = null;
         settings = new DuelSettings { Map = snapshot.Settings.ToSettings() };
         wantsLobby = true;
         exitNotice = null;
@@ -261,6 +282,8 @@ public class MainFlow : MonoBehaviour
 
     void OnConnectionFailed(string reason)
     {
+        // 그만둔 접속의 실패가 뒤늦게 왔다. 이미 다른 메뉴로 넘어가는 중이니 알리지 않는다.
+        if (queued != null) return;
         reason = ConnectionNotice(reason);
         if (creating)
         {
