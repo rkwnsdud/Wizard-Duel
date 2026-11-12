@@ -74,6 +74,9 @@ public class PlayerAttack : MonoBehaviour
     public bool IsAttacking { get; private set; }
     // 화면 위 패널 버튼을 누르는 클릭이 공격으로 새지 않게 새 공격 입력만 막는다(진행 중인 공격은 그대로).
     public bool AttackInputBlocked { get; set; }
+    // Hold new attacks while a server-confirmed equipment transaction is pending.
+    public bool InventoryChangePending { get; set; }
+    public bool CanChangeWeapon => !IsAttacking && !isCharging && (playerHealth == null || !playerHealth.IsDead);
     public bool IsOnCooldown => CooldownRemaining > 0f;
     public float CooldownRemaining => Mathf.Max(0f, cooldownEndsAt - Time.time);
     public float CooldownRemainingFraction => activeCooldownDuration <= 0f || !IsOnCooldown
@@ -85,6 +88,7 @@ public class PlayerAttack : MonoBehaviour
     // 온라인 전투에서 DuelPlayer가 넣는다. 없으면 오프라인으로 바로 공격한다.
     public IAttackAuthority Authority { get; set; }
     public WeaponBase Weapon => currentWeapon;
+    public float MaxChargeTime => maxChargeTime;
 
     // Equipment must be parented to this player's socket first. Switching during
     // charge/cast is rejected so animation events cannot fire a different weapon.
@@ -176,7 +180,8 @@ public class PlayerAttack : MonoBehaviour
 
         inputActions.Player.Attack.started += AttackStarted;
         inputActions.Player.Attack.canceled += Attack;
-
+        inputActions.Player.Interact.performed += OnInteract;
+        inputActions.Player.SwapWeapon.performed += OnSwapWeapon;
         inputActions.Enable();
     }
 
@@ -186,6 +191,8 @@ public class PlayerAttack : MonoBehaviour
         {
             inputActions.Player.Attack.started -= AttackStarted;
             inputActions.Player.Attack.canceled -= Attack;
+            inputActions.Player.Interact.performed -= OnInteract;
+            inputActions.Player.SwapWeapon.performed -= OnSwapWeapon;
             inputActions.Disable();
         }
 
@@ -218,7 +225,7 @@ public class PlayerAttack : MonoBehaviour
     // 공격 버튼을 누른 순간 차징 시작
     private void AttackStarted(InputAction.CallbackContext context)
     {
-        if (AttackInputBlocked || currentWeapon == null || IsAttacking || isCharging || IsOnCooldown ||
+        if (AttackInputBlocked || InventoryChangePending || currentWeapon == null || IsAttacking || isCharging || IsOnCooldown ||
             (playerHealth != null && playerHealth.IsDead))
         {
             return;
@@ -249,6 +256,17 @@ public class PlayerAttack : MonoBehaviour
         HideChargePreview(currentWeapon);
 
         CommitAttack(chargeRatio);
+    }
+
+    // 입력 없이 공격을 시작한다(AI 대전의 봇). 차징 시간은 부르는 쪽이 직접 기다린 뒤 그만큼의 비율을 넘긴다.
+    // 차징하지 않는 무기는 비율을 0으로 본다. 쿨다운·공격 중·사망이면 거절한다.
+    public bool TryStartAttack(float chargeRatio)
+    {
+        if (currentWeapon == null || IsAttacking || isCharging || IsOnCooldown ||
+            (playerHealth != null && playerHealth.IsDead))
+            return false;
+        CommitAttack(currentWeapon is IChargeableWeapon ? Mathf.Clamp01(chargeRatio) : 0f);
+        return IsAttacking;
     }
 
     private void CommitAttack(float chargeRatio)
@@ -345,5 +363,26 @@ public class PlayerAttack : MonoBehaviour
     {
         RestoreWeaponController();
         inputActions?.Dispose();
+    }
+
+    private void OnInteract(InputAction.CallbackContext context)
+    {
+        // 입력 감지
+        PlayerWeaponInventory inventory = GetComponent<PlayerWeaponInventory>();
+
+        if (inventory == null)
+            return;
+
+        inventory.TryPickupNearby();
+    }
+
+    private void OnSwapWeapon(InputAction.CallbackContext context)
+    {
+        PlayerWeaponInventory inventory = GetComponent<PlayerWeaponInventory>();
+
+        if (inventory == null)
+            return;
+
+        inventory.TrySwapWeapon();
     }
 }

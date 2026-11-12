@@ -47,6 +47,7 @@ public class NetworkDemoPlayer : NetworkBehaviour
 
         if (IsOwner)
         {
+            if (IsLocalPlayer && TryGetComponent(out SecondaryWeaponHud hud)) hud.ShowForLocalOwner();
             cameraFollow = Camera.main != null ? Camera.main.GetComponent<CameraFollow>() : null;
             if (cameraFollow != null)
             {
@@ -88,6 +89,7 @@ public class NetworkDemoPlayer : NetworkBehaviour
     public override void OnNetworkDespawn()
     {
         Debug.Log($"[Player] Despawned slot={slot} owner={OwnerClientId}.");
+        if (TryGetComponent(out SecondaryWeaponHud hud)) hud.Hide();
         combatEnabled.OnValueChanged -= OnCombatEnabledChanged;
         SpawnEffectController.Stop(slot);
         // 파괴될 플레이어를 계속 따라가지 않도록 카메라 추적을 끈다.

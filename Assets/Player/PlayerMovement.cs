@@ -4,8 +4,12 @@ using UnityEngine.InputSystem;
 [DefaultExecutionOrder(10)]
 public class PlayerMovement : MonoBehaviour
 {
-    float moveSpeed = 5f;
-    float gravity = -20f;
+    // 무기 패시브·상태이상을 곱하기 전의 걷는 빠르기. AI 대전의 봇(DuelBot)도 같은 값으로 걷는다.
+    public const float BaseSpeed = 5f;
+    public const float Gravity = -20f;
+
+    float moveSpeed = BaseSpeed;
+    float gravity = Gravity;
 
     CharacterController controller;
     Animator animator;

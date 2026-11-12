@@ -8,6 +8,9 @@ public class ArcaneBoltProjectile : MonoBehaviour
     [SerializeField] private float hitRadius = 0.12f;
     [SerializeField] private GameObject hitEffectPrefab;
 
+    public float Speed => speed;
+    public float MaxRange => maxRange;
+
     private PlayerHealth ownerHealth;
     private IShotSink onlineSink;
     private uint onlineAttackId;

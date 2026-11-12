@@ -233,6 +233,7 @@ public sealed class LobbyNetwork : MonoBehaviour
 
     void RegisterMessages()
     {
+        if (arena != null) arena.RegisterWeaponMessages(manager);
         manager.CustomMessagingManager.RegisterNamedMessageHandler(SnapshotMessage, OnSnapshot);
         manager.CustomMessagingManager.RegisterNamedMessageHandler(SettingsMessage, OnSettings);
         manager.CustomMessagingManager.RegisterNamedMessageHandler(ErrorMessage, OnError);
@@ -243,6 +244,7 @@ public sealed class LobbyNetwork : MonoBehaviour
 
     void UnregisterMessages()
     {
+        if (arena != null) arena.UnregisterWeaponMessages();
         manager.CustomMessagingManager?.UnregisterNamedMessageHandler(SnapshotMessage);
         manager.CustomMessagingManager?.UnregisterNamedMessageHandler(SettingsMessage);
         manager.CustomMessagingManager?.UnregisterNamedMessageHandler(ErrorMessage);
@@ -258,7 +260,14 @@ public sealed class LobbyNetwork : MonoBehaviour
         response.Pending = false;
         response.Approved = false;
         response.Reason = InvalidRequest;
-        if (!serverMode || closing || request.Payload == null || request.Payload.Length > BufferSize) return;
+        if (!serverMode)
+        {
+            // 전용 서버가 아닌데 승인 요청이 오는 것은 AI 대전(AiDuel)의 로컬 호스트뿐이다. 호스트 자신만 받고 밖에서 온 접속은 거절한다.
+            response.Approved = request.ClientNetworkId == NetworkManager.ServerClientId;
+            if (response.Approved) response.Reason = string.Empty;
+            return;
+        }
+        if (closing || request.Payload == null || request.Payload.Length > BufferSize) return;
         ExpireReservations();
         try
         {
