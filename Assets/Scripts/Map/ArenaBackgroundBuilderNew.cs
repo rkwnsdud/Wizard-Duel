@@ -88,7 +88,7 @@ public class ArenaBackgroundBuilderNew : MonoBehaviour
     public void Rebuild() => Rebuild(false);
 
     // combineRenderers를 켜면 바닥 타일과 정적 장식을 오브젝트로 만들지 않고 청크·머티리얼별 메시로 합친다(MapRendererCombiner).
-    // 자리와 종류를 고르는 난수 순서는 그대로라 보이는 모습은 같다. 조각을 움직이는 미리보기 맵에서는 켜지 않는다.
+    // 자리와 종류는 칸마다 따로 굴리므로 합쳐도, 깔 범위가 달라도 같은 칸은 같다. 조각을 움직이는 미리보기 맵에서는 켜지 않는다.
     public void Rebuild(bool combineRenderers)
     {
         if (map == null) map = GetComponentInParent<ProceduralMap>();
@@ -112,7 +112,6 @@ public class ArenaBackgroundBuilderNew : MonoBehaviour
         MapLayout layout = map.GeneratedLayout;
         int seed = 12345 ^ (layout.Width * 390451) ^ (layout.Height * 606347);
         seed = seed ^ (layout.SpawnA.x * 73856093) ^ (layout.SpawnB.y * 297121507);
-        var rand = new System.Random(seed);
         // 플레이 영역 근처 빈칸은 바깥/안쪽(도넛 구멍 등) 구분 없이 전부 채운다.
         // 예전에는 맵 바깥에서 닿는 칸만 골라서 일부 모양에서 한쪽이 비어 보였다.
         // 바닥(rim)은 360도 전체를 빠짐없이 두르고, 장식(deco)은 대칭으로만 놓는다.
@@ -121,26 +120,18 @@ public class ArenaBackgroundBuilderNew : MonoBehaviour
         bool hasFloor = floorFillVariants != null && floorFillVariants.Length > 0;
         foreach (Vector2Int c in rimCells)
         {
+            var rng = new CellRandom(seed, c, FloorChannel);
             GameObject prefab = null;
             if (hasFloor)
             {
-                prefab = floorFillVariants[rand.Next(floorFillVariants.Length)];
+                prefab = floorFillVariants[rng.Next(floorFillVariants.Length)];
                 if (prefab == null) continue;
             }
             BackgroundRotationSettings placement = ApplyOverride(prefab, floorRotation);
-            float yaw = RollYaw(rand, placement.yawMode);
+            float yaw = RollYaw(ref rng, placement.yawMode);
             PlaceApronAt(c, layout, yaw, prefab, hasFloor, placement);
         }
-        var decoSet = new HashSet<Vector2Int>(decoCells);
-        var handledDeco = new HashSet<Vector2Int>();
-        foreach (Vector2Int a in decoCells)
-        {
-            if (!handledDeco.Add(a)) continue;
-            Vector2Int m = MirrorCell(a, layout);
-            handledDeco.Add(m);
-            if (decoSet.Contains(m)) PlaceMirroredDeco(a, m, layout, rand);
-            else PlaceMirroredDeco(a, a, layout, rand);
-        }
+        foreach (Vector2Int c in decoCells) PlaceDeco(c, layout, seed);
         if (combining) combiner.Build(backgroundRoot);
     }
 
@@ -157,15 +148,58 @@ public class ArenaBackgroundBuilderNew : MonoBehaviour
             Quaternion.Inverse(backgroundRoot.rotation) * rotation, prefab.transform.localScale);
     }
 
+    // 칸마다 따로 만드는 난수. seed·칸 좌표·용도로만 정해져서 깔 범위가 달라도 같은 칸은 같은 값을 낸다.
+    // 로비 화면 미리보기 배경(5/7)과 전투 배경(7/10)은 범위가 달라도 겹치는 칸이 같아야 맵을 바꿔 끼울 때 배경이 바뀌어 보이지 않는다.
+    // 할당 없이 정수 연산만 쓰므로 클라이언트마다 같은 결과가 나온다.
+    struct CellRandom
+    {
+        uint state;
+
+        public CellRandom(int seed, Vector2Int cell, uint channel)
+        {
+            unchecked
+            {
+                state = Mix((uint)seed * 0x9E3779B1u);
+                // 맵 바깥 칸은 좌표가 음수다. 비트를 그대로 섞는다.
+                state = Mix(state ^ (uint)cell.x);
+                state = Mix(state ^ (uint)cell.y);
+                state = Mix(state ^ channel);
+            }
+        }
+
+        // murmur3 fmix32
+        static uint Mix(uint h)
+        {
+            unchecked
+            {
+                h ^= h >> 16;
+                h *= 0x85EBCA6Bu;
+                h ^= h >> 13;
+                h *= 0xC2B2AE35u;
+                h ^= h >> 16;
+                return h;
+            }
+        }
+
+        uint NextUInt()
+        {
+            unchecked
+            {
+                state += 0x9E3779B9u;
+                return Mix(state);
+            }
+        }
+
+        public int Next(int max) => (int)(NextUInt() % (uint)max);
+        public double NextDouble() => NextUInt() / 4294967296.0;
+    }
+    // 같은 칸이라도 바닥과 장식은 다른 난수를 쓴다.
+    const uint FloorChannel = 1;
+    const uint DecoChannel = 2;
+
     static Vector2Int MirrorCell(Vector2Int c, MapLayout layout)
     {
         return new Vector2Int(layout.Width - 1 - c.x, layout.Height - 1 - c.y);
-    }
-    // 맵 바깥은 플레이 영역이 아니라서 배경을 둘 수 있다. 맵 안이면 빈칸일 때만 둔다.
-    static bool IsVoidOrOutside(MapLayout layout, Vector2Int c)
-    {
-        if (c.x < 0 || c.y < 0 || c.x >= layout.Width || c.y >= layout.Height) return true;
-        return layout[c.x, c.y] == MapCell.Void;
     }
     void PlaceApronAt(Vector2Int c, MapLayout layout, float yaw, GameObject prefab, bool hasFloor, BackgroundRotationSettings settings)
     {
@@ -195,37 +229,37 @@ public class ArenaBackgroundBuilderNew : MonoBehaviour
         StripColliders(go);
         pieces.Add(go.transform);
     }
-    void PlaceMirroredDeco(Vector2Int a, Vector2Int m, MapLayout layout, System.Random rand)
+    void PlaceDeco(Vector2Int c, MapLayout layout, int seed)
     {
         // 미러쌍당 장식 유무/종류/방향을 1회만 굴린다. 양쪽이 다르면 공정성이 깨진다.
-        // 맵 바깥 좌표도 배경 후보라 인덱스 접근 전에 범위를 검사한다.
-        bool aValid = IsVoidOrOutside(layout, a);
-        bool mValid = m.x == a.x && m.y == a.y ? aValid : IsVoidOrOutside(layout, m);
-        if (!aValid && !mValid) return;
-        double r = rand.NextDouble();
+        // 쌍의 두 칸은 행 우선으로 앞선 칸(대표)의 난수를 같이 쓰고, 대표가 아닌 칸은 반대 방향(+180°)으로 둔다.
+        // 미러 칸이 깔 범위 안에 있는지와 관계없이 대표가 정해져서, 대칭이 없는 맵에서도 같은 칸은 범위와 관계없이 같다.
+        Vector2Int m = MirrorCell(c, layout);
+        bool mirrored = m.y < c.y || (m.y == c.y && m.x < c.x);
+        var rng = new CellRandom(seed, mirrored ? m : c, DecoChannel);
+        double r = rng.NextDouble();
         GameObject prefab = null;
         BackgroundRotationSettings settings = pillarRotation;
         if (r < 0.40 && pillarVariants != null && pillarVariants.Length > 0)
         {
-            prefab = pillarVariants[rand.Next(pillarVariants.Length)];
+            prefab = pillarVariants[rng.Next(pillarVariants.Length)];
             settings = pillarRotation;
         }
         else if (r < 0.52 && torchVariants != null && torchVariants.Length > 0)
         {
-            prefab = torchVariants[rand.Next(torchVariants.Length)];
+            prefab = torchVariants[rng.Next(torchVariants.Length)];
             settings = torchRotation;
         }
         else if (extraDecorVariants != null && extraDecorVariants.Length > 0)
         {
-            prefab = extraDecorVariants[rand.Next(extraDecorVariants.Length)];
+            prefab = extraDecorVariants[rng.Next(extraDecorVariants.Length)];
             settings = extraRotation;
         }
         if (prefab == null) return;
         settings = ApplyOverride(prefab, settings);
-        float yaw = RollYaw(rand, settings.yawMode);
-        float yawM = (yaw + 180f) % 360f;
-        if (aValid) SpawnDecoAt(a, layout, prefab, yaw, settings);
-        if (mValid && (m.x != a.x || m.y != a.y)) SpawnDecoAt(m, layout, prefab, yawM, settings);
+        float yaw = RollYaw(ref rng, settings.yawMode);
+        if (mirrored) yaw = (yaw + 180f) % 360f;
+        SpawnDecoAt(c, layout, prefab, yaw, settings);
     }
     void SpawnDecoAt(Vector2Int c, MapLayout layout, GameObject prefab, float yaw, BackgroundRotationSettings settings)
     {
@@ -248,12 +282,12 @@ public class ArenaBackgroundBuilderNew : MonoBehaviour
         // 땅에 맞춘 뒤의 위치가 물결이 돌아올 제자리다.
         pieces.Add(go.transform);
     }
-    static float RollYaw(System.Random rand, BackgroundYawMode mode)
+    static float RollYaw(ref CellRandom rng, BackgroundYawMode mode)
     {
         switch (mode)
         {
-            case BackgroundYawMode.Random360: return (float)(rand.NextDouble() * 360.0);
-            case BackgroundYawMode.Random90: return rand.Next(4) * 90f;
+            case BackgroundYawMode.Random360: return (float)(rng.NextDouble() * 360.0);
+            case BackgroundYawMode.Random90: return rng.Next(4) * 90f;
             default: return 0f;
         }
     }
