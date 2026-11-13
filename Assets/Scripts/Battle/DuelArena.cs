@@ -50,10 +50,13 @@ public sealed class DuelArena : MonoBehaviour
 
     public bool HasMap => map.GeneratedLayout != null;
 
-    // 이 클라이언트에 선 전투 맵의 스폰 지점. 0은 방장(파랑), 1은 참가자(빨강)다. 맵이 없으면 null이다.
+    // 이 클라이언트에 선 전투 맵의 스폰 지점들. 0은 방장(파랑), 1은 참가자(빨강)다. 맵이 없으면 null이다.
+    public Transform[] SpawnPoints => map != null && HasMap ? map.SpawnPoints : null;
+
+    // 이 클라이언트에 선 전투 맵의 slot 스폰 지점. 맵이 없으면 null이다.
     public Transform SpawnPoint(int slot)
     {
-        Transform[] spawns = map != null && HasMap ? map.SpawnPoints : null;
+        Transform[] spawns = SpawnPoints;
         return spawns != null && slot >= 0 && slot < spawns.Length ? spawns[slot] : null;
     }
     public string Fingerprint { get; private set; }

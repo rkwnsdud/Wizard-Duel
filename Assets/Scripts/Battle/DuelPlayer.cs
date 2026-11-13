@@ -235,6 +235,12 @@ public sealed class DuelPlayer : NetworkBehaviour, IAttackAuthority, IShotSink
         cameraFollow = Camera.main != null ? Camera.main.GetComponent<CameraFollow>() : null;
         if (cameraFollow == null) return;
         cameraFollow.player = transform;
+        // 상대 스폰이 화면 위쪽에 오는 방향으로 고정한다. 로비에서 내려오는 카메라(TitleBackdrop.Dive)도 같은 방향으로 내려온다.
+        // 오프라인 테스트처럼 DuelArena에 맵이 없으면 카메라를 넘겨주는 쪽(DuelOfflineTest.FollowPlayer)이 정한다.
+        var arena = FindFirstObjectByType<DuelArena>();
+        if (arena != null && cameraFollow.Settings != null &&
+            cameraFollow.Settings.TryFacingYaw(arena.SpawnPoints, slot, out float yaw))
+            cameraFollow.Yaw = yaw;
         cameraFollow.enabled = true;
     }
 

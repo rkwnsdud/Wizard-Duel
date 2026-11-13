@@ -19,3 +19,4 @@ MonoBehaviour:
   height: 10
   distance: 8
   lookHeight: 1
+  facingSpread: 160
