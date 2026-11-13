@@ -296,7 +296,9 @@ public class MapRendererCombineTests
     }
 
     // Main 씬 전투 맵과 같은 프리팹과 배경 범위를 쓰는 맵. 부르는 쪽에서 Clear한 뒤 오브젝트를 지운다.
-    public static ProceduralMap NewBattleMap(string name)
+    // 범위를 넘기면 그 범위로 배경을 깐다(로비 화면 미리보기 배경과 비교할 때 쓴다).
+    public static ProceduralMap NewBattleMap(string name,
+        int rimOffsetCells = RimOffsetCells, int decoOffsetCells = DecoOffsetCells)
     {
         var root = new GameObject(name);
         BlockFactory factory = root.AddComponent<BlockFactory>();
@@ -321,8 +323,8 @@ public class MapRendererCombineTests
             Load<GameObject>("Assets/AssetsPack/map_parts/FBX/Chest.fbx"),
             Load<GameObject>("Assets/AssetsPack/map_parts/FBX/DeadTree_1.fbx"));
         Fill(serialized.FindProperty("torchVariants"), Load<GameObject>("Assets/AssetsPack/map_parts/FBX/Torch.fbx"));
-        serialized.FindProperty("rimOffsetCells").intValue = RimOffsetCells;
-        serialized.FindProperty("decoOffsetCells").intValue = DecoOffsetCells;
+        serialized.FindProperty("rimOffsetCells").intValue = rimOffsetCells;
+        serialized.FindProperty("decoOffsetCells").intValue = decoOffsetCells;
         serialized.FindProperty("floorRotation").FindPropertyRelative("yawMode").enumValueIndex = 1;
         serialized.FindProperty("pillarRotation").FindPropertyRelative("yawMode").enumValueIndex = 1;
         serialized.FindProperty("torchRotation").FindPropertyRelative("yawMode").enumValueIndex = 1;
