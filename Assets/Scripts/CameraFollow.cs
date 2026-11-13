@@ -8,6 +8,14 @@ public class CameraFollow : MonoBehaviour
     [SerializeField] DuelCameraSettings settings;
     public DuelCameraSettings Settings => settings;
 
+    // 다른 연출(TitleBackdrop이 로비에서 전투로 카메라를 옮기는 동안)이 카메라를 쥐고 있다.
+    // 따라갈 플레이어는 받아 두되 카메라는 움직이지 않고, 연출이 끝나면 같은 자리에서 이어받는다.
+    public bool Held { get; set; }
+
+    // 카메라가 바라보는 방향(도). 0이면 +Z를 본다. 전투에서는 상대 스폰이 화면 위쪽에 오도록
+    // DuelCameraSettings.FacingYaw로 정하고, 한 판 동안 돌지 않는다.
+    public float Yaw { get; set; }
+
     // 카메라 높이 (settings가 비어 있을 때)
     public float height = 10f;
 
@@ -19,22 +27,12 @@ public class CameraFollow : MonoBehaviour
 
     void LateUpdate()
     {
-        float followHeight = settings != null ? settings.Height : height;
-        float followDistance = settings != null ? settings.Distance : distance;
-        float followLookHeight = settings != null ? settings.LookHeight : lookHeight;
+        if (Held || player == null) return;
 
-        // 카메라가 바라볼 기준점
-        Vector3 lookPosition =
-            player.position + Vector3.up * followLookHeight;
-
-        // 고정된 방향에서 플레이어를 따라감
-        Vector3 cameraPosition =
-            player.position
-            + new Vector3(0f, followHeight, -followDistance);
-
-        transform.position = cameraPosition;
-
-        // 플레이어를 바라봄
-        transform.LookAt(lookPosition);
+        // 고정된 방향에서 플레이어를 따라가며 플레이어를 바라본다.
+        Pose pose = settings != null
+            ? settings.FollowPose(player.position, Yaw)
+            : DuelCameraSettings.FollowPose(player.position, height, distance, lookHeight, Yaw);
+        transform.SetPositionAndRotation(pose.position, pose.rotation);
     }
 }
