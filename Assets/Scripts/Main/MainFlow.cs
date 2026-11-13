@@ -4,7 +4,7 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 
 // 서버의 대기실 상태를 화면에 반영한다. 전환 중에 받은 최신 상태도 전환이 끝난 뒤 적용한다.
-// 서버가 전투 준비를 알리면 대기실을 잠그고, 내 플레이어가 소환되면 대기실을 걷고 카메라를 넘긴다.
+// 서버가 전투 준비를 알리면 대기실을 걷고 카메라를 내 스폰 지점으로 내려보내며, 내 플레이어가 소환되면 그 플레이어에게 넘긴다.
 // 승부가 나면 승자를 띄우고, 서버가 다음 판 로비를 알리면 같은 방의 대기실로 돌아온다.
 // AI 대전은 서버 없이 같은 로비 화면을 AI용으로 열어 맵과 무기·난이도를 고르고, 전투가 끝나면 그 로비 화면으로 돌아온다.
 public class MainFlow : MonoBehaviour
@@ -159,11 +159,12 @@ public class MainFlow : MonoBehaviour
             transition = null;
             yield break;
         }
-        // 같은 설정의 전투 맵이 같은 자리에 섰으므로 미리보기 맵을 감춘다. 호스트라서 내 플레이어가 이미 소환되어 있으니,
-        // 같은 프레임 LateUpdate 전에 배경 카메라를 놓아 내 플레이어를 따라가는 카메라와 겹치지 않게 한다.
+        // 같은 설정의 전투 맵이 같은 자리에 섰으므로 미리보기 맵을 감추고, 카메라를 내 스폰 지점으로 내려보낸다.
+        // 호스트라서 내 플레이어가 이미 소환되어 따라가는 카메라가 켜졌지만, 같은 프레임 LateUpdate 전에 Dive가 붙잡아 두었다가
+        // 다 내려가면 넘겨준다. 모형 마법사는 실제 플레이어가 마법진과 함께 나타난 지금 걷는다.
         stage.StopPreview();
         backdrop.HideMap();
-        backdrop.ReleaseCamera();
+        backdrop.Dive(aiDuel.Arena != null ? aiDuel.Arena.SpawnPoint(0) : null, 0);
         stage.gameObject.SetActive(false);
         yield return lobbyTransition.Hide();
         transition = null;
@@ -353,18 +354,26 @@ public class MainFlow : MonoBehaviour
         transition = null;
     }
 
-    // 서버가 두 클라이언트의 맵을 확인하고 플레이어를 소환할 때까지 대기실에서 준비 중을 보여 준다.
-    // Netcode는 소환 메시지를 EarlyUpdate에서 처리하므로, 같은 프레임 LateUpdate 전에 배경 카메라를 놓아
-    // 내 플레이어를 따라가는 카메라와 한 프레임도 겹치지 않는다.
+    // 서버가 전투 준비를 알렸다. 이 클라이언트의 전투 맵은 이미 섰으므로(LobbyNetwork가 스냅샷을 알리기 전에 만든다)
+    // 미리보기 맵과 바꿔 끼우고, 대기실 UI를 걷으며 카메라를 내 스폰 지점(방장은 파랑, 참가자는 빨강)으로 내려보낸다.
+    // 서버가 두 클라이언트의 맵을 확인하고 플레이어를 소환하면 그 프레임에 모형 마법사를 걷는다. Netcode는 소환 메시지를
+    // EarlyUpdate에서 처리하므로 모형과 실제 플레이어가 한 프레임도 겹치지 않는다. 카메라는 다 내려가면 내 플레이어에게 넘어간다.
     IEnumerator EnterBattle()
     {
         ApplySnapshot();
+        int slot = network.IsHost ? 0 : 1;
+        backdrop.Dive(network.Arena != null ? network.Arena.SpawnPoint(slot) : null, slot);
+        Coroutine hiding = StartCoroutine(lobbyTransition.Hide());
         while (wantsLobby && !network.HasLocalPlayer) yield return null;
-        if (!wantsLobby) yield break;
-        backdrop.ReleaseCamera();
+        if (!wantsLobby)
+        {
+            // 접속이 끊겼다. 시작 화면으로 돌아가는 분기가 UI를 마저 걷고 카메라를 빼낸다.
+            StopCoroutine(hiding);
+            yield break;
+        }
         stage.gameObject.SetActive(false);
         battleVisible = true;
-        yield return lobbyTransition.Hide();
+        yield return hiding;
     }
 
     // 서버가 결과를 다 보여 주고 다음 판 로비를 알렸다. 방 코드·역할·설정은 그대로이고, 전투 맵은 LobbyNetwork가 이미 지웠다.

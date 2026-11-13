@@ -49,6 +49,13 @@ public sealed class DuelArena : MonoBehaviour
     public void UnregisterWeaponMessages() => Weapons?.Shutdown();
 
     public bool HasMap => map.GeneratedLayout != null;
+
+    // 이 클라이언트에 선 전투 맵의 스폰 지점. 0은 방장(파랑), 1은 참가자(빨강)다. 맵이 없으면 null이다.
+    public Transform SpawnPoint(int slot)
+    {
+        Transform[] spawns = map != null && HasMap ? map.SpawnPoints : null;
+        return spawns != null && slot >= 0 && slot < spawns.Length ? spawns[slot] : null;
+    }
     public string Fingerprint { get; private set; }
 
     // 이전 맵을 지우고 설정대로 새로 만든다. 만들 수 없는 설정이면 빈 상태로 두고 false를 돌려준다.

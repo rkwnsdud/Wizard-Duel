@@ -61,6 +61,8 @@ public sealed class LobbyNetwork : MonoBehaviour
     public event Action<string> Closed;
     public event Action<string> SettingsRejected;
     public event Action<string> StartRejected;
+    // 이 클라이언트의 전투 맵. 카메라가 내 스폰 지점으로 내려갈 때 쓴다.
+    public DuelArena Arena => arena;
     public bool IsBusy => connecting || closing || inLobby || (manager != null && manager.ShutdownInProgress);
     public bool IsInLobby => inLobby;
     public bool IsHost => inLobby && currentSnapshot.HostClientId == manager.LocalClientId;

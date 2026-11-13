@@ -16,6 +16,9 @@ public sealed class AiDuel : MonoBehaviour
     [Tooltip("난이도별 봇 실력. 순서는 쉬움, 보통, 어려움(BotDifficulty)이다.")]
     [SerializeField] DuelBotTuning[] difficulties = { DuelBotTuning.Easy(), DuelBotTuning.Normal(), DuelBotTuning.Hard() };
 
+    // 전투 맵과 플레이어를 세우는 곳. 카메라가 내 스폰 지점으로 내려갈 때 쓴다.
+    public DuelArena Arena => arena;
+
     // 승부가 났다. 이긴 쪽의 슬롯(0은 나, 1은 봇)을 넘긴다.
     public event Action<int> Finished;
     // 플레이어와 맵을 정리하고 연결을 닫았다. 승부가 나서 끝났든 Stop으로 끝냈든 한 번 불린다.
