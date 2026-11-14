@@ -8,7 +8,7 @@ using UnityEngine.Rendering;
 // 판정은 이 클라이언트의 내 캐릭터(IsLocal) 인스턴스가 매 LateUpdate에 하고, 다른 플레이어의 모습과 비쳐 보이는 부시도 함께 정한다.
 // 부시 안에서 보이는 캐릭터는 불투명 URP Lit 머티리얼을 반투명본(WizardDuel/CharacterFaded)으로 바꿔 CharacterAlpha로 그린다.
 // 반투명본은 캐릭터와 무기를 한 덩어리로 섞으므로(CharacterFadeFeature) 파츠끼리 비치지 않는다. 들어간 부시는 반투명 갈대가 되어 캐릭터 앞에 겹친다.
-// 숨길 때는 렌더러의 forceRenderingOff와 체력바 Canvas만 끈다. 콜라이더와 NetworkTransform은 그대로 둔다.
+// 숨길 때는 렌더러의 forceRenderingOff와 체력바 Canvas만 끈다. 콜라이더와 이동 동기화(DuelMoveSync)는 그대로 둔다.
 [DisallowMultipleComponent]
 public sealed class PlayerBushVisibility : MonoBehaviour
 {

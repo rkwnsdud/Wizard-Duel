@@ -74,7 +74,9 @@ public sealed class LobbyNetwork : MonoBehaviour
     void Awake()
     {
         serverMode = Array.IndexOf(Environment.GetCommandLineArgs(), "-server") >= 0;
-        Application.targetFrameRate = serverMode ? 30 : 60;
+        // 서버는 한 플레이어의 이동을 받은 프레임에 상대에게 넘긴다(DuelMoveSync). 그래서 서버의 프레임 간격만큼
+        // 이동이 상대 화면에 늦게 보인다. 클라이언트가 보내는 속도(초당 60번)에 맞춰 서버도 초당 60프레임으로 돈다.
+        Application.targetFrameRate = 60;
         if (serverMode && clientPresentation != null)
         {
             foreach (GameObject presentation in clientPresentation)
