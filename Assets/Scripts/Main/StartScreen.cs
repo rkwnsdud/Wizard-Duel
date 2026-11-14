@@ -24,6 +24,10 @@ public class StartScreen : MonoBehaviour
     [SerializeField] GameObject joinBox;
     [Tooltip("모달이 열려 있는 동안 방향키로 뒤의 메뉴가 골라지지 않게 잠근다.")]
     [SerializeField] CanvasGroup menu;
+    [SerializeField] Button optionsMenuButton;
+    [Tooltip("설정 모달. 코드 입력 모달처럼 화면 전체를 덮는다.")]
+    [SerializeField] GameObject optionsBox;
+    [SerializeField] GraphicsOptionsPanel graphicsOptions;
     [SerializeField] TMP_InputField codeField;
     [SerializeField] TMP_Text joinButtonLabel;
     [SerializeField] TMP_Text joinMessage;
@@ -38,6 +42,7 @@ public class StartScreen : MonoBehaviour
     void OnEnable()
     {
         ShowJoinBox(false);
+        ShowOptionsBox(false);
         SetConnecting(false);
         codeField.SetTextWithoutNotify("");
         EventSystem events = EventSystem.current;
@@ -63,7 +68,7 @@ public class StartScreen : MonoBehaviour
     void LateUpdate()
     {
         EventSystem events = EventSystem.current;
-        if (events == null || joinBox.activeSelf || firstMenuButton == null) return;
+        if (events == null || ModalOpen || firstMenuButton == null) return;
         GameObject selected = events.currentSelectedGameObject;
         if (selected != null && selected.activeInHierarchy) return;
         if (NavigationPressed()) firstMenuButton.Select();
@@ -108,6 +113,21 @@ public class StartScreen : MonoBehaviour
     {
         AbandonConnection();
         ShowJoinBox(false);
+        EventSystem events = EventSystem.current;
+        if (events != null) events.SetSelectedGameObject(null);
+    }
+
+    // "설정" 버튼이 부른다. 메뉴 위에 설정 모달을 띄운다. 맵 생성의 답을 기다리는 중이어도 그 접속은 그대로 둔다.
+    public void OpenOptions()
+    {
+        ShowOptionsBox(true);
+        graphicsOptions.Open();
+    }
+
+    // 설정 모달의 닫기 버튼과 바깥 어두운 부분이 부른다.
+    public void CloseOptions()
+    {
+        ShowOptionsBox(false);
         EventSystem events = EventSystem.current;
         if (events != null) events.SetSelectedGameObject(null);
     }
@@ -199,10 +219,16 @@ public class StartScreen : MonoBehaviour
 #endif
     }
 
-    // Esc는 접속 취소, 모달 닫기, 알림 닫기 순서로 한 단계씩 물러난다.
+    // Esc는 설정 닫기, 접속 취소, 코드 모달 닫기, 알림 닫기 순서로 한 단계씩 물러난다.
+    // 설정 모달은 맵 생성을 기다리는 중에도 열 수 있어서, 맨 위에 뜬 설정부터 닫는다.
     void Back()
     {
-        if (connecting) CancelJoin();
+        if (optionsBox.activeSelf)
+        {
+            ShowOptionsBox(false);
+            optionsMenuButton.Select();
+        }
+        else if (connecting) CancelJoin();
         else if (joinBox.activeSelf)
         {
             ShowJoinBox(false);
@@ -211,10 +237,23 @@ public class StartScreen : MonoBehaviour
         else notice.SetActive(false);
     }
 
+    bool ModalOpen => joinBox.activeSelf || optionsBox.activeSelf;
+
     void ShowJoinBox(bool open)
     {
         joinBox.SetActive(open);
-        if (menu != null) menu.interactable = !open;
+        LockMenu();
+    }
+
+    void ShowOptionsBox(bool open)
+    {
+        optionsBox.SetActive(open);
+        LockMenu();
+    }
+
+    void LockMenu()
+    {
+        if (menu != null) menu.interactable = !ModalOpen;
     }
 
     void SetConnecting(bool value)
