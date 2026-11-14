@@ -22,8 +22,6 @@ public sealed class WeaponSpawnCatalog : ScriptableObject
 
     [Header("Spawn notification")]
     public TMP_FontAsset notificationFont;
-    public AudioClip notificationSound;
-    [Range(0f, 1f)] public float notificationVolume = .22f;
 
     public Entry Find(byte id) => Array.Find(entries, entry => entry.id == id);
     public byte Identify(WeaponBase weapon)

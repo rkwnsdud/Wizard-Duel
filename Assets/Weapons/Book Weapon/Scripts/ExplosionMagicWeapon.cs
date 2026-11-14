@@ -34,10 +34,6 @@ public sealed class ExplosionMagicWeapon : WeaponBase, IWeapon, IWeaponReach
     private Transform firePoint;
     [SerializeField] private ExplosionFireballVisual fireballPrefab;
     [SerializeField] private GameObject explosionEffectPrefab;
-    [SerializeField] private AudioSource audioSource;
-    [SerializeField] private AudioClip castSound;
-    [SerializeField] private AudioClip explosionSound;
-    [SerializeField, Range(0f, 1f)] private float explosionVolume = 0.8f;
 
     // 날아가는 연출용 화염 공. 폭발 신호가 오면 attackId로 찾아 끈다.
     private readonly Dictionary<uint, ExplosionFireballVisual> flying = new Dictionary<uint, ExplosionFireballVisual>();
@@ -111,7 +107,7 @@ public sealed class ExplosionMagicWeapon : WeaponBase, IWeapon, IWeaponReach
         if (shot.Kind == LaunchKind)
         {
             PurgeFinished();
-            if (audioSource != null && castSound != null) audioSource.PlayOneShot(castSound);
+            Sfx.Play(SfxId.ExplosionCast);
             if (fireballPrefab == null) return;
             ExplosionFireballVisual visual = Instantiate(fireballPrefab, shot.Start, Quaternion.identity);
             visual.Launch(shot.Start, shot.Point, speed);
@@ -127,23 +123,8 @@ public sealed class ExplosionMagicWeapon : WeaponBase, IWeapon, IWeaponReach
                 flying.Remove(shot.AttackId);
             }
             WeaponHitEffect.Spawn(explosionEffectPrefab, shot.Point);
-            PlayExplosionSound(shot.Point);
+            Sfx.Play(SfxId.Explosion);
         }
-    }
-
-    // 카메라(리스너)가 캐릭터에서 13m쯤 떨어져 있어 3D 소리(PlayClipAtPoint)는 6%쯤으로 줄어 거의 안 들린다.
-    // 다른 무기 소리처럼 2D로 낸다. 폭발 전에 무기를 바꿔 책이 꺼져도 들리도록 책의 AudioSource 대신 따로 만든다.
-    private void PlayExplosionSound(Vector3 point)
-    {
-        if (explosionSound == null) return;
-        var sound = new GameObject("Explosion magic sound");
-        sound.transform.position = point;
-        AudioSource source = sound.AddComponent<AudioSource>();
-        source.clip = explosionSound;
-        source.volume = explosionVolume;
-        source.spatialBlend = 0f;
-        source.Play();
-        Destroy(sound, explosionSound.length * (Time.timeScale < 0.01f ? 0.01f : Time.timeScale));
     }
 
     // 손이 벽 안으로 들어간 채 쏘면 화염 공이 벽을 뚫고 나가므로, 몸 중심에서 손까지 막혀 있으면 벽 앞에서 시작한다.

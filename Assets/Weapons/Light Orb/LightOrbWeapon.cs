@@ -168,8 +168,6 @@ public class LightOrbWeapon : WeaponBase, IWeapon, IWeaponReach
     }
     [SerializeField] private Transform firePoint;
     [SerializeField] private LightOrbProjectile lightAttackPrefab;
-    [SerializeField] private AudioSource audioSource;
-    [SerializeField] private AudioClip lightSound;
     private bool presentingOwnShot;
 
     // 벽에 튕기지 않고 곧게 갔을 때 빛줄기가 닿는 거리와 빠르기.
@@ -184,7 +182,7 @@ public class LightOrbWeapon : WeaponBase, IWeapon, IWeaponReach
         direction.Normalize();
         Vector3 start = firePoint.position;
         LightOrbProjectile beam = Instantiate(lightAttackPrefab, start, Quaternion.identity);
-        beam.InitializeOnline(direction, GetComponentInParent<PlayerHealth>(), audioSource, sink, attackId);
+        beam.InitializeOnline(direction, GetComponentInParent<PlayerHealth>(), sink, attackId);
         presentingOwnShot = true;
         try { sink.Broadcast(new ShotEvent(attackId, 0, start, start + direction, charge)); }
         finally { presentingOwnShot = false; }
@@ -193,13 +191,13 @@ public class LightOrbWeapon : WeaponBase, IWeapon, IWeaponReach
     public void Present(ShotEvent shot)
     {
         if (shot.Kind != 0) return;
-        if (audioSource != null && lightSound != null) audioSource.PlayOneShot(lightSound);
+        Sfx.Play(SfxId.LightOrbFire);
         FlashCore();
         if (presentingOwnShot || lightAttackPrefab == null) return;
         Vector3 direction = shot.Point - shot.Start;
         if (direction.sqrMagnitude < 0.0001f) return;
         LightOrbProjectile beam = Instantiate(lightAttackPrefab, shot.Start, Quaternion.identity);
-        beam.InitializeVisualOnly(direction.normalized, GetComponentInParent<PlayerHealth>(), audioSource);
+        beam.InitializeVisualOnly(direction.normalized, GetComponentInParent<PlayerHealth>());
     }
     private PlayerAim playerAim;
 
@@ -223,10 +221,7 @@ public class LightOrbWeapon : WeaponBase, IWeapon, IWeaponReach
         direction.y = 0f;
         direction.Normalize();
       
-        if (audioSource != null && lightSound != null)
-        {
-            audioSource.PlayOneShot(lightSound);
-        }
+        Sfx.Play(SfxId.LightOrbFire);
 
         LightOrbProjectile attack = Instantiate(
             lightAttackPrefab,
@@ -237,7 +232,7 @@ public class LightOrbWeapon : WeaponBase, IWeapon, IWeaponReach
         // 발사자 정보 가져오기
         PlayerHealth owner = GetComponentInParent<PlayerHealth>();
 
-        attack.Initialize(direction, owner, audioSource);
+        attack.Initialize(direction, owner);
         FlashCore();
     }
 }

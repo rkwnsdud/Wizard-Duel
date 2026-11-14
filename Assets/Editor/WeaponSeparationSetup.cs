@@ -29,9 +29,6 @@ public static class WeaponSeparationSetup
             SetReference(staff, "attackAnimation", clip);
             if (PrefabUtility.GetPrefabAssetPathOfNearestInstanceRoot(staff.gameObject) != StaffPath)
             {
-                // External owner references cannot live in a standalone weapon.
-                // LightningWeapon resolves the player's AudioSource in Awake.
-                SetReference(staff, "audioSource", null);
                 PrefabUtility.SaveAsPrefabAssetAndConnect(staff.gameObject, StaffPath,
                     InteractionMode.AutomatedAction);
             }

@@ -394,7 +394,7 @@ public sealed class ArenaWeaponSpawner : MonoBehaviour
             // IDs survive inventory snapshots, so pickup/swap acknowledgements and
             // repeated snapshots cannot replay the notice. Hosts also use this path.
             if (notification == null) notification = gameObject.AddComponent<WeaponSpawnNotification>();
-            notification.Show(catalog.notificationFont, catalog.notificationSound, catalog.notificationVolume);
+            notification.Show(catalog.notificationFont);
         }
     }
 

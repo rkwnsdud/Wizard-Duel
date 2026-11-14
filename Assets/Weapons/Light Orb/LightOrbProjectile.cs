@@ -14,7 +14,6 @@ public class LightOrbProjectile : MonoBehaviour
     [SerializeField] private LineRenderer beamGlow;
     [SerializeField] private float damage = 10f;
     [SerializeField, Min(0f)] private float damageIncreaseRate = 0.5f; // 데미지 증가율
-    [SerializeField] private AudioClip reflectSound;
     [SerializeField] private GameObject hitEffectPrefab;
 
     public float BeamSpeed => beamSpeed;
@@ -27,17 +26,15 @@ public class LightOrbProjectile : MonoBehaviour
     private PlayerHealth ownerHealth;
     private LineRenderer currentBeamCore;
     private LineRenderer currentBeamGlow;
-    private AudioSource audioSource;
     private IShotSink onlineSink;
     private uint onlineAttackId;
     private bool visualOnly;
 
-    public void Initialize(Vector3 fireDirection, PlayerHealth owner, AudioSource source)
+    public void Initialize(Vector3 fireDirection, PlayerHealth owner)
     {
         direction = fireDirection;
         currentPoint = transform.position;
         ownerHealth = owner;
-        audioSource = source;
 
         currentBeamCore = beamCore;
         currentBeamGlow = beamGlow;
@@ -52,17 +49,16 @@ public class LightOrbProjectile : MonoBehaviour
 
     }
 
-    public void InitializeOnline(Vector3 fireDirection, PlayerHealth owner, AudioSource source,
-        IShotSink sink, uint attackId)
+    public void InitializeOnline(Vector3 fireDirection, PlayerHealth owner, IShotSink sink, uint attackId)
     {
-        Initialize(fireDirection, owner, source);
+        Initialize(fireDirection, owner);
         onlineSink = sink;
         onlineAttackId = attackId;
     }
 
-    public void InitializeVisualOnly(Vector3 fireDirection, PlayerHealth owner, AudioSource source)
+    public void InitializeVisualOnly(Vector3 fireDirection, PlayerHealth owner)
     {
-        Initialize(fireDirection, owner, source);
+        Initialize(fireDirection, owner);
         visualOnly = true;
     }
 
@@ -150,10 +146,7 @@ public class LightOrbProjectile : MonoBehaviour
 
             Instantiate(reflectPrefab, hit.point, Quaternion.identity);
 
-            if (audioSource != null && reflectSound != null)
-            {
-                audioSource.PlayOneShot(reflectSound);
-            }
+            Sfx.Play(SfxId.LightOrbReflect);
 
             // 현재 선 끝을 벽에 고정
             currentBeamCore.SetPosition(1, hit.point);

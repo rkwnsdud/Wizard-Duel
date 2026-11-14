@@ -10,12 +10,11 @@ public sealed class WeaponSpawnNotification : MonoBehaviour
     const float FadeOut = .45f;
     GameObject canvasObject;
     CanvasGroup group;
-    AudioSource audioSource;
     float startedAt;
 
     void Awake() => enabled = false;
 
-    public void Show(TMP_FontAsset font, AudioClip sound, float volume)
+    public void Show(TMP_FontAsset font)
     {
         if (canvasObject == null) CreatePresentation(font);
         canvasObject.SetActive(true);
@@ -23,17 +22,15 @@ public sealed class WeaponSpawnNotification : MonoBehaviour
         group.alpha = 0f;
         enabled = true;
         // Restart instead of stacking if two confirmations arrive close together.
-        audioSource.Stop();
-        audioSource.clip = sound;
-        audioSource.volume = Mathf.Clamp01(volume);
-        if (sound != null) audioSource.Play();
+        Sfx.Stop(SfxId.WeaponSpawnChime);
+        Sfx.Play(SfxId.WeaponSpawnChime);
     }
 
     public void Hide() => enabled = false;
 
     void OnDisable()
     {
-        if (audioSource != null) audioSource.Stop();
+        Sfx.Stop(SfxId.WeaponSpawnChime);
         if (canvasObject != null) canvasObject.SetActive(false);
     }
 
@@ -53,7 +50,7 @@ public sealed class WeaponSpawnNotification : MonoBehaviour
     void CreatePresentation(TMP_FontAsset font)
     {
         canvasObject = new GameObject("Weapon Spawn Notification", typeof(RectTransform), typeof(Canvas),
-            typeof(CanvasScaler), typeof(CanvasGroup), typeof(AudioSource));
+            typeof(CanvasScaler), typeof(CanvasGroup));
         canvasObject.transform.SetParent(transform, false);
         var canvas = canvasObject.GetComponent<Canvas>();
         canvas.renderMode = RenderMode.ScreenSpaceOverlay;
@@ -91,12 +88,6 @@ public sealed class WeaponSpawnNotification : MonoBehaviour
         label.alignment = TextAlignmentOptions.Center;
         label.color = new Color(.94f, .91f, .84f, 1);
         label.raycastTarget = false;
-
-        audioSource = canvasObject.GetComponent<AudioSource>();
-        audioSource.playOnAwake = false;
-        audioSource.loop = false;
-        audioSource.spatialBlend = 0f; // Same gentle level regardless of spawn/camera position.
-        audioSource.priority = 180;
     }
 
     static RectTransform Image(string name, Transform parent, Vector2 size, Color color)
