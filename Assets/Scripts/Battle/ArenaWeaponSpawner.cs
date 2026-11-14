@@ -19,23 +19,33 @@ public sealed class ArenaWeaponSpawner : MonoBehaviour
         public byte Equipped, Stored;
     }
 
+    sealed class ServerRound
+    {
+        public DuelMatch Match;
+        public readonly WeaponSpawnRound Drops = new WeaponSpawnRound();
+        public readonly Dictionary<ulong, Slots> Slots = new Dictionary<ulong, Slots>();
+        public readonly Dictionary<ulong, uint> ProcessedRequests = new Dictionary<ulong, uint>();
+        public readonly HashSet<ulong> Recipients = new HashSet<ulong>();
+        public uint Epoch, Revision;
+    }
+
     NetworkManager manager;
     WeaponSpawnCatalog catalog;
-    readonly WeaponSpawnRound round = new WeaponSpawnRound();
+    readonly Dictionary<DuelMatch, ServerRound> serverRounds = new Dictionary<DuelMatch, ServerRound>();
+    readonly Dictionary<ulong, ServerRound> serverPlayers = new Dictionary<ulong, ServerRound>();
     readonly Dictionary<ulong, Slots> slots = new Dictionary<ulong, Slots>();
     readonly Dictionary<uint, SpawnedWeapon> clientDrops = new Dictionary<uint, SpawnedWeapon>();
     readonly Dictionary<uint, FloatingWeaponPickup> visuals = new Dictionary<uint, FloatingWeaponPickup>();
-    readonly Dictionary<ulong, uint> processedRequests = new Dictionary<ulong, uint>();
     readonly List<uint> removals = new List<uint>();
     readonly HashSet<ulong> needsApply = new HashSet<ulong>();
     readonly List<ulong> applied = new List<ulong>();
-    uint epoch, revision, requestSequence, pendingRequest, acknowledgedRequest;
+    uint epoch, revision, nextEpoch, requestSequence, pendingRequest, acknowledgedRequest;
     byte pendingAction;
     Type pendingEquippedType, pendingStoredType;
     bool running, registered;
     PlayerWeaponInventory pendingInventory;
     WeaponSpawnNotification notification;
-    public bool Running => manager != null && (manager.IsServer ? round.Running : running);
+    public bool Running => manager != null && (manager.IsServer ? serverRounds.Count > 0 : running);
     public bool RequestPending => pendingRequest != 0;
 
     public void Initialize(NetworkManager network, WeaponSpawnCatalog definitions)
@@ -43,17 +53,15 @@ public sealed class ArenaWeaponSpawner : MonoBehaviour
         if (registered) Shutdown();
         manager = network;
         catalog = definitions;
-        epoch = revision = requestSequence = 0;
+        epoch = revision = nextEpoch = requestSequence = 0;
         manager.CustomMessagingManager.RegisterNamedMessageHandler(SnapshotMessage, OnSnapshot);
         manager.CustomMessagingManager.RegisterNamedMessageHandler(RequestMessage, OnRequest);
         registered = true;
     }
 
-    public void BeginRound(ProceduralMap map, IReadOnlyList<DuelPlayer> players)
+    // Capture the locations while the temporary server map still has colliders.
+    public static Vector3[] FindSites(ProceduralMap map)
     {
-        if (manager == null || !manager.IsServer || catalog == null) return;
-        Clear();
-        epoch++;
         var positions = new List<Vector3>();
         Physics.SyncTransforms();
         foreach (var cell in WeaponSpawnPlacement.Select(map.GeneratedLayout))
@@ -64,49 +72,69 @@ public sealed class ArenaWeaponSpawner : MonoBehaviour
             if (Physics.CheckSphere(hit.point + Vector3.up * .75f, .45f, Blockers, QueryTriggerInteraction.Ignore)) continue;
             positions.Add(hit.point);
         }
+        return positions.ToArray();
+    }
+
+    public void BeginRound(DuelMatch match)
+    {
+        if (manager == null || !manager.IsServer || catalog == null || match == null) return;
+        if (serverRounds.ContainsKey(match)) Clear(match);
+        var state = new ServerRound { Match = match, Epoch = ++nextEpoch };
         var choices = new List<byte>();
         foreach (var entry in catalog.Entries)
             if (catalog.IsSpawnable(entry)) choices.Add(entry.id);
-        foreach (var player in players)
+        foreach (var player in match.Duelists)
         {
             var inventory = player.GetComponent<PlayerWeaponInventory>();
             inventory.NetworkAuthority = this;
-            slots[player.NetworkObjectId] = new Slots
+            state.Slots[player.NetworkObjectId] = new Slots
             {
                 Player = player.NetworkObjectId,
                 Equipped = catalog.Identify(player.GetComponent<PlayerAttack>().CurrentWeapon),
                 Stored = catalog.Identify(inventory.StoredWeapon)
             };
+            state.Recipients.Add(player.OwnerClientId);
+            serverPlayers.Add(player.NetworkObjectId, state);
         }
-        round.Begin(positions, choices, manager.ServerTime.Time, unchecked(Environment.TickCount ^ (int)epoch));
-        running = true;
-        revision++;
-        Broadcast();
-        Debug.Log($"[WeaponSpawn] Round {epoch}: {positions.Count} clear sites, {choices.Count} weapons, interval=30s.");
-        if (positions.Count == 0) Debug.LogWarning("[WeaponSpawn] This layout has no safe, open weapon sites.");
+        state.Drops.Begin(match.WeaponSites, choices, manager.ServerTime.Time,
+            unchecked(Environment.TickCount ^ (int)state.Epoch));
+        serverRounds.Add(match, state);
+        state.Revision++;
+        Broadcast(state);
+        Debug.Log($"[WeaponSpawn] Round {state.Epoch}: {match.WeaponSites.Length} clear sites, {choices.Count} weapons, interval={WeaponSpawnRound.Interval}s.");
+        if (match.WeaponSites.Length == 0) Debug.LogWarning("[WeaponSpawn] This layout has no safe, open weapon sites.");
     }
 
-    public void EndRound()
+    public void EndRound(DuelMatch match)
     {
+        if (match == null || !serverRounds.TryGetValue(match, out var state)) return;
+        state.Drops.Stop();
+        state.Revision++;
+        Broadcast(state);
+        foreach (ulong player in state.Slots.Keys) serverPlayers.Remove(player);
+        serverRounds.Remove(match);
+        if (manager != null && manager.IsClient && state.Recipients.Contains(manager.LocalClientId))
+        {
+            running = false;
+            ReleaseRequest();
+            clientDrops.Clear();
+            ClearVisuals();
+            if (notification != null) notification.Hide();
+        }
+    }
+
+    public void Clear(DuelMatch match) => EndRound(match);
+
+    void Clear()
+    {
+        foreach (var state in new List<ServerRound>(serverRounds.Values)) EndRound(state.Match);
         if (notification != null) notification.Hide();
-        round.Stop();
         running = false;
         ReleaseRequest();
         ClearVisuals();
         clientDrops.Clear();
-        if (manager != null && manager.IsServer && registered)
-        {
-            revision++;
-            Broadcast();
-        }
-    }
-
-    public void Clear()
-    {
-        EndRound();
         slots.Clear();
         needsApply.Clear();
-        processedRequests.Clear();
     }
 
     public void Shutdown()
@@ -125,28 +153,37 @@ public sealed class ArenaWeaponSpawner : MonoBehaviour
     void Update()
     {
         if (manager == null || !manager.IsListening || manager.ShutdownInProgress) return;
-        if (manager.IsServer && round.Tick(manager.ServerTime.Time, SiteAvailable, out var drop))
+        if (manager.IsServer)
         {
-            revision++;
-            Broadcast();
-            Debug.Log($"[WeaponSpawn] Spawn id={drop.Id} weapon={drop.Weapon} ground={drop.Ground}");
+            foreach (var state in serverRounds.Values)
+                if (state.Drops.Tick(manager.ServerTime.Time, position => SiteAvailable(state, position), out var drop))
+                {
+                    state.Revision++;
+                    Broadcast(state);
+                    Debug.Log($"[WeaponSpawn] Round {state.Epoch} spawn id={drop.Id} weapon={drop.Weapon} ground={drop.Ground}");
+                }
         }
         ApplyPendingSlots();
     }
 
-    bool SiteAvailable(Vector3 position)
+    bool SiteAvailable(ServerRound state, Vector3 position)
     {
-        foreach (var pair in slots)
+        foreach (var pair in state.Slots)
             if (manager.SpawnManager.SpawnedObjects.TryGetValue(pair.Key, out var player) &&
                 Vector3.Distance(player.transform.position, position) < PickupRange) return false;
-        return !Physics.CheckSphere(position + Vector3.up * .75f, .45f, Blockers, QueryTriggerInteraction.Ignore);
+        // The dedicated server removed the map after recording safe sites. Other
+        // rooms can use the same world coordinates, so only this room's players
+        // can make one of its sites unavailable.
+        return true;
     }
 
     public bool RequestPickup(PlayerWeaponInventory inventory)
     {
         uint nearest = 0;
         float distance = PickupRange * PickupRange;
-        var drops = manager != null && manager.IsServer ? round.Drops : clientDrops;
+        IReadOnlyDictionary<uint, SpawnedWeapon> drops = clientDrops;
+        if (manager != null && manager.IsServer && inventory.TryGetComponent(out NetworkObject player) &&
+            serverPlayers.TryGetValue(player.NetworkObjectId, out var state)) drops = state.Drops.Drops;
         foreach (var pair in drops)
         {
             Vector3 delta = inventory.transform.position - pair.Value.Ground;
@@ -194,70 +231,86 @@ public sealed class ArenaWeaponSpawner : MonoBehaviour
             if (reader.Position != reader.Length || action > 1) return;
             if (!manager.ConnectedClients.TryGetValue(sender, out var client) || client.PlayerObject == null) return;
             var player = client.PlayerObject.GetComponent<DuelPlayer>();
-            if (player == null || !slots.TryGetValue(player.NetworkObjectId, out var state)) return;
-            if (processedRequests.TryGetValue(sender, out uint previous) && request <= previous)
-            { SendSnapshot(sender, request); return; }
-            processedRequests[sender] = request;
-            if (requestedEpoch != epoch || !round.Running || !player.CanUseInventory)
-            { SendSnapshot(sender, request); return; }
+            if (player == null || !serverPlayers.TryGetValue(player.NetworkObjectId, out var room) ||
+                player.Match != room.Match || !room.Slots.TryGetValue(player.NetworkObjectId, out var state)) return;
+            if (room.ProcessedRequests.TryGetValue(sender, out uint previous) && request <= previous)
+            { SendSnapshot(room, sender, request); return; }
+            room.ProcessedRequests[sender] = request;
+            if (requestedEpoch != room.Epoch || !room.Drops.Running || !player.CanUseInventory)
+            { SendSnapshot(room, sender, request); return; }
             var inventory = player.GetComponent<PlayerWeaponInventory>();
             if (!player.GetComponent<PlayerAttack>().CanChangeWeapon)
-            { SendSnapshot(sender, request); return; }
+            { SendSnapshot(room, sender, request); return; }
 
             Slots next = state;
             if (action == 1)
             {
-                if (state.Stored == 0) { SendSnapshot(sender, request); return; }
+                if (state.Stored == 0) { SendSnapshot(room, sender, request); return; }
                 next.Equipped = state.Stored;
                 next.Stored = state.Equipped;
             }
             else
             {
-                if (!round.Drops.TryGetValue(pickup, out var drop) || !InReach(player.transform.position, drop.Ground) ||
+                if (!room.Drops.Drops.TryGetValue(pickup, out var drop) ||
+                    !InReach(room, player.transform.position, drop.Ground) ||
                     drop.Weapon == state.Equipped || drop.Weapon == state.Stored)
-                { SendSnapshot(sender, request); return; }
+                { SendSnapshot(room, sender, request); return; }
                 if (state.Stored == 0) next.Stored = drop.Weapon;
                 else next.Equipped = drop.Weapon;
             }
-            if (!ApplySlots(inventory, next)) { SendSnapshot(sender, request); return; }
-            slots[state.Player] = next;
-            if (action == 0) round.Remove(pickup); // One server transaction: grant before remove, no double claim.
-            revision++;
-            Broadcast(sender, request);
+            if (!ApplySlots(inventory, next)) { SendSnapshot(room, sender, request); return; }
+            room.Slots[state.Player] = next;
+            if (action == 0) room.Drops.Remove(pickup); // One server transaction: grant before remove, no double claim.
+            room.Revision++;
+            Broadcast(room, sender, request);
             Debug.Log($"[WeaponSpawn] Granted client={sender} action={action} pickup={pickup} equipped={next.Equipped} stored={next.Stored}");
         }
         catch (Exception exception) { Debug.LogWarning("[WeaponSpawn] Invalid request: " + exception.Message); }
     }
 
-    static bool InReach(Vector3 player, Vector3 ground)
+    static bool InReach(ServerRound room, Vector3 player, Vector3 ground)
     {
         Vector3 delta = player - ground;
         if (Mathf.Abs(delta.y) > 2f) return false;
         delta.y = 0;
         return delta.sqrMagnitude <= PickupRange * PickupRange &&
-            !Physics.Linecast(player + Vector3.up * .7f, ground + Vector3.up * .7f, Blockers, QueryTriggerInteraction.Ignore);
+            WeaponSpawnPlacement.ClearLine(room.Match.Layout, room.Match.WorldToMap, player, ground);
     }
 
-    void Broadcast(ulong requester = ulong.MaxValue, uint acknowledgement = 0)
+    void Broadcast(ServerRound state, ulong requester = ulong.MaxValue, uint acknowledgement = 0)
     {
         if (manager == null || !manager.IsListening || !manager.IsServer ||
             manager.ShutdownInProgress || manager.CustomMessagingManager == null) return;
-        foreach (ulong client in manager.ConnectedClientsIds)
-            SendSnapshot(client, client == requester ? acknowledgement : 0);
-        if (manager.IsClient) ReconcileVisuals(round.Drops);
+        foreach (ulong client in state.Recipients)
+            if (manager.ConnectedClients.ContainsKey(client))
+                SendSnapshot(state, client, client == requester ? acknowledgement : 0);
+        if (manager.IsClient && state.Recipients.Contains(manager.LocalClientId))
+        {
+            epoch = state.Epoch;
+            revision = state.Revision;
+            running = state.Drops.Running;
+            clientDrops.Clear();
+            foreach (var drop in state.Drops.Drops) clientDrops.Add(drop.Key, drop.Value);
+            ReconcileVisuals(state.Drops.Drops);
+            if (requester == manager.LocalClientId && acknowledgement == pendingRequest && pendingRequest != 0)
+            {
+                acknowledgedRequest = acknowledgement;
+                ReleaseRequest();
+            }
+        }
     }
 
-    void SendSnapshot(ulong recipient, uint acknowledgement)
+    void SendSnapshot(ServerRound state, ulong recipient, uint acknowledgement)
     {
         // Disconnect callbacks can run after Netcode has disposed its messaging system.
         if (manager == null || manager.ShutdownInProgress || manager.CustomMessagingManager == null) return;
         using var writer = new FastBufferWriter(4096, Allocator.Temp);
-        writer.WriteValueSafe(epoch);
-        writer.WriteValueSafe(revision);
+        writer.WriteValueSafe(state.Epoch);
+        writer.WriteValueSafe(state.Revision);
         writer.WriteValueSafe(acknowledgement);
-        writer.WriteValueSafe(round.Running);
-        writer.WriteValueSafe(round.Drops.Count);
-        foreach (var pair in round.Drops)
+        writer.WriteValueSafe(state.Drops.Running);
+        writer.WriteValueSafe(state.Drops.Drops.Count);
+        foreach (var pair in state.Drops.Drops)
         {
             var drop = pair.Value;
             writer.WriteValueSafe(drop.Id);
@@ -265,8 +318,8 @@ public sealed class ArenaWeaponSpawner : MonoBehaviour
             writer.WriteValueSafe(drop.Ground);
             writer.WriteValueSafe(drop.Born);
         }
-        writer.WriteValueSafe(slots.Count);
-        foreach (var pair in slots)
+        writer.WriteValueSafe(state.Slots.Count);
+        foreach (var pair in state.Slots)
         {
             writer.WriteValueSafe(pair.Value.Player);
             writer.WriteValueSafe(pair.Value.Equipped);
@@ -309,6 +362,12 @@ public sealed class ArenaWeaponSpawner : MonoBehaviour
                 incomingSlots.Add(new Slots { Player = player, Equipped = equipped, Stored = stored });
             }
             if (reader.Position != reader.Length) return;
+            if (incomingEpoch != epoch)
+            {
+                ReleaseRequest();
+                slots.Clear();
+                needsApply.Clear();
+            }
             epoch = incomingEpoch;
             revision = incomingRevision;
             running = active;
@@ -326,9 +385,11 @@ public sealed class ArenaWeaponSpawner : MonoBehaviour
             if (!active)
             {
                 ReleaseRequest();
+                slots.Clear();
+                needsApply.Clear();
                 if (notification != null) notification.Hide();
             }
-            ApplyPendingSlots();
+            else ApplyPendingSlots();
         }
         catch (Exception exception) { Debug.LogWarning("[WeaponSpawn] Invalid snapshot: " + exception.Message); }
     }

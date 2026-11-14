@@ -16,7 +16,8 @@ public readonly struct SpawnedWeapon
 // Server state, kept independent of rendering and transport for timing/race tests.
 public sealed class WeaponSpawnRound
 {
-    public const double Interval = 30;
+    public const double Interval = 10;
+    public const int MaxDrops = 2;
     readonly Dictionary<uint, SpawnedWeapon> drops = new Dictionary<uint, SpawnedWeapon>();
     readonly HashSet<int> occupied = new HashSet<int>();
     readonly List<int> available = new List<int>();
@@ -43,6 +44,7 @@ public sealed class WeaponSpawnRound
         drop = default;
         if (!Running || now < nextSpawn) return false;
         nextSpawn = now + Interval; // No catch-up burst after a paused/stalled server.
+        if (drops.Count >= MaxDrops) return false;
         available.Clear();
         for (int i = 0; i < sites.Count; i++)
             if (!occupied.Contains(i) && (positionAvailable == null || positionAvailable(sites[i]))) available.Add(i);
