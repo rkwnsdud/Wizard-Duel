@@ -62,26 +62,45 @@ public static class WeaponSpawnValidation
         var positions = new[] { Vector3.zero, new Vector3(5, 0, 0) };
         var weapons = new byte[] { 2, 3, 4, 5 };
         round.Begin(positions, weapons, 100, 7);
-        Check(!round.Tick(129.999, null, out _), "spawned before 30 seconds");
-        Check(round.Tick(130, null, out var first), "first spawn missing");
-        Check(!round.Tick(130, null, out _), "multiple spawns in one interval");
-        Check(round.Tick(160, null, out var second) && second.Site != first.Site, "occupied site reused");
-        Check(!round.Tick(190, null, out _), "full map should skip a spawn");
+        Check(!round.Tick(109.999, null, out _), "spawned before 10 seconds");
+        Check(round.Tick(110, null, out var first), "first spawn missing");
+        Check(!round.Tick(110, null, out _), "multiple spawns in one interval");
+        Check(round.Tick(120, null, out var second) && second.Site != first.Site, "occupied site reused");
+        Check(!round.Tick(130, null, out _), "full map should skip a spawn");
         Check(round.Remove(first.Id) && !round.Remove(first.Id), "pickup can be claimed twice");
-        Check(round.Tick(220, null, out var reused) && reused.Site == first.Site, "freed site not reusable");
+        Check(round.Tick(140, null, out var reused) && reused.Site == first.Site, "freed site not reusable");
         round.Stop();
         Check(round.Drops.Count == 0 && !round.Tick(1000, null, out _), "round end leaves pickups/timer alive");
         round.Begin(positions, weapons, 1000, 8);
-        Check(!round.Tick(1029, null, out _), "new round retained the previous timer");
-        Check(!round.Tick(1030, _ => false, out _), "spawned on an obstructed/player-occupied site");
+        Check(!round.Tick(1009, null, out _), "new round retained the previous timer");
+        Check(!round.Tick(1010, _ => false, out _), "spawned on an obstructed/player-occupied site");
         Check(round.Tick(1300, null, out var late) && late.Id != first.Id && !round.Tick(1300, null, out _),
             "stall caused a catch-up burst or reused a stale pickup ID");
+
+        round.Begin(new[] { Vector3.zero, Vector3.right * 5, Vector3.right * 10 }, weapons, 2000, 9);
+        Check(round.Tick(2010, null, out var cappedFirst) && round.Tick(2020, null, out _),
+            "two available drops should be allowed");
+        Check(!round.Tick(2030, null, out _) && round.Drops.Count == 2,
+            "spawned a third drop despite the two-drop limit");
+        Check(round.Remove(cappedFirst.Id) && !round.Tick(2031, null, out _) &&
+            round.Tick(2040, null, out _) && round.Drops.Count == 2,
+            "pickup should allow a replacement only at the next interval");
 
         EditorSceneManager.OpenScene("Assets/Scenes/Main.unity", OpenSceneMode.Single);
         var arena = UnityEngine.Object.FindFirstObjectByType<DuelArena>();
         Check(arena != null && new SerializedObject(arena).FindProperty("weaponCatalog").objectReferenceValue == catalog,
             "Main arena catalog not wired");
-        Debug.Log($"WEAPON_SPAWN_VALIDATION_PASS maps={maps} sites={sites} choices={choices}; timer, occupancy, duplicate claim, cleanup, Main wiring");
+        var firstMatch = arena.Prepare(new MapGenerationSettings
+            { Seed = 7301, Shape = MapShape.Rectangle, ObstacleDensity = .15f, BushDensity = .05f });
+        Check(firstMatch != null && firstMatch.WeaponSites.Length > 0 && !arena.HasMap,
+            "server must retain weapon sites after clearing its temporary map");
+        Vector3 firstSite = firstMatch.WeaponSites[0];
+        var secondMatch = arena.Prepare(new MapGenerationSettings
+            { Seed = 42, Shape = MapShape.Donut, ObstacleDensity = .15f, BushDensity = .05f });
+        Check(secondMatch != null && secondMatch.WeaponSites.Length > 0 && !arena.HasMap &&
+            firstMatch.WeaponSites[0] == firstSite && !ReferenceEquals(firstMatch.WeaponSites, secondMatch.WeaponSites),
+            "preparing another room replaced the first room's weapon sites");
+        Debug.Log($"WEAPON_SPAWN_VALIDATION_PASS maps={maps} sites={sites} choices={choices}; timer, occupancy, duplicate claim, room site persistence, Main wiring");
     }
 
     // Optional command-line build for the existing Main scene, without adding a scene asset.

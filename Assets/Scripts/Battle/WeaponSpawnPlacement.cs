@@ -50,6 +50,26 @@ public static class WeaponSpawnPlacement
     public static Vector3 LocalPosition(MapLayout map, Vector2Int cell) =>
         new Vector3(cell.x - (map.Width - 1) * .5f, 0, (map.Height - 1) * .5f - cell.y);
 
+    // The dedicated server removes the physical map between room preparations.
+    // Check the saved layout so a pickup request cannot pass through a wall.
+    public static bool ClearLine(MapLayout map, Matrix4x4 worldToMap, Vector3 from, Vector3 to)
+    {
+        if (map == null) return false;
+        Vector3 start = worldToMap.MultiplyPoint3x4(from);
+        Vector3 end = worldToMap.MultiplyPoint3x4(to);
+        Vector3 delta = end - start;
+        int steps = Mathf.Max(1, Mathf.CeilToInt(new Vector2(delta.x, delta.z).magnitude * 20f));
+        for (int i = 0; i <= steps; i++)
+        {
+            Vector3 sample = start + delta * (i / (float)steps);
+            int x = Mathf.RoundToInt(sample.x + (map.Width - 1) * .5f);
+            int y = Mathf.RoundToInt((map.Height - 1) * .5f - sample.z);
+            if (x < 0 || y < 0 || x >= map.Width || y >= map.Height ||
+                map[x, y] == MapCell.Void || map[x, y] == MapCell.Wall) return false;
+        }
+        return true;
+    }
+
     static bool Walkable(MapLayout map, int x, int y) => x >= 0 && y >= 0 && x < map.Width && y < map.Height &&
         (map[x, y] == MapCell.Floor || map[x, y] == MapCell.Bush);
 
