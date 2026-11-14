@@ -58,7 +58,7 @@ MonoBehaviour:
   attackRange: 4
   attackAngle: 100
   firePoint: {fileID: 7979936518236214338}
-  attackEffectPrefab: {fileID: 0}
+  attackEffectPrefab: {fileID: 8378648546881499446, guid: 4116434202ff7f64584dd1d7ea06796b, type: 3}
   audioSource: {fileID: 488458924257838300}
   fireSound: {fileID: 8300000, guid: eb4fabfad2d165b459066d0252c88a81, type: 3}
 --- !u!114 &298630033621753391
