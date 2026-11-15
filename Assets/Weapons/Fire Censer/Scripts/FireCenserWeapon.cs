@@ -15,8 +15,6 @@ public sealed class FireCenserWeapon : WeaponBase, IWeapon, IWeaponReach
     private Transform firePoint;
     [SerializeField, Tooltip("One-shot attack visual spawned through WeaponHitEffect.")]
     private GameObject attackEffectPrefab;
-    [SerializeField] private AudioSource audioSource;
-    [SerializeField] private AudioClip fireSound;
 
     public float AttackRange => attackRange;
     public float AttackAngle => attackAngle;
@@ -57,8 +55,7 @@ public sealed class FireCenserWeapon : WeaponBase, IWeapon, IWeaponReach
     public void Present(ShotEvent shot)
     {
         if (shot.Kind != 0) return;
-        if (audioSource != null && fireSound != null)
-            audioSource.PlayOneShot(fireSound);
+        Sfx.Play(SfxId.CenserFire);
         Vector3 direction = shot.Point - shot.Start;
         direction.y = 0f;
         if (direction.sqrMagnitude < 0.0001f) direction = AimDirection;

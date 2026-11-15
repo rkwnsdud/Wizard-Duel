@@ -5,8 +5,6 @@ public class BasicWandWeapon : WeaponBase, IWeapon, IWeaponReach
 {
     [SerializeField] private ArcaneBoltProjectile projectilePrefab;
     [SerializeField] private Transform firePoint;
-    [SerializeField] private AudioSource audioSource;
-    [SerializeField] private AudioClip fireSound;
     [SerializeField] private RuntimeAnimatorController basePoseController;
     [SerializeField] private AnimatorOverrideController wandPoseController;
     [SerializeField] private Mesh originalCharacterMesh;
@@ -86,7 +84,7 @@ public class BasicWandWeapon : WeaponBase, IWeapon, IWeaponReach
     public void Present(ShotEvent shot)
     {
         if (shot.Kind != 0) return;
-        if (audioSource != null && fireSound != null) audioSource.PlayOneShot(fireSound);
+        Sfx.Play(SfxId.WandFire);
         if (presentingOwnShot || projectilePrefab == null) return;
         Vector3 direction = shot.Point - shot.Start;
         if (direction.sqrMagnitude < 0.0001f) return;
@@ -102,7 +100,6 @@ public class BasicWandWeapon : WeaponBase, IWeapon, IWeaponReach
         if (direction.sqrMagnitude < 0.0001f) direction = Vector3.forward;
         ArcaneBoltProjectile bolt = Instantiate(projectilePrefab, firePoint.position, Quaternion.LookRotation(direction));
         bolt.Initialize(owner);
-        if (audioSource != null && fireSound != null)
-            audioSource.PlayOneShot(fireSound);
+        Sfx.Play(SfxId.WandFire);
     }
 }

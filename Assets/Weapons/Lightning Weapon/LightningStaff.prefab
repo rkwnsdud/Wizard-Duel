@@ -81,8 +81,6 @@ MonoBehaviour:
   attackAnimation: {fileID: 7400000, guid: 2339c21bd5cb2da45b4051c7804bdee5, type: 2}
   boltPrefab: {fileID: 3518806986799842853, guid: 85f5f47d4e14e8043bca515fdfecfe64, type: 3}
   firePoint: {fileID: 8617151260737379913}
-  audioSource: {fileID: 0}
-  thunderSound: {fileID: 8300000, guid: 3979f3f418ffb8f4eb10424a8269730c, type: 3}
   preview: {fileID: 7363959964365926871}
 --- !u!1001 &1436904233756628285
 PrefabInstance:

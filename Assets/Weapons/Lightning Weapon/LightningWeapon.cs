@@ -6,19 +6,12 @@ public sealed class LightningWeapon : WeaponBase, IChargeableWeapon
     [FormerlySerializedAs("projectilePrefab")]
     [SerializeField] private LightningBolt boltPrefab;
     [SerializeField] private Transform firePoint;
-    [SerializeField] private AudioSource audioSource;
-    [SerializeField] private AudioClip thunderSound;
-    // The clip is normalized on import, so scale it here instead of the
-    // player's AudioSource, which other weapons share.
-    [SerializeField, Range(0f, 1f)] private float thunderVolume = 0.3f;
-
     [SerializeField] private LightningPreview preview;
     private PlayerAim playerAim;
 
     private void Awake()
     {
         playerAim = GetComponentInParent<PlayerAim>();
-        if (audioSource == null) audioSource = GetComponentInParent<AudioSource>();
         if (preview == null) preview = GetComponentInChildren<LightningPreview>(true);
     }
 
@@ -58,8 +51,7 @@ public sealed class LightningWeapon : WeaponBase, IChargeableWeapon
             return;
         }
 
-        if (audioSource != null && thunderSound != null)
-            audioSource.PlayOneShot(thunderSound, thunderVolume);
+        Sfx.Play(SfxId.Thunder);
 
         // PlayerAim rotates the player root on the ground plane. The staff and
         // FirePoint rotate with the cast animation, so only use their position.

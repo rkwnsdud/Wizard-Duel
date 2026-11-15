@@ -196,7 +196,7 @@ public static class WeaponSetupReview
         var projectile = Object.Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>(
             "Assets/Effect/Light/LightOrbProjectile.prefab").GetComponent<LightOrbProjectile>(), origin, Quaternion.identity);
         SceneManager.MoveGameObjectToScene(projectile.gameObject, scene);
-        projectile.Initialize(Vector3.forward, owner, null);
+        projectile.Initialize(Vector3.forward, owner);
         Physics.SyncTransforms();
         var advance = typeof(LightOrbProjectile).GetMethod("Advance", BindingFlags.Instance | BindingFlags.NonPublic);
         advance.Invoke(projectile, new object[] { .1f });

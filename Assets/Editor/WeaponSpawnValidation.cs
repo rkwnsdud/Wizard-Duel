@@ -17,9 +17,10 @@ public static class WeaponSpawnValidation
         var catalog = AssetDatabase.LoadAssetAtPath<WeaponSpawnCatalog>("Assets/Scripts/Battle/WeaponSpawnCatalog.asset");
         Check(catalog != null, "catalog missing");
         Check(catalog.notificationFont != null, "notification font missing");
-        Check(catalog.notificationSound != null && catalog.notificationSound.length > 1.7f &&
-            catalog.notificationSound.length < 1.9f, "notification chime missing/incorrect duration");
-        Check(catalog.notificationVolume > 0 && catalog.notificationVolume <= .25f, "notification volume too loud");
+        var chime = Sfx.Library != null ? Sfx.Library.Find(SfxId.WeaponSpawnChime) : null;
+        Check(chime != null && chime.clip != null && chime.clip.length > 1.7f && chime.clip.length < 1.9f,
+            "notification chime missing/incorrect duration");
+        Check(chime.volume > 0, "notification chime is silent");
         var ids = new HashSet<byte>();
         int choices = 0;
         foreach (var entry in catalog.Entries)

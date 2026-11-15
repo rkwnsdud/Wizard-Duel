@@ -8,9 +8,6 @@ public sealed class DuelLightningWeapon : WeaponBase, IChargeableWeapon, IWeapon
     [SerializeField] private GameObject hitEffectPrefab;
     [SerializeField] private Transform firePoint;
     [SerializeField] private LightningPreview preview;
-    [SerializeField] private AudioSource audioSource;
-    [SerializeField] private AudioClip thunderSound;
-    [SerializeField, Range(0f, 1f)] private float thunderVolume = 0.3f;
     [SerializeField] private float minRange = 2f;
     [SerializeField] private float maxRange = 8f;
     [SerializeField] private float minDamage = 5f;
@@ -63,8 +60,7 @@ public sealed class DuelLightningWeapon : WeaponBase, IChargeableWeapon, IWeapon
         }
         if (shot.Kind != 0) return;
         HideChargePreview();
-        if (audioSource != null && thunderSound != null)
-            audioSource.PlayOneShot(thunderSound, thunderVolume);
+        Sfx.Play(SfxId.Thunder);
         LightningEffect effect = Instantiate(effectPrefab, shot.Start, Quaternion.identity);
         effect.SetEndpoints(shot.Start, shot.Point);
         effect.SetMainBoltWidth(Mathf.Lerp(0.28f, 0.5f, shot.Charge));

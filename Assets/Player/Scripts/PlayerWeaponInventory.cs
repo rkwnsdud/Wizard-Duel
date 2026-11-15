@@ -9,12 +9,6 @@ public class PlayerWeaponInventory : MonoBehaviour
 
     [SerializeField]
     private WeaponBase storedWeapon;
-    [Header("Inventory sounds")]
-    private AudioSource feedbackSource;
-    [SerializeField] private AudioClip pickupSound;
-    [SerializeField] private AudioClip swapSound;
-    [SerializeField, Range(0f, 1f)] private float pickupVolume = 0.8f;
-    [SerializeField, Range(0f, 1f)] private float swapVolume = 0.8f;
 
     public WeaponBase StoredWeapon => storedWeapon;
     public event Action<WeaponBase> StoredWeaponChanged;
@@ -121,22 +115,15 @@ public class PlayerWeaponInventory : MonoBehaviour
     }
 
     // Networked inventory changes call these after the local request is confirmed.
-    public void PlayPickupSound() => PlayFeedback(pickupSound, pickupVolume);
-    public void PlaySwapSound() => PlayFeedback(swapSound, swapVolume);
+    public void PlayPickupSound() => PlayFeedback(SfxId.WeaponPickup);
+    public void PlaySwapSound() => PlayFeedback(SfxId.WeaponSwap);
 
-    private void PlayFeedback(AudioClip clip, float volume)
+    // 줍기·교체 소리는 그 플레이어 본인에게만 들린다.
+    private void PlayFeedback(SfxId id)
     {
-        if (clip == null) return;
         var player = GetComponent<DuelPlayer>();
         if (player != null && player.IsSpawned && !player.IsOwner) return;
-        if (feedbackSource == null)
-        {
-            feedbackSource = gameObject.AddComponent<AudioSource>();
-            feedbackSource.playOnAwake = false;
-            feedbackSource.spatialBlend = 0f;
-            feedbackSource.priority = 96;
-        }
-        feedbackSource.PlayOneShot(clip, volume);
+        Sfx.Play(id);
     }
 
     // 무기 프리팹으로 실제 무기 생성
