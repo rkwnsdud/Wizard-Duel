@@ -163,10 +163,11 @@ public class LobbyInputTests : PlayModeTestFixture
         Assert.That(edits[2].Map.Seed, Is.EqualTo(222));
 
         // r2 입력이 남아 있는 동안 r1 승인은 패널의 최신 초안을 덮지 않는다.
-        SetField(network, "inLobby", true);
-        SetField(network, "requestedSettingsRevision", 2u);
-        SetField(network, "settledSettingsRevision", 1u);
-        SetField(network, "currentSnapshot", Snapshot(1, 111));
+        object client = LobbyClient();
+        SetField(client, "inLobby", true);
+        SetField(client, "requestedSettingsRevision", 2u);
+        SetField(client, "settledSettingsRevision", 1u);
+        SetField(client, "currentSnapshot", Snapshot(1, 111));
         SetField(flow, "lobbyVisible", true);
         yield return Focus(seed);
         seed.text = "333";
@@ -175,8 +176,8 @@ public class LobbyInputTests : PlayModeTestFixture
         Assert.That(edits[3].Map.Seed, Is.EqualTo(222));
         Assert.That(seed.text, Is.EqualTo("333"));
 
-        SetField(network, "settledSettingsRevision", 2u);
-        SetField(network, "currentSnapshot", Snapshot(2, 222));
+        SetField(client, "settledSettingsRevision", 2u);
+        SetField(client, "currentSnapshot", Snapshot(2, 222));
         InvokeFlow("OnSnapshot", Snapshot(2, 222));
         Assert.That(seed.text, Is.EqualTo("333"));
         seed.DeactivateInputField();
@@ -371,8 +372,9 @@ public class LobbyInputTests : PlayModeTestFixture
         preparing.OpponentPresent = true;
         preparing.GuestClientId = manager.LocalClientId + 1;
         preparing.Phase = LobbyPhase.Preparing;
-        SetField(network, "inLobby", true);
-        SetField(network, "currentSnapshot", preparing);
+        object client = LobbyClient();
+        SetField(client, "inLobby", true);
+        SetField(client, "currentSnapshot", preparing);
         Camera view = Field<Camera>(backdrop, "viewCamera");
         CameraFollow follow = view.GetComponent<CameraFollow>();
         List<UnityEngine.Rendering.Universal.ScriptableRendererFeature> occlusion = ActiveOcclusion();
@@ -396,7 +398,7 @@ public class LobbyInputTests : PlayModeTestFixture
         Assert.That(view.orthographic, Is.False);
         foreach (var feature in occlusion) Assert.That(feature.isActive, Is.False, "SSAO pauses while the projections blend.");
 
-        SetField(network, "inLobby", false);
+        SetField(client, "inLobby", false);
         InvokeFlow("OnClosed", "A player left, so the room was closed.");
         yield return new WaitForSecondsRealtime(1.5f);
         Assert.That(start.gameObject.activeSelf, Is.True);
@@ -749,6 +751,8 @@ public class LobbyInputTests : PlayModeTestFixture
         Assert.That(Time.time, Is.GreaterThanOrEqualTo(targetTime), "Runtime animation time must elapse.");
         Assert.That(Time.frameCount, Is.GreaterThan(firstFrame));
     }
+
+    object LobbyClient() => typeof(LobbyNetwork).GetProperty("Client", PrivateInstance).GetValue(network);
 
     static T Field<T>(object owner, string name) =>
         (T)owner.GetType().GetField(name, PrivateInstance).GetValue(owner);

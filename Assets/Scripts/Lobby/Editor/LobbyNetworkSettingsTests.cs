@@ -11,6 +11,7 @@ public class LobbyNetworkSettingsTests
     const BindingFlags PrivateInstance = BindingFlags.Instance | BindingFlags.NonPublic;
     GameObject root;
     LobbyNetwork network;
+    object client;
     NetworkManager manager;
     bool initializedManager;
 
@@ -60,8 +61,7 @@ public class LobbyNetworkSettingsTests
         Assert.That(received.Count, Is.EqualTo(1));
         Assert.That(received[0].Settings.ToSettings().Seed, Is.EqualTo(222));
         Assert.That(received[0].Settings.ToSettings().Shape, Is.EqualTo(MapShape.Circle));
-        NetworkLobbySnapshot current = (NetworkLobbySnapshot)typeof(LobbyNetwork)
-            .GetField("currentSnapshot", PrivateInstance).GetValue(network);
+        NetworkLobbySnapshot current = GetField<NetworkLobbySnapshot>("currentSnapshot");
         Assert.That(current.SettingsRevision, Is.EqualTo(2));
         Assert.That(current.Settings.ToSettings().Seed, Is.EqualTo(222));
     }
@@ -242,7 +242,8 @@ public class LobbyNetworkSettingsTests
         root.SetActive(false);
         manager = root.AddComponent<NetworkManager>();
         network = root.AddComponent<LobbyNetwork>();
-        SetField("manager", manager);
+        typeof(LobbyNetwork).GetField("manager", PrivateInstance).SetValue(network, manager);
+        client = typeof(LobbyNetwork).GetProperty("Client", PrivateInstance).GetValue(network);
         root.SetActive(true);
         // EditMode에서는 Awake가 자동 실행되지 않는다. NGO의 실제 초기화/종료를 짝지어 호출한다.
         if (typeof(NetworkManager).GetField("Log", PrivateInstance).GetValue(manager) == null)
@@ -298,7 +299,7 @@ public class LobbyNetworkSettingsTests
         Invoke("OnStartRejected", NetworkManager.ServerClientId, reader);
     }
 
-    T GetField<T>(string name) => (T)typeof(LobbyNetwork).GetField(name, PrivateInstance).GetValue(network);
+    T GetField<T>(string name) => (T)client.GetType().GetField(name, PrivateInstance).GetValue(client);
 
     void SendSnapshot(NetworkLobbySnapshot snapshot)
     {
@@ -309,13 +310,13 @@ public class LobbyNetworkSettingsTests
     }
 
     void Invoke(string methodName, ulong senderId, FastBufferReader reader) =>
-        typeof(LobbyNetwork).GetMethod(methodName, PrivateInstance)
-            .Invoke(network, new object[] { senderId, reader });
+        client.GetType().GetMethod(methodName, PrivateInstance)
+            .Invoke(client, new object[] { senderId, reader });
 
     void Invoke(string methodName) =>
         typeof(LobbyNetwork).GetMethod(methodName, PrivateInstance).Invoke(network, null);
 
     void SetField(string name, object value) =>
-        typeof(LobbyNetwork).GetField(name, PrivateInstance).SetValue(network, value);
+        client.GetType().GetField(name, PrivateInstance).SetValue(client, value);
 }
 #endif
