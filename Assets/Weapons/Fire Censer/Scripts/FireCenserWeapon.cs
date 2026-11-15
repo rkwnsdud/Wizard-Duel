@@ -11,7 +11,7 @@ public sealed class FireCenserWeapon : WeaponBase, IWeapon, IWeaponReach
     private float attackRange = 4f;
     [SerializeField, Range(0f, 180f), Tooltip("Full fan angle in degrees centered on the aim direction.")]
     private float attackAngle = 100f;
-    [SerializeField, Tooltip("Where the fan starts and the attack visual spawns.")]
+    [SerializeField, Tooltip("Reference point used to place the fan's visual origin ahead of the owner.")]
     private Transform firePoint;
     [SerializeField, Tooltip("One-shot attack visual spawned through WeaponHitEffect.")]
     private GameObject attackEffectPrefab;
@@ -61,8 +61,25 @@ public sealed class FireCenserWeapon : WeaponBase, IWeapon, IWeaponReach
             audioSource.PlayOneShot(fireSound);
         Vector3 direction = shot.Point - shot.Start;
         direction.y = 0f;
-        if (direction.sqrMagnitude < 0.0001f) direction = AimDirection;
-        WeaponHitEffect.Spawn(attackEffectPrefab, shot.Start, direction.normalized);
+        float range = direction.magnitude;
+        if (range < 0.0001f)
+        {
+            direction = AimDirection;
+            range = attackRange;
+        }
+        if (direction.sqrMagnitude < 0.0001f) direction = Vector3.forward;
+        direction.Normalize();
+        float firePointOffset = 0f;
+        if (firePoint != null)
+        {
+            Vector3 offset = firePoint.position - shot.Start;
+            offset.y = 0f;
+            firePointOffset = Vector3.Dot(offset, direction);
+        }
+        float visualStartOffset = Mathf.Clamp(Mathf.Max(0.5f, firePointOffset), 0f, range * 0.5f);
+        Vector3 visualOrigin = shot.Start + direction * visualStartOffset;
+        FireCenserAttackEffect.Spawn(
+            attackEffectPrefab, visualOrigin, direction, range - visualStartOffset, attackAngle);
         HideTelegraph();
         Debug.Log($"[Censer] Present attackId={shot.AttackId} origin={shot.Start} range={attackRange} angle={attackAngle}.");
     }
