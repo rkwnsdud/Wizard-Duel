@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 
 // 서버가 명중 보고와 상태이상 틱을 받을지 버릴지 판정하는 한 곳.
+// 받는 보고와 버리는 보고의 전체 규칙·로그·예외는 Docs/ServerHitReportRules.md를 따른다.
 public enum HitReportDecision
 {
     Accepted = 0,
