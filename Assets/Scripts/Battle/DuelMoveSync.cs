@@ -44,6 +44,7 @@ public struct DuelMoveState : INetworkSerializable
 // 상대 클라이언트는 MovePlayback으로 그릴 자리를 정한다. 틱을 기다렸다 보내고 몇 틱 뒤의 자리를 보간해 그리던 지연이 없다.
 // 순서를 보장하지 않는 전달을 쓴다. 하나를 잃어도 다음 프레임 것이 바로 오므로, 다시 보내느라 뒤따르는 상태가 밀리지 않는다.
 [DefaultExecutionOrder(-100)]
+[RequireComponent(typeof(PlayerMotor))]
 public sealed class DuelMoveSync : NetworkBehaviour
 {
     // 가만히 서 있을 때 보내는 간격. 마지막 상태를 잃었을 때 바로잡고, 받는 쪽이 지연을 계속 재게 한다.
@@ -66,6 +67,7 @@ public sealed class DuelMoveSync : NetworkBehaviour
     [SerializeField, Min(0f)] float delayMargin = 0f;
 
     MovePlayback playback;
+    PlayerMotor motor;
     // 소유자: 마지막으로 보낸 상태와 직전 프레임의 자리.
     DuelMoveState sent;
     bool hasSent;
@@ -73,6 +75,8 @@ public sealed class DuelMoveSync : NetworkBehaviour
     Vector3 previousPosition;
     // 서버: 마지막으로 넘긴 상태의 시각. 순서가 뒤바뀐 패킷을 버린다.
     double relayedTime = double.NegativeInfinity;
+
+    void Awake() => motor = GetComponent<PlayerMotor>();
 
     public override void OnNetworkSpawn()
     {
@@ -101,7 +105,7 @@ public sealed class DuelMoveSync : NetworkBehaviour
         if (!IsSpawned) return;
         if (IsOwner) SendOwnState();
         else if (playback.Advance(Time.unscaledTimeAsDouble, Time.unscaledDeltaTime, out Vector3 position, out float yaw))
-            transform.SetPositionAndRotation(position, Quaternion.Euler(0f, yaw, 0f));
+            motor.ApplyPose(position, yaw);
     }
 
     void SendOwnState()
@@ -165,7 +169,7 @@ public sealed class DuelMoveSync : NetworkBehaviour
         Relay(state);
         // 서버도 최신 자리를 알고 있게 한다. 호스트가 화면에 그리는 경우에는 다른 클라이언트처럼 재생한다.
         if (IsClient) Receive(state);
-        else transform.SetPositionAndRotation(state.Position, Quaternion.Euler(0f, state.Yaw, 0f));
+        else motor.ApplyPose(state.Position, state.Yaw);
     }
 
     void Relay(DuelMoveState state)

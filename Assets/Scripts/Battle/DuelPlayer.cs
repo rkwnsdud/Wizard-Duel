@@ -31,7 +31,7 @@ public sealed class DuelPlayer : NetworkBehaviour, IAttackAuthority, IShotSink
     readonly NetworkVariable<float> health = new NetworkVariable<float>(0f,
         NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
 
-    Animator animator;
+    PlayerMotor motor;
     PlayerAttack attack;
     PlayerHealth playerHealth;
     PlayerBushVisibility bushVisibility;
@@ -50,7 +50,7 @@ public sealed class DuelPlayer : NetworkBehaviour, IAttackAuthority, IShotSink
 
     void Awake()
     {
-        animator = transform.Find("Wizard").GetComponent<Animator>();
+        motor = GetComponent<PlayerMotor>();
         attack = GetComponent<PlayerAttack>();
         playerHealth = GetComponent<PlayerHealth>();
         bushVisibility = GetComponent<PlayerBushVisibility>();
@@ -358,10 +358,7 @@ public sealed class DuelPlayer : NetworkBehaviour, IAttackAuthority, IShotSink
         ApplyCombatState(current);
         if (current) return;
         // 걷던 자리에서 제자리 걸음을 하지 않게 멈춰 세운다.
-        if (!animator.enabled) return;
-        animator.SetFloat("MoveSpeed", 0f);
-        animator.SetFloat("MoveX", 0f);
-        animator.SetFloat("MoveZ", 0f);
+        motor.StopAnimation();
     }
 
     void ApplyCombatState(bool enabled)
@@ -381,7 +378,7 @@ public sealed class DuelPlayer : NetworkBehaviour, IAttackAuthority, IShotSink
         // 쓰러지면 PlayerHealth가 사망 모션을 재생한다. 애니메이터는 켜 두므로 죽은 뒤에는
         // 원격 걷기 갱신이 사망 자세를 덮지 않게 여기서 멈춘다.
         // 내 캐릭터는 PlayerMovement가 걷기 값을 넣는다. 상대와 봇은 한 프레임에 걸은 거리로 넣는다.
-        if (!IsClient || !IsSpawned || (IsOwner && !IsBot) || !animator.enabled ||
+        if (!IsClient || !IsSpawned || (IsOwner && !IsBot) ||
             (playerHealth != null && playerHealth.IsDead)) return;
         // 상대의 거리는 소유자가 보낸 속도로 구한다. 화면의 자리는 늦은 패킷을 따라잡느라 조금 더 나가거나
         // 되돌아오는데, 그 움직임까지 걸음으로 치면 멈춘 뒤에도 발을 구른다. 봇은 실제로 움직인 거리를 쓴다.
@@ -391,14 +388,7 @@ public sealed class DuelPlayer : NetworkBehaviour, IAttackAuthority, IShotSink
         displacement.y = 0f;
         // 시전 중에는 소유자의 PlayerMovement처럼 걷기 값을 0으로 둔다.
         bool isMoving = !attack.IsAttacking && displacement.sqrMagnitude > 0.00001f;
-        float directionDampTime = animator.GetFloat("MoveSpeed") > 0f ? 0.1f : 0f;
-        float remoteBaseSpeed = 5f;
-        if (TryGetComponent(out PlayerCombatStats stats))
-            remoteBaseSpeed = stats.GetMoveSpeed(remoteBaseSpeed);
-        animator.SetFloat("MoveSpeed", isMoving ? remoteBaseSpeed : 0f);
-        Vector3 localDirection = isMoving ? transform.InverseTransformDirection(displacement.normalized) : Vector3.zero;
-        animator.SetFloat("MoveX", localDirection.x, directionDampTime, Time.deltaTime);
-        animator.SetFloat("MoveZ", localDirection.z, directionDampTime, Time.deltaTime);
+        motor.Animate(isMoving ? displacement.normalized : Vector3.zero, Time.deltaTime);
         previousPosition = transform.position;
     }
 }

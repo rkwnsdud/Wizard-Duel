@@ -14,6 +14,7 @@ public sealed class PlayerMotor : MonoBehaviour
     float fall;
 
     public bool IsAttacking => attack != null && attack.IsAttacking;
+    public bool CanMove => controller != null && controller.enabled;
     public float MoveSpeed => stats != null ? stats.GetMoveSpeed(BaseSpeed) : BaseSpeed;
 
     void Awake()
@@ -60,7 +61,6 @@ public sealed class PlayerMotor : MonoBehaviour
     public void Animate(Vector3 direction, float deltaTime)
     {
         if (animator == null || !animator.enabled) return;
-        if (IsAttacking) { StopAnimation(); return; }
         float dampTime = animator.GetFloat("MoveSpeed") > 0f ? 0.1f : 0f;
         animator.SetFloat("MoveSpeed", direction.sqrMagnitude > 0f ? MoveSpeed : 0f);
         Vector3 local = transform.InverseTransformDirection(direction);

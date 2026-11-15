@@ -106,10 +106,9 @@ public sealed class DuelBot : MonoBehaviour
     DuelBotTuning tuning = new DuelBotTuning();
     Transform target;
     PlayerAttack targetAttack;
-    CharacterController controller;
+    PlayerMotor motor;
     PlayerAttack attack;
     PlayerHealth health;
-    PlayerCombatStats stats;
 
     // 상대가 공격해서 드러난 시간. 내 화면의 PlayerBushVisibility와 같은 규칙을 봇 쪽에서 따로 센다.
     readonly BushReveal targetReveal = new BushReveal();
@@ -148,16 +147,14 @@ public sealed class DuelBot : MonoBehaviour
     float plannedCharge;
     float aimOffset;
 
-    float fall;
     float stuckTime;
     float stuckProgress;
 
     void Awake()
     {
-        controller = GetComponent<CharacterController>();
+        motor = GetComponent<PlayerMotor>();
         attack = GetComponent<PlayerAttack>();
         health = GetComponent<PlayerHealth>();
-        stats = GetComponent<PlayerCombatStats>();
         // 전투가 켜질 때 DuelPlayer가 켠다.
         enabled = false;
     }
@@ -191,14 +188,14 @@ public sealed class DuelBot : MonoBehaviour
         casting = false;
         charging = false;
         nextChargeAt = now;
-        fall = 0f;
+        motor.ResetFall();
         stuckTime = stuckProgress = 0f;
         PlanAttack();
     }
 
     void Update()
     {
-        if (grid == null || target == null || health.IsDead || !controller.enabled) return;
+        if (grid == null || target == null || health.IsDead || !motor.CanMove) return;
         float now = Time.time;
         Perceive(now);
 
@@ -518,8 +515,7 @@ public sealed class DuelBot : MonoBehaviour
     {
         Vector3 direction = Aware(now) ? AimDirection() : move;
         if (direction.sqrMagnitude < 0.0001f) return;
-        transform.rotation = Quaternion.RotateTowards(transform.rotation, Quaternion.LookRotation(direction),
-            tuning.turnSpeed * Time.deltaTime);
+        motor.Look(direction.normalized, Time.deltaTime, tuning.turnSpeed);
     }
 
     // 이번 공격의 조준 오차를 더한, 쏘려는 방향. 날아가는 공격은 닿을 때까지 상대가 움직일 만큼 더 앞을 겨눈다.
@@ -529,7 +525,7 @@ public sealed class DuelBot : MonoBehaviour
         float time = tuning.aimLead;
         if (attack.CurrentWeapon is IWeaponReach reach && reach.ShotSpeed > 0f)
             time += tuning.projectileLead * Mathf.Min(MaxFlightTime, toTarget.magnitude / reach.ShotSpeed);
-        Vector3 lead = Vector3.ClampMagnitude(targetVelocity, PlayerMovement.BaseSpeed * 1.5f) * time;
+        Vector3 lead = Vector3.ClampMagnitude(targetVelocity, PlayerMotor.BaseSpeed * 1.5f) * time;
         return Quaternion.Euler(0f, aimOffset, 0f) * (toTarget + lead);
     }
 
@@ -561,14 +557,12 @@ public sealed class DuelBot : MonoBehaviour
         return true;
     }
 
-    // 사람의 PlayerMovement와 같은 빠르기·중력으로 걷는다. 걷기 애니메이션은 DuelPlayer가 움직인 거리로 넣는다.
+    // 이동은 공통 모터에 넘기고, 여기서는 길에 걸렸는지만 판단한다.
     void Step(Vector3 move)
     {
-        float speed = stats != null ? stats.GetMoveSpeed(PlayerMovement.BaseSpeed) : PlayerMovement.BaseSpeed;
-        if (controller.isGrounded && fall < 0f) fall = -2f;
-        fall += PlayerMovement.Gravity * Time.deltaTime;
+        float speed = motor.MoveSpeed;
         Vector3 before = transform.position;
-        controller.Move((move * speed + Vector3.up * fall) * Time.deltaTime);
+        motor.Move(move, Time.deltaTime, combinedGravity: true);
 
         // 가려는데 반 초 동안 거의 못 갔으면 모서리에 걸린 것이다. 길을 다시 찾고 도는 방향을 바꾼다.
         if (move == Vector3.zero)

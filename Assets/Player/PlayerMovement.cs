@@ -5,9 +5,6 @@ using UnityEngine.InputSystem;
 [RequireComponent(typeof(PlayerMotor))]
 public class PlayerMovement : MonoBehaviour
 {
-    public const float BaseSpeed = PlayerMotor.BaseSpeed;
-    public const float Gravity = PlayerMotor.Gravity;
-
     PlayerMotor motor;
     Transform cameraTransform;
     Vector3? externalDirection;

@@ -9,8 +9,9 @@ public class PlayerMotorTests
     static void Awake(Component component) => component.GetType().GetMethod("Awake",
         BindingFlags.Instance | BindingFlags.NonPublic).Invoke(component, null);
 
-    [Test]
-    public void MovementUsesEquipmentAndSlowMultipliersAndExistingGravity()
+    [TestCase(false)]
+    [TestCase(true)]
+    public void HumanAndBotMovementUseEquipmentAndSlowMultipliersAndExistingGravity(bool bot)
     {
         var root = new GameObject("Motor test");
         root.transform.position = new Vector3(20000f, 100f, 20000f);
@@ -23,9 +24,41 @@ public class PlayerMotorTests
             stats.SetMoveSpeedModifier(root, 1.1f);
             stats.SetMoveSpeedModifier(motor, 0.5f);
             Vector3 before = root.transform.position;
-            motor.Move(Vector3.right, 0.1f);
+            motor.Move(Vector3.right, 0.1f, combinedGravity: bot);
             Assert.That(root.transform.position.x - before.x, Is.EqualTo(0.275f).Within(0.003f));
             Assert.That(root.transform.position.y - before.y, Is.EqualTo(-0.2f).Within(0.003f));
+        }
+        finally { Object.DestroyImmediate(root); }
+    }
+
+    [Test]
+    public void RemotePlaybackUsesTheSamePoseAndWalkParametersAsLocalMovement()
+    {
+        var root = new GameObject("Remote motor test");
+        try
+        {
+            var character = new GameObject("Wizard");
+            character.transform.SetParent(root.transform);
+            var animator = character.AddComponent<Animator>();
+            animator.runtimeAnimatorController = AssetDatabase.LoadAssetAtPath<RuntimeAnimatorController>(
+                "Assets/Player/Animations/WizardLocomotion.controller");
+            var stats = root.AddComponent<PlayerCombatStats>();
+            var motor = root.AddComponent<PlayerMotor>();
+            Awake(motor);
+            stats.SetMoveSpeedModifier(root, 0.5f);
+            var playback = new MovePlayback(0.12f, 0.06f, 0.03f, 0f, 0f);
+            playback.Reset(Vector3.zero, 0f);
+            playback.Push(1.0, 2.0, Vector3.right * 2f, Vector3.right * 2.5f, 90f);
+            Assert.That(playback.Advance(2.0, 0.1f, out Vector3 position, out float yaw), Is.True);
+            motor.ApplyPose(position, yaw);
+            motor.Animate(playback.Velocity.normalized, 0.1f);
+            Assert.That(root.transform.position, Is.EqualTo(Vector3.right * 2f));
+            Assert.That(Vector3.Angle(root.transform.forward, Vector3.right), Is.LessThan(0.01f));
+            Assert.That(animator.GetFloat("MoveSpeed"), Is.EqualTo(2.5f));
+            Assert.That(animator.GetFloat("MoveX"), Is.EqualTo(0f).Within(0.001f));
+            Assert.That(animator.GetFloat("MoveZ"), Is.EqualTo(1f).Within(0.001f));
+            motor.StopAnimation();
+            Assert.That(animator.GetFloat("MoveSpeed"), Is.Zero);
         }
         finally { Object.DestroyImmediate(root); }
     }
