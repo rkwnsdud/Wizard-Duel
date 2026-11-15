@@ -85,17 +85,13 @@ public class PlayerMotorTests
     }
 
     [Test]
-    public void PlayerVariantsInheritTheMotorWithoutChangingNetworkBehaviourOrder()
+    public void CombatPrefabsHaveOneMotorWithoutChangingNetworkBehaviourOrder()
     {
-        foreach (string name in new[] { "Player", "Player-1", "Player-2", "DuelWizard-1", "DuelWizard-2" })
-        {
-            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Player/" + name + ".prefab");
-            Assert.That(prefab.GetComponent<PlayerMotor>(), Is.Not.Null, name);
-        }
         Assert.That(typeof(Unity.Netcode.NetworkBehaviour).IsAssignableFrom(typeof(PlayerMotor)), Is.False);
         foreach (string name in new[] { "DuelWizard-1", "DuelWizard-2" })
         {
             var prefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Player/" + name + ".prefab");
+            Assert.That(prefab.GetComponents<PlayerMotor>().Length, Is.EqualTo(1), name);
             CollectionAssert.AreEqual(new[] { typeof(DuelPlayer), typeof(PlayerStatusEffects), typeof(DuelMoveSync) },
                 System.Array.ConvertAll(prefab.GetComponents<Unity.Netcode.NetworkBehaviour>(), x => x.GetType()));
         }

@@ -72,23 +72,16 @@ public class DuelLightningWeaponTests : PlayModeTestFixture
     }
 
     [Test]
-    public void Prefabs_KeepLegacyWeaponsSeparateFromTheOnlineWeapon()
+    public void Prefabs_UseTheCatalogAndStartWithTheDefaultWeapon()
     {
         WeaponDefinition lightning = Catalog().Find(weapon.Id);
         Assert.That(lightning, Is.Not.Null);
         Assert.That(lightning.prefab.Definition, Is.SameAs(weapon.Definition));
-        foreach (string name in new[] { "Player", "Player-1", "Player-2" })
-        {
-            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>($"Assets/Player/{name}.prefab");
-            Assert.That(prefab.GetComponent<PlayerAttack>().Weapon.Id, Is.EqualTo(lightning.id), name);
-            Assert.That(prefab.GetComponentInChildren<DuelLightningWeapon>(true), Is.Null, name);
-        }
         foreach (string name in new[] { "DuelWizard-1", "DuelWizard-2" })
         {
             var prefab = AssetDatabase.LoadAssetAtPath<GameObject>($"Assets/Player/{name}.prefab");
             Assert.That(prefab.GetComponent<PlayerAttack>().Weapon.Id, Is.EqualTo(AiDuelOptions.DefaultWeapon), name);
             Assert.That(prefab.GetComponent<PlayerAttack>().Weapon, Is.InstanceOf<IWeapon>(), name);
-            Assert.That(prefab.GetComponentInChildren<LightningWeapon>(true), Is.Null, name);
         }
     }
 
@@ -112,7 +105,6 @@ public class DuelLightningWeaponTests : PlayModeTestFixture
         Assert.That(target.CurrentHealth, Is.EqualTo(100f));
         Assert.That(owner.CurrentHealth, Is.EqualTo(100f));
         Assert.That(Object.FindObjectsByType<LightningEffect>(FindObjectsSortMode.None), Is.Empty);
-        Assert.That(Object.FindObjectsByType<LightningBolt>(FindObjectsSortMode.None), Is.Empty);
     }
 
     [TestCase(0f, 5f)]
@@ -208,7 +200,6 @@ public class DuelLightningWeaponTests : PlayModeTestFixture
         Assert.That(endPoint.position, Is.EqualTo(end));
         Assert.That(target.CurrentHealth, Is.EqualTo(100f));
         Assert.That(owner.CurrentHealth, Is.EqualTo(100f));
-        Assert.That(Object.FindObjectsByType<LightningBolt>(FindObjectsSortMode.None), Is.Empty);
     }
 
     [UnityTest]

@@ -17,10 +17,9 @@ public class WeaponSeparationTests
     }
 
     [Test]
-    public void PrefabVariantsRetainTheirEquippedWeaponAndEvents()
+    public void CombatPrefabsRetainTheirEquippedWeaponAndEvents()
     {
         WeaponSeparationSetup.Validate();
-        WeaponSeparationSetup.ValidatePlayerTest();
     }
 
     [UnityTest, Category(TestSuites.PlayModeCategory)]

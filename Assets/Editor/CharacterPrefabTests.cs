@@ -1,6 +1,7 @@
 #if UNITY_INCLUDE_TESTS
 using NUnit.Framework;
 using UnityEditor;
+using Unity.Netcode;
 using UnityEngine;
 
 public class CharacterPrefabTests
@@ -55,6 +56,25 @@ public class CharacterPrefabTests
         }
         Assert.That(Load("DuelWizard-1").GetComponentInChildren<SkinnedMeshRenderer>(true).sharedMaterial,
             Is.Not.SameAs(Load("DuelWizard-2").GetComponentInChildren<SkinnedMeshRenderer>(true).sharedMaterial));
+    }
+
+    [Test]
+    public void NetworkListRegistersBothCombatPrefabsWithoutEmptyOrDuplicateEntries()
+    {
+        var list = AssetDatabase.LoadAssetAtPath<NetworkPrefabsList>("Assets/DefaultNetworkPrefabs.asset");
+        var prefabs = new System.Collections.Generic.HashSet<GameObject>();
+        var hashes = new System.Collections.Generic.HashSet<uint>();
+        foreach (var entry in list.PrefabList)
+        {
+            Assert.That(entry.Prefab, Is.Not.Null);
+            Assert.That(prefabs.Add(entry.Prefab), Is.True, entry.Prefab.name);
+            var networkObject = entry.Prefab.GetComponent<NetworkObject>();
+            Assert.That(networkObject, Is.Not.Null, entry.Prefab.name);
+            uint hash = new SerializedObject(networkObject).FindProperty("GlobalObjectIdHash").uintValue;
+            Assert.That(hash, Is.Not.Zero, entry.Prefab.name);
+            Assert.That(hashes.Add(hash), Is.True, entry.Prefab.name);
+        }
+        CollectionAssert.AreEquivalent(new[] { Load("DuelWizard-1"), Load("DuelWizard-2") }, prefabs);
     }
 
     static GameObject Load(string name) => AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Player/" + name + ".prefab");

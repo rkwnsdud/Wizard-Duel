@@ -3,7 +3,7 @@ using UnityEngine;
 using UnityEngine.UI;
 
 // A screen canvas is created only for the local player's inventory. The world-space
-// health and cooldown bars on Player.prefab remain separate.
+// health and cooldown bars on the combat prefab remain separate.
 [DisallowMultipleComponent]
 [RequireComponent(typeof(PlayerWeaponInventory))]
 public sealed class SecondaryWeaponHud : MonoBehaviour
