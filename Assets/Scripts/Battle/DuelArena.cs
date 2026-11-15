@@ -174,7 +174,7 @@ public sealed class DuelArena : MonoBehaviour
     // 무기 스폰 판은 시작할 때 들고 있는 무기를 읽어 가므로, 전투 중 줍기·교체와도 그대로 이어진다.
     void Equip(NetworkObject player, byte weapon)
     {
-        WeaponSpawnCatalog.Entry entry = weaponCatalog != null ? weaponCatalog.Find(weapon) : null;
+        WeaponDefinition entry = weaponCatalog != null ? weaponCatalog.Find(weapon) : null;
         if (entry == null || entry.prefab == null)
         {
             Debug.LogWarning($"[Arena] Weapon id={weapon} is not in the catalog. {player.name} keeps the prefab weapon.");

@@ -184,7 +184,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1db3c92e46b74f61a0c8210356749edf, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SecondaryWeaponHud
-  catalog: {fileID: 11400000, guid: 16336854107d7d949a7798c00fad3b20, type: 2}
+  catalog: {fileID: 11400000, guid: c9a5214f81cc43d89da7e25b81884f20, type: 2}
   fontAsset: {fileID: 11400000, guid: ef2ba2f6499fe014a9ef0560a9e09d61, type: 2}
 --- !u!1 &1569551498346581771
 GameObject:

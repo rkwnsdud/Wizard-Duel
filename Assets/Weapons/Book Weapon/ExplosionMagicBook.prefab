@@ -109,7 +109,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1e90246ae82306241b58df4822cf290c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ExplosionMagicWeapon
+  definition: {fileID: 11400000, guid: 69ae8ca6b9514a84686f6c55b612e2fe, type: 2}
   attackAnimation: {fileID: 7400000, guid: d18cafa2888d124469fc2eb9e115a7ea, type: 2}
+  attackAnimSpeed: 1
   attackCooldown: 1
   speed: 12
   range: 9

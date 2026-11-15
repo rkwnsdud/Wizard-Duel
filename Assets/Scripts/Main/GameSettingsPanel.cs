@@ -5,13 +5,12 @@ using UnityEngine.UI;
 
 // AI 대전 로비 화면의 "게임 설정" 탭. 내 무기, 상대 무기, AI 난이도를 고른다.
 // 고를 수 있는 무기와 순서는 전투 중 스폰되는 무기와 같은 카탈로그(WeaponSpawnCatalog)를 따르고,
-// 아이콘은 보조 무기 HUD의 카탈로그(SecondaryWeaponHudCatalog)에서 찾아 버튼에 넣는다.
+// 이름과 아이콘도 같은 무기 정의에서 읽는다.
 public class GameSettingsPanel : MonoBehaviour
 {
     public event Action<AiDuelOptions> Changed;
 
     [SerializeField] WeaponSpawnCatalog weapons;
-    [SerializeField] SecondaryWeaponHudCatalog weaponIcons;
     [SerializeField] SegmentedControl myWeapon;
     [Tooltip("내 무기 버튼의 아이콘. 버튼과 같은 순서다.")]
     [SerializeField] Image[] myWeaponIcons;
@@ -28,21 +27,12 @@ public class GameSettingsPanel : MonoBehaviour
     bool ready;
 
     public WeaponSpawnCatalog Weapons => weapons;
-    public SecondaryWeaponHudCatalog WeaponIcons => weaponIcons;
     // 무기 줄에 놓인 버튼 수. 카탈로그의 무기 수와 같아야 모두 고를 수 있다.
     public int WeaponButtonCount => Mathf.Min(myWeapon.Count, opponentWeapon.Count);
 
     // 화면에 보여 주는 무기 이름.
-    public static string NameOf(WeaponBase weapon) => weapon switch
-    {
-        BasicWandWeapon => "기본 완드",
-        DuelLightningWeapon => "번개 지팡이",
-        LightOrbWeapon => "빛 반사 구슬",
-        ExplosionMagicWeapon => "폭발 마법 책",
-        FireCenserWeapon => "화염 향로",
-        null => "",
-        _ => weapon.name
-    };
+    public static string NameOf(WeaponBase weapon) => weapon == null ? "" :
+        weapon.Definition != null ? weapon.Definition.displayName : weapon.name;
 
     // 로비 화면을 열 때 지금 고른 값을 받아 보여 준다.
     public void Open(AiDuelOptions current)
@@ -82,8 +72,7 @@ public class GameSettingsPanel : MonoBehaviour
     {
         for (int i = 0; i < icons.Length; i++)
         {
-            WeaponBase prefab = i < weapons.Entries.Length ? weapons.Entries[i].prefab : null;
-            SecondaryWeaponHudCatalog.Entry entry = prefab != null ? weaponIcons.Find(prefab) : null;
+            WeaponDefinition entry = i < weapons.Entries.Length ? weapons.Entries[i] : null;
             icons[i].sprite = entry != null ? entry.icon : null;
             icons[i].enabled = icons[i].sprite != null;
         }

@@ -13,23 +13,15 @@ public class AiDuelWeaponTests
         return AssetDatabase.LoadAssetAtPath<WeaponSpawnCatalog>(AssetDatabase.GUIDToAssetPath(guids[0]));
     }
 
-    static SecondaryWeaponHudCatalog Icons()
-    {
-        string[] guids = AssetDatabase.FindAssets("t:SecondaryWeaponHudCatalog");
-        Assert.That(guids, Is.Not.Empty, "SecondaryWeaponHudCatalog 에셋이 없다.");
-        return AssetDatabase.LoadAssetAtPath<SecondaryWeaponHudCatalog>(AssetDatabase.GUIDToAssetPath(guids[0]));
-    }
-
     [Test]
     public void EveryCatalogWeaponHasAnIconAndAName()
     {
-        SecondaryWeaponHudCatalog icons = Icons();
-        foreach (WeaponSpawnCatalog.Entry entry in Weapons().Entries)
+        foreach (WeaponDefinition entry in Weapons().Entries)
         {
             Assert.That(entry.prefab, Is.Not.Null, $"id={entry.id}");
-            SecondaryWeaponHudCatalog.Entry icon = icons.Find(entry.prefab);
-            Assert.That(icon, Is.Not.Null, entry.prefab.name);
-            Assert.That(icon.icon, Is.Not.Null, entry.prefab.name);
+            Assert.That(entry.prefab.Definition, Is.SameAs(entry), entry.prefab.name);
+            Assert.That(entry.icon, Is.Not.Null, entry.prefab.name);
+            Assert.That(entry.hudDisplayName, Is.Not.Empty, entry.prefab.name);
             // 한글 이름을 정해 두지 않은 무기는 프리팹 이름이 그대로 나온다.
             Assert.That(GameSettingsPanel.NameOf(entry.prefab), Is.Not.EqualTo(entry.prefab.name), entry.prefab.name);
         }
@@ -39,7 +31,7 @@ public class AiDuelWeaponTests
     [Test]
     public void EveryCatalogWeaponTellsTheBotItsReach()
     {
-        foreach (WeaponSpawnCatalog.Entry entry in Weapons().Entries)
+        foreach (WeaponDefinition entry in Weapons().Entries)
         {
             Assert.That(entry.prefab, Is.InstanceOf<IWeaponReach>(), entry.prefab.name);
             var reach = (IWeaponReach)entry.prefab;
@@ -102,7 +94,6 @@ public class AiDuelWeaponTests
         GameSettingsPanel panel = Object.FindFirstObjectByType<GameSettingsPanel>(FindObjectsInactive.Include);
         Assert.That(panel, Is.Not.Null);
         Assert.That(panel.Weapons, Is.Not.Null);
-        Assert.That(panel.WeaponIcons, Is.Not.Null);
         Assert.That(panel.WeaponButtonCount, Is.EqualTo(panel.Weapons.Entries.Length));
     }
 }

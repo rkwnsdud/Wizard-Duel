@@ -5,32 +5,20 @@ using TMPro;
 [CreateAssetMenu(menuName = "Wizard Duel/Weapon Spawn Catalog")]
 public sealed class WeaponSpawnCatalog : ScriptableObject
 {
-    [Serializable]
-    public sealed class Entry
-    {
-        public byte id;
-        public WeaponBase prefab;
-        public bool canSpawn = true;
-        public bool alignLongestAxis = true;
-        public Vector3 displayRotation;
-        [Min(.1f)] public float displaySize = 1f;
-        public float rotationSpeed = 30f;
-    }
-
-    [SerializeField] Entry[] entries = Array.Empty<Entry>();
-    public Entry[] Entries => entries;
+    [SerializeField] WeaponDefinition[] definitions = Array.Empty<WeaponDefinition>();
+    public WeaponDefinition[] Entries => definitions;
 
     [Header("Spawn notification")]
     public TMP_FontAsset notificationFont;
 
-    public Entry Find(byte id) => Array.Find(entries, entry => entry.id == id);
+    public WeaponDefinition Find(byte id) => Array.Find(definitions, definition => definition.id == id);
     public byte Identify(WeaponBase weapon)
     {
         if (weapon == null) return 0;
-        Entry entry = Array.Find(entries, item => item.prefab != null && item.prefab.GetType() == weapon.GetType());
-        return entry != null ? entry.id : (byte)0;
+        WeaponDefinition definition = Array.Find(definitions, item => item.prefab != null && item.prefab.GetType() == weapon.GetType());
+        return definition != null ? definition.id : (byte)0;
     }
 
-    public bool IsSpawnable(Entry entry) => entry != null && entry.canSpawn &&
-        entry.prefab != null && !(entry.prefab is BasicWandWeapon) && entry.prefab is IWeapon;
+    public bool IsSpawnable(WeaponDefinition definition) => definition != null && definition.canSpawn &&
+        definition.prefab != null && !(definition.prefab is BasicWandWeapon) && definition.prefab is IWeapon;
 }

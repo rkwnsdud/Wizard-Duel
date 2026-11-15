@@ -275,15 +275,7 @@ public sealed class DuelOfflineTest : MonoBehaviour
 
     static string WeaponLabel(WeaponBase weapon)
     {
-        string label = weapon switch
-        {
-            DuelLightningWeapon => "번개 지팡이",
-            ExplosionMagicWeapon => "폭발 마법 책",
-            FireCenserWeapon => "화염 향로",
-            LightOrbWeapon => "빛 반사 구슬",
-            BasicWandWeapon => "기본 완드",
-            _ => weapon.name,
-        };
+        string label = GameSettingsPanel.NameOf(weapon);
         return weapon is IWeapon ? label : label + " · 오프라인 판정";
     }
 }

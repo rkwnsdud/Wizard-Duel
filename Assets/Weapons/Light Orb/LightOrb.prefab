@@ -46,7 +46,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 739c3faa52f75ff4598a91019c6e0a45, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LightOrbWeapon
+  definition: {fileID: 11400000, guid: 0e1403742c31bb34cb8853b8dacabe61, type: 2}
   attackAnimation: {fileID: 7400000, guid: 2339c21bd5cb2da45b4051c7804bdee5, type: 2}
+  attackAnimSpeed: 1
   attackCooldown: 0.65
   coreFlashDuration: 0.18
   palmUpPose: 1

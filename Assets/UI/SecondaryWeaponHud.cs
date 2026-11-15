@@ -8,7 +8,7 @@ using UnityEngine.UI;
 [RequireComponent(typeof(PlayerWeaponInventory))]
 public sealed class SecondaryWeaponHud : MonoBehaviour
 {
-    [SerializeField] private SecondaryWeaponHudCatalog catalog;
+    [SerializeField] private WeaponSpawnCatalog catalog;
     [SerializeField] private TMP_FontAsset fontAsset;
 
     private PlayerWeaponInventory inventory;
@@ -90,7 +90,7 @@ public sealed class SecondaryWeaponHud : MonoBehaviour
         if (canvasObject == null) return;
 
         bool filled = storedWeapon != null;
-        SecondaryWeaponHudCatalog.Entry entry = filled && catalog != null ? catalog.Find(storedWeapon) : null;
+        WeaponDefinition entry = filled && catalog != null ? catalog.Find(storedWeapon.Id) : null;
         iconWell.SetActive(filled && entry != null && entry.icon != null);
         keyBadge.SetActive(filled);
         slotLabel.gameObject.SetActive(filled);
@@ -98,8 +98,8 @@ public sealed class SecondaryWeaponHud : MonoBehaviour
         nameText.rectTransform.anchoredPosition = filled ? new Vector2(3, -10) : Vector2.zero;
         nameText.alignment = filled ? TextAlignmentOptions.MidlineLeft : TextAlignmentOptions.Center;
         iconImage.sprite = entry != null ? entry.icon : null;
-        nameText.text = !filled ? "보조 무기 없음" : entry != null && !string.IsNullOrWhiteSpace(entry.displayName)
-            ? entry.displayName : storedWeapon.name.Replace("(Clone)", "").Trim();
+        nameText.text = !filled ? "보조 무기 없음" : entry != null && !string.IsNullOrWhiteSpace(entry.hudDisplayName)
+            ? entry.hudDisplayName : storedWeapon.name.Replace("(Clone)", "").Trim();
     }
 
     private static RectTransform Block(string name, Transform parent, Color color, Vector2 size, Vector2 position)

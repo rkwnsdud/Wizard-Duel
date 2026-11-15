@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: eeb9d166478b43f4586420b0de11a45b, type: 3}
+  m_Name: ExplosionMagicBook
+  m_EditorClassIdentifier: Assembly-CSharp::WeaponDefinition
+  id: 4
+  prefab: {fileID: 1264406045734964430, guid: 554d672bbaff32c47be49e14173c711f, type: 3}
+  displayName: "\uD3ED\uBC1C \uB9C8\uBC95 \uCC45"
+  hudDisplayName: Explosion Magic Book
+  icon: {fileID: 21300000, guid: 245cae59c528e354385fb9ff88576a87, type: 3}
+  canSpawn: 1
+  alignLongestAxis: 0
+  displayRotation: {x: 70, y: 0, z: -8}
+  displaySize: 1.125
+  rotationSpeed: 30
+  iconFile: ExplosionMagicBook
+  iconRotation: {x: -12, y: 25, z: 0}
+  iconMipmaps: 1

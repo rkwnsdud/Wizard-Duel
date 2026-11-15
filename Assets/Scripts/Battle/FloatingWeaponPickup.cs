@@ -11,7 +11,7 @@ public sealed class FloatingWeaponPickup : MonoBehaviour
     float floatHeight = Height;
     const float Height = 1.2f;
 
-    public void Initialize(NetworkManager network, WeaponSpawnCatalog.Entry entry, Vector3 position,
+    public void Initialize(NetworkManager network, WeaponDefinition entry, Vector3 position,
         double spawnTime, float degreesPerSecond = 30f)
     {
         manager = network;

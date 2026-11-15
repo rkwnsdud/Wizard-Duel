@@ -46,7 +46,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 23e8bdbba6a2e3e43894e0951db70f68, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BasicWandWeapon
+  definition: {fileID: 11400000, guid: 5723f373f5e642c41aec67aa6f23024a, type: 2}
   attackAnimation: {fileID: 7400000, guid: e81993474fd65134e8f3db5ebae0389b, type: 2}
+  attackAnimSpeed: 1
+  attackCooldown: 0.65
   projectilePrefab: {fileID: 6994755997327410476, guid: 04f79de036033c242a92428d90709764, type: 3}
   firePoint: {fileID: 7750225885826842543}
   basePoseController: {fileID: 9100000, guid: 02eb5397f0b14884dae5b4d49ddc4333, type: 2}

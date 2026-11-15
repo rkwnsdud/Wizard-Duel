@@ -9170,7 +9170,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GameSettingsPanel
   weapons: {fileID: 11400000, guid: c9a5214f81cc43d89da7e25b81884f20, type: 2}
-  weaponIcons: {fileID: 11400000, guid: 16336854107d7d949a7798c00fad3b20, type: 2}
   myWeapon: {fileID: 903273439}
   myWeaponIcons:
   - {fileID: 1790598584}

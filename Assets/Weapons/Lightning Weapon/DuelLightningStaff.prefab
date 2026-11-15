@@ -275,7 +275,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: b32d5660cd705464f8dd365832f135a3, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LightningPreview
   lineRenderer: {fileID: 2359928398387154430}
   previewColor: {r: 0.65, g: 0.91, b: 0.96, a: 1}
@@ -324,11 +324,14 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 0553436afbe21d14eafe39037be4396a, type: 3}
-  hitEffectPrefab: {fileID: 2965222256817593503, guid: a164e676dbbd6e54587237e619372c98, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DuelLightningWeapon
+  definition: {fileID: 11400000, guid: e099d7a4db0464443a363fe2327cc938, type: 2}
   attackAnimation: {fileID: 7400000, guid: 2339c21bd5cb2da45b4051c7804bdee5, type: 2}
+  attackAnimSpeed: 1
+  attackCooldown: 0.65
   effectPrefab: {fileID: 1002, guid: 35dcfaaedbf0467fa35f09e588890a42, type: 3}
+  hitEffectPrefab: {fileID: 2965222256817593503, guid: a164e676dbbd6e54587237e619372c98, type: 3}
   firePoint: {fileID: 3179100261422331543}
   preview: {fileID: 7363959964365926871}
   minRange: 2

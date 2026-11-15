@@ -2,6 +2,10 @@ using UnityEngine;
 
 public abstract class WeaponBase : MonoBehaviour
 {
+    [SerializeField] private WeaponDefinition definition;
+    public WeaponDefinition Definition => definition;
+    public byte Id => definition != null ? definition.id : (byte)0;
+
     [SerializeField, Tooltip("Cast clip for this weapon. Keep FireMagic and EndAttack animation events.")]
     private AnimationClip attackAnimation;
     public AnimationClip AttackAnimation => attackAnimation;

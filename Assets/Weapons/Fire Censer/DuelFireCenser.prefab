@@ -51,6 +51,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4fb0e3a37e5be654aa18b6fcb7a709f0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FireCenserWeapon
+  definition: {fileID: 11400000, guid: 9a0b1be369daf934ca44c76196f17ba2, type: 2}
   attackAnimation: {fileID: 7400000, guid: b078461af8fec2e4287b080b43eb2429, type: 2}
   attackAnimSpeed: 2
   attackCooldown: 3
