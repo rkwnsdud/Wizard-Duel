@@ -15,6 +15,9 @@ public class DuelLightningWeaponTests : PlayModeTestFixture
     DuelLightningWeapon weapon;
     PlayerHealth owner;
 
+    static WeaponSpawnCatalog Catalog() => AssetDatabase.LoadAssetAtPath<WeaponSpawnCatalog>(
+        "Assets/Scripts/Battle/WeaponSpawnCatalog.asset");
+
     sealed class ShotSink : IShotSink
     {
         public readonly List<ShotEvent> Shots = new List<ShotEvent>();
@@ -71,17 +74,20 @@ public class DuelLightningWeaponTests : PlayModeTestFixture
     [Test]
     public void Prefabs_KeepLegacyWeaponsSeparateFromTheOnlineWeapon()
     {
+        WeaponDefinition lightning = Catalog().Find(weapon.Id);
+        Assert.That(lightning, Is.Not.Null);
+        Assert.That(lightning.prefab.Definition, Is.SameAs(weapon.Definition));
         foreach (string name in new[] { "Player", "Player-1", "Player-2" })
         {
             var prefab = AssetDatabase.LoadAssetAtPath<GameObject>($"Assets/Player/{name}.prefab");
-            Assert.That(prefab.GetComponent<PlayerAttack>().Weapon.Id, Is.EqualTo(2), name);
+            Assert.That(prefab.GetComponent<PlayerAttack>().Weapon.Id, Is.EqualTo(lightning.id), name);
             Assert.That(prefab.GetComponentInChildren<DuelLightningWeapon>(true), Is.Null, name);
         }
         foreach (string name in new[] { "DuelWizard-1", "DuelWizard-2" })
         {
             var prefab = AssetDatabase.LoadAssetAtPath<GameObject>($"Assets/Player/{name}.prefab");
             Assert.That(prefab.GetComponent<PlayerAttack>().Weapon.Id, Is.EqualTo(AiDuelOptions.DefaultWeapon), name);
-            Assert.That(prefab.GetComponentsInChildren<WeaponBase>(true).Select(item => item.Id), Does.Contain(weapon.Id), name);
+            Assert.That(prefab.GetComponent<PlayerAttack>().Weapon, Is.InstanceOf<IWeapon>(), name);
             Assert.That(prefab.GetComponentInChildren<LightningWeapon>(true), Is.Null, name);
         }
     }
@@ -216,8 +222,9 @@ public class DuelLightningWeaponTests : PlayModeTestFixture
         var authority = new AttackAuthority();
         attack.Authority = authority;
         yield return null;
-        Assert.That(attack.TryEquipWeapon(attack.GetComponentsInChildren<WeaponBase>(true)
-            .Single(item => item.Id == weapon.Id)), Is.True);
+        // DuelWizard starts with a wand; additional weapons come from the catalog.
+        var lightning = Object.Instantiate(Catalog().Find(weapon.Id).prefab, attack.Weapon.transform.parent, false);
+        Assert.That(attack.TryEquipWeapon(lightning), Is.True);
         Assert.That(attack.Weapon.Id, Is.EqualTo(weapon.Id));
         typeof(PlayerAttack).GetMethod("CommitAttack", BindingFlags.Instance | BindingFlags.NonPublic)
             .Invoke(attack, new object[] { 0.75f });

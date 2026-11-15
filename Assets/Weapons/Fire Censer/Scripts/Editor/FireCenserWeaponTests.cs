@@ -169,7 +169,11 @@ public class FireCenserWeaponTests : PlayModeTestFixture
         Assert.That(zeroDirectionEffect, Is.Not.Null);
         effects.Add(zeroDirectionEffect);
 
-        yield return new WaitForSeconds(1f);
+        // EnterPlayMode does not make the EditMode runner wait on WaitForSeconds.
+        float cleanupAt = Time.time + 1f;
+        float deadline = Time.realtimeSinceStartup + 5f;
+        while (Time.time < cleanupAt && Time.realtimeSinceStartup < deadline) yield return null;
+        Assert.That(Time.time, Is.GreaterThanOrEqualTo(cleanupAt), "Runtime time must elapse before checking cleanup.");
         foreach (GameObject effect in effects)
             Assert.That(effect == null, Is.True);
         Object.Destroy(prefab);

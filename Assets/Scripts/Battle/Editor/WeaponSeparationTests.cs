@@ -47,6 +47,7 @@ public class WeaponSeparationTests
 
         Assert.That(attack.TryEquipWeapon(replacement), Is.True);
         Assert.That(originalWeapon.gameObject.activeSelf, Is.False);
+        var replacementController = animator.runtimeAnimatorController;
         attack.PlayAttack(.5f);
         Assert.That(animator.runtimeAnimatorController, Is.TypeOf<AnimatorOverrideController>());
         Assert.That(animator.runtimeAnimatorController.animationClips, Does.Contain(clip));
@@ -63,8 +64,8 @@ public class WeaponSeparationTests
         }
         Assert.That(authority.Fires, Is.EqualTo(1), "Animation event must not duplicate the shot");
         Assert.That(attack.IsAttacking, Is.False, "EndAttack must be delivered by the weapon clip");
-        Assert.That(animator.runtimeAnimatorController, Is.SameAs(originalController),
-            "Release the cast override so Basic Wand can acquire the idle controller");
+        Assert.That(animator.runtimeAnimatorController, Is.SameAs(replacementController),
+            "Release the cast override back to the equipped weapon's pose controller");
 
         Assert.That(attack.TryEquipWeapon(originalWeapon), Is.True);
         Assert.That(animator.runtimeAnimatorController, Is.SameAs(originalController));
