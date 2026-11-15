@@ -319,10 +319,10 @@ public class MapRendererCombineTests
         serialized.FindProperty("backgroundRoot").objectReferenceValue = backgroundObject.transform;
         Fill(serialized.FindProperty("floorFillVariants"), Variants<GameObject>("Assets/map/Floors/Floor-{0}.prefab", 4));
         Fill(serialized.FindProperty("pillarVariants"),
-            Load<GameObject>("Assets/AssetsPack/map_parts/FBX/Bush_1x1.fbx"),
-            Load<GameObject>("Assets/AssetsPack/map_parts/FBX/Chest.fbx"),
-            Load<GameObject>("Assets/AssetsPack/map_parts/FBX/DeadTree_1.fbx"));
-        Fill(serialized.FindProperty("torchVariants"), Load<GameObject>("Assets/AssetsPack/map_parts/FBX/Torch.fbx"));
+            Load<GameObject>("Assets/ThirdParty/MapParts/FBX/Bush_1x1.fbx"),
+            Load<GameObject>("Assets/ThirdParty/MapParts/FBX/Chest.fbx"),
+            Load<GameObject>("Assets/ThirdParty/MapParts/FBX/DeadTree_1.fbx"));
+        Fill(serialized.FindProperty("torchVariants"), Load<GameObject>("Assets/ThirdParty/MapParts/FBX/Torch.fbx"));
         serialized.FindProperty("rimOffsetCells").intValue = rimOffsetCells;
         serialized.FindProperty("decoOffsetCells").intValue = decoOffsetCells;
         serialized.FindProperty("floorRotation").FindPropertyRelative("yawMode").enumValueIndex = 1;
