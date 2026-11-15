@@ -16,9 +16,7 @@ public sealed class DuelOfflineTest : MonoBehaviour
     [SerializeField] NetworkObject dummyPrefab;
     [Tooltip("더미가 쓰러진 뒤 다시 세우기까지 기다리는 시간.")]
     [SerializeField, Min(0f)] float dummyRespawnDelay = 1.5f;
-    [Tooltip("무기 변경 패널에 더할 무기 프리팹. 플레이어를 세울 때마다 WeaponSocket에 꺼진 채로 넣는다(같은 이름이 이미 있으면 건너뛴다). " +
-             "IWeapon이 아닌 무기는 그 무기를 든 동안만 무기 자체의 오프라인 판정으로 쏜다.")]
-    [SerializeField] WeaponBase[] extraWeapons = System.Array.Empty<WeaponBase>();
+    [SerializeField] WeaponSpawnCatalog weaponCatalog;
 
     DuelPlayer player;
     DuelPlayer dummy;
@@ -26,8 +24,6 @@ public sealed class DuelOfflineTest : MonoBehaviour
     PlayerBushVisibility dummyVisibility;
     // 더미가 서 있는 부시 덩어리 번호. -1이면 스폰 자리다.
     int dummyBush = -1;
-    // 프리팹에 저장된 더미 레이어. 오프라인 판정 무기를 든 동안만 Player 레이어로 바꾼다.
-    int dummyLayer;
     // 0보다 작으면 예약이 없다.
     float combatAt = -1f;
     float dummyRespawnAt = -1f;
@@ -94,7 +90,6 @@ public sealed class DuelOfflineTest : MonoBehaviour
         }
 
         EquipSelectedWeapon();
-        SyncFireMode();
     }
 
     void EquipSelectedWeapon()
@@ -108,18 +103,7 @@ public sealed class DuelOfflineTest : MonoBehaviour
         }
         // 공격·차징 중이거나 쓰러져 있으면 거절되므로 다음 프레임에 다시 시도한다.
         if (playerAttack.TryEquipWeapon(target))
-            Debug.Log($"[OfflineTest] Equipped {target.name}{(target is IWeapon ? "" : " (offline fire)")}", this);
-    }
-
-    // DuelPlayer는 IWeapon이 아닌 무기의 발사를 건너뛴다. 그런 무기를 든 동안은 Authority를 비워
-    // PlayerAttack이 무기의 Fire()를 직접 부르게 한다(피해는 서버를 거치지 않고 이 화면에서만 들어간다).
-    // 그런 무기의 투사체는 Player 레이어만 맞히는데 대전 캐릭터는 Default 레이어라서, 그동안만 더미를 Player 레이어로 옮긴다.
-    // 온라인 무기는 Main과 같은 Authority·레이어로 시험한다. 다시 세우면 DuelPlayer가 Authority를 넣으므로 매 프레임 맞춘다.
-    void SyncFireMode()
-    {
-        bool online = playerAttack.CurrentWeapon is IWeapon;
-        playerAttack.Authority = online ? player : null;
-        if (dummy != null) dummy.gameObject.layer = online ? dummyLayer : LayerMask.NameToLayer("Player");
+            Debug.Log($"[OfflineTest] Equipped id={target.Id} {target.name}", this);
     }
 
     // 꺼진 부모 아래에서 만들어, 소켓에 붙기 전에 무기의 Awake·OnEnable이 돌지 않게 한다.
@@ -129,9 +113,10 @@ public sealed class DuelOfflineTest : MonoBehaviour
         if (socket == null) return;
         var holder = new GameObject("Offline test weapon holder");
         holder.SetActive(false);
-        foreach (WeaponBase prefab in extraWeapons)
+        foreach (WeaponDefinition definition in weaponCatalog.Entries)
         {
-            if (prefab == null || socket.Find(prefab.name) != null) continue;
+            WeaponBase prefab = definition.prefab;
+            if (System.Array.Exists(playerAttack.GetComponentsInChildren<WeaponBase>(true), weapon => weapon.Id == definition.id)) continue;
             WeaponBase weapon = Instantiate(prefab, holder.transform, false);
             weapon.name = prefab.name;
             weapon.gameObject.SetActive(false);
@@ -152,7 +137,8 @@ public sealed class DuelOfflineTest : MonoBehaviour
         player.NetworkObject.SpawnAsPlayerObject(manager.LocalClientId);
         playerAttack = player.GetComponent<PlayerAttack>();
         AddExtraWeapons();
-        weapons = playerAttack.GetComponentsInChildren<WeaponBase>(true);
+        var children = playerAttack.GetComponentsInChildren<WeaponBase>(true);
+        weapons = System.Array.ConvertAll(weaponCatalog.Entries, definition => System.Array.Find(children, weapon => weapon.Id == definition.id));
 
         combatAt = Time.time + player.SpawnEffectDuration;
         FollowPlayer();
@@ -166,7 +152,6 @@ public sealed class DuelOfflineTest : MonoBehaviour
         dummy = Spawn(dummyPrefab, 1);
         dummy.NetworkObject.Spawn();
         dummy.name = "Dummy (Player-2)";
-        dummyLayer = dummy.gameObject.layer;
         dummy.Defeated += OnDummyDefeated;
         dummyHealth = dummy.GetComponent<PlayerHealth>();
         dummyVisibility = dummy.GetComponent<PlayerBushVisibility>();
@@ -268,14 +253,9 @@ public sealed class DuelOfflineTest : MonoBehaviour
             Rect row = new Rect(panel.x + 8f, panel.y + 40f + i * (WeaponRowHeight + 4f), panel.width - 16f, WeaponRowHeight);
             Color previous = GUI.backgroundColor;
             if (equipped) GUI.backgroundColor = new Color(1f, 0.7f, 0.3f);
-            if (GUI.Button(row, $"{i + 1}. {WeaponLabel(weapon)}{state}", weaponButtonStyle)) selectedWeapon = weapon.Id;
+            if (GUI.Button(row, $"{i + 1}. {GameSettingsPanel.NameOf(weapon)}{state}", weaponButtonStyle)) selectedWeapon = weapon.Id;
             GUI.backgroundColor = previous;
         }
     }
 
-    static string WeaponLabel(WeaponBase weapon)
-    {
-        string label = GameSettingsPanel.NameOf(weapon);
-        return weapon is IWeapon ? label : label + " · 오프라인 판정";
-    }
 }

@@ -20,10 +20,8 @@ public class ArcaneBoltProjectile : MonoBehaviour
     {
         float moveDistance = Mathf.Min(speed * Time.deltaTime, maxRange - distanceTraveled);
 
-        // DuelWizard uses Default; legacy PlayerTest characters use Player.
-        int collisionMask = mask.value | (1 << 0);
         RaycastHit[] hits = Physics.SphereCastAll(transform.position, hitRadius, transform.forward,
-                            moveDistance, collisionMask, QueryTriggerInteraction.Ignore);
+                            moveDistance, mask, QueryTriggerInteraction.Ignore);
 
         System.Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
 

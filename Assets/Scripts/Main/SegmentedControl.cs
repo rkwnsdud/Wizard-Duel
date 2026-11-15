@@ -43,25 +43,28 @@ public class SegmentedControl : MonoBehaviour
     {
         int previousCount = buttons.Length;
         Button template = buttons[0];
+        int iconIndex = icons[0].transform.GetSiblingIndex();
         for (int i = sprites.Length; i < previousCount; i++)
         {
             buttons[i].gameObject.SetActive(false);
             Destroy(buttons[i].gameObject);
         }
         Array.Resize(ref buttons, sprites.Length);
-        icons = new Graphic[sprites.Length];
+        Array.Resize(ref icons, sprites.Length);
         for (int i = 0; i < sprites.Length; i++)
         {
             if (i >= previousCount)
             {
                 buttons[i] = Instantiate(template, template.transform.parent);
+                buttons[i].onClick = new Button.ButtonClickedEvent();
+                icons[i] = buttons[i].transform.GetChild(iconIndex).GetComponent<Image>();
                 if (ready)
                 {
                     int index = i;
                     buttons[i].onClick.AddListener(() => Select(index));
                 }
             }
-            var icon = buttons[i].transform.GetChild(0).GetComponent<Image>();
+            var icon = (Image)icons[i];
             icon.sprite = sprites[i];
             icon.enabled = sprites[i] != null;
             icons[i] = icon;

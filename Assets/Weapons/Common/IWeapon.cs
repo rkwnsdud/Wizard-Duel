@@ -5,9 +5,8 @@ using UnityEngine;
 public interface IWeapon
 {
     // Called once by the attack owner at FireMagic. Non-charging weapons receive 0.
-    // Report damage only through sink.Hit; never call PlayerHealth.TakeDamage or
-    // apply local damage directly. A moving projectile retains this attackId
-    // and report its eventual hit through the same sink.
+    // Report damage only through sink.Hit. A moving projectile retains this
+    // attackId and reports its eventual hit through the same sink.
     void Fire(uint attackId, Vector3 direction, float charge, IShotSink sink);
     // Visuals only on both clients (including the owner). Do not run hit detection
     // or apply damage from Present.

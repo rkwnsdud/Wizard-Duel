@@ -79,10 +79,7 @@ public class LightOrbProjectile : MonoBehaviour
 
         Vector3 nextPoint = currentPoint + direction * moveDistance; 
 
-        // DuelWizard characters use Default; legacy PlayerTest characters use Player.
-        // Apply the same collision mask to the authoritative and visual-only beams.
-        int collisionMask = hitMask.value | (1 << 0);
-        RaycastHit[] hits = Physics.RaycastAll(currentPoint, direction, moveDistance, collisionMask,
+        RaycastHit[] hits = Physics.RaycastAll(currentPoint, direction, moveDistance, hitMask,
             QueryTriggerInteraction.Ignore);
         
         // 가까운 순서대로 정렬

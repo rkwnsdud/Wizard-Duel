@@ -369,7 +369,6 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 002f3340d68dd7d4f80591072eb0c4bb, type: 3}
-  hitEffectPrefab: {fileID: 2944396702758532163, guid: e190bf97c041e58448af6b043116cba0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LightOrbProjectile
   beamCore: {fileID: 4522455890971518933}
@@ -380,9 +379,10 @@ MonoBehaviour:
     m_Bits: 1536
   hitMask:
     serializedVersion: 2
-    m_Bits: 1544
+    m_Bits: 1545
   maxReflections: 3
   reflectPrefab: {fileID: 2944396702758532163, guid: 1f45b785e6b84ea591d3984740d320d3, type: 3}
   beamGlow: {fileID: 6049892847002474729}
   damage: 10
   damageIncreaseRate: 0.5
+  hitEffectPrefab: {fileID: 2944396702758532163, guid: e190bf97c041e58448af6b043116cba0, type: 3}

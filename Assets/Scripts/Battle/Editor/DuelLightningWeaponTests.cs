@@ -80,7 +80,8 @@ public class DuelLightningWeaponTests : PlayModeTestFixture
         foreach (string name in new[] { "DuelWizard-1", "DuelWizard-2" })
         {
             var prefab = AssetDatabase.LoadAssetAtPath<GameObject>($"Assets/Player/{name}.prefab");
-            Assert.That(prefab.GetComponent<PlayerAttack>().Weapon.Id, Is.EqualTo(2), name);
+            Assert.That(prefab.GetComponent<PlayerAttack>().Weapon.Id, Is.EqualTo(AiDuelOptions.DefaultWeapon), name);
+            Assert.That(prefab.GetComponentsInChildren<WeaponBase>(true).Select(item => item.Id), Does.Contain(weapon.Id), name);
             Assert.That(prefab.GetComponentInChildren<LightningWeapon>(true), Is.Null, name);
         }
     }
@@ -215,7 +216,9 @@ public class DuelLightningWeaponTests : PlayModeTestFixture
         var authority = new AttackAuthority();
         attack.Authority = authority;
         yield return null;
-        Assert.That(attack.Weapon.Id, Is.EqualTo(2));
+        Assert.That(attack.TryEquipWeapon(attack.GetComponentsInChildren<WeaponBase>(true)
+            .Single(item => item.Id == weapon.Id)), Is.True);
+        Assert.That(attack.Weapon.Id, Is.EqualTo(weapon.Id));
         typeof(PlayerAttack).GetMethod("CommitAttack", BindingFlags.Instance | BindingFlags.NonPublic)
             .Invoke(attack, new object[] { 0.75f });
         Assert.That(attack.IsAttacking, Is.True);

@@ -42,8 +42,9 @@ public class WeaponIdentityTests
         finally { Object.DestroyImmediate(root); }
     }
 
-    [Test]
-    public void WeaponButtonsGrowWithTheDefinitionListAndSelectTheirOwnIndex()
+    [TestCase(false)]
+    [TestCase(true)]
+    public void WeaponButtonsGrowWithTheDefinitionListAndSelectTheirOwnIndex(bool alreadyInitialized)
     {
         var root = new GameObject("Weapon choices");
         root.SetActive(false);
@@ -52,13 +53,19 @@ public class WeaponIdentityTests
             var button = new GameObject("Template", typeof(RectTransform), typeof(Image), typeof(Button));
             button.transform.SetParent(root.transform);
             button.GetComponent<Button>().targetGraphic = button.GetComponent<Image>();
-            new GameObject("Icon", typeof(RectTransform), typeof(Image)).transform.SetParent(button.transform);
+            var border = new GameObject("Border", typeof(RectTransform), typeof(Image));
+            border.transform.SetParent(button.transform);
+            var icon = new GameObject("Icon", typeof(RectTransform), typeof(Image));
+            icon.transform.SetParent(button.transform);
             var control = root.AddComponent<SegmentedControl>();
             var serialized = new SerializedObject(control);
             serialized.FindProperty("buttons").arraySize = 1;
             serialized.FindProperty("buttons").GetArrayElementAtIndex(0).objectReferenceValue = button.GetComponent<Button>();
+            serialized.FindProperty("icons").arraySize = 1;
+            serialized.FindProperty("icons").GetArrayElementAtIndex(0).objectReferenceValue = icon.GetComponent<Image>();
             serialized.ApplyModifiedPropertiesWithoutUndo();
             var definitions = Catalog().Entries;
+            if (alreadyInitialized) control.SetIcons(new[] { definitions[0].icon });
             control.SetIcons(System.Array.ConvertAll(definitions, definition => definition.icon));
             Assert.That(control.Count, Is.EqualTo(definitions.Length));
             int changes = 0;
@@ -67,7 +74,8 @@ public class WeaponIdentityTests
             for (int i = 0; i < buttons.Length; i++)
             {
                 Assert.That(buttons[i].GetComponentInChildren<Image>().sprite, Is.Null);
-                Assert.That(buttons[i].transform.GetChild(0).GetComponent<Image>().sprite, Is.SameAs(definitions[i].icon));
+                Assert.That(buttons[i].transform.GetChild(0).GetComponent<Image>().sprite, Is.Null, "Border stays separate from the weapon icon.");
+                Assert.That(buttons[i].transform.GetChild(1).GetComponent<Image>().sprite, Is.SameAs(definitions[i].icon));
                 buttons[i].onClick.Invoke();
                 Assert.That(control.Value, Is.EqualTo(i));
             }

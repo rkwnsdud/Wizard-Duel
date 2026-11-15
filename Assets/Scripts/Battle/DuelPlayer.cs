@@ -139,12 +139,11 @@ public sealed class DuelPlayer : NetworkBehaviour, IAttackAuthority, IShotSink
     void IAttackAuthority.FireMagic(float chargeRatio)
     {
         if (!IsSpawned || !IsOwner || !combatEnabled.Value || playerHealth.IsDead) return;
-        // Use the attack-start snapshot, just like the offline path. Unsupported
-        // online weapons must not fall back to local damage/projectile logic.
+        // Fire the weapon captured at attack start through the shared sink contract.
         IWeapon weapon = attack.AttackingWeapon as IWeapon;
         if (weapon == null)
         {
-            Debug.LogWarning("DuelPlayer: attacking weapon does not implement online IWeapon; shot skipped.", this);
+            Debug.LogWarning("DuelPlayer: attacking weapon does not implement IWeapon; shot skipped.", this);
             return;
         }
         Physics.SyncTransforms();
