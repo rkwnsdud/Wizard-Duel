@@ -26,6 +26,7 @@ public sealed class DuelMatch
     public MapLayout Layout { get; }
     public Matrix4x4 WorldToMap { get; }
     public int PlayerCount => Players.Count;
+    public bool CombatEnded { get; internal set; }
 
     internal readonly List<NetworkObject> Players = new List<NetworkObject>();
     internal readonly List<DuelPlayer> Duelists = new List<DuelPlayer>();
@@ -225,6 +226,7 @@ public sealed class DuelArena : MonoBehaviour
     public void EndCombat(DuelMatch match)
     {
         if (match == null) return;
+        match.CombatEnded = true;
         Weapons?.EndRound(match);
         if (match.Combat != null) StopCoroutine(match.Combat);
         match.Combat = null;
@@ -237,6 +239,7 @@ public sealed class DuelArena : MonoBehaviour
     public void Clear(DuelMatch match)
     {
         if (match == null) return;
+        match.CombatEnded = true;
         Weapons?.Clear(match);
         if (match.Combat != null) StopCoroutine(match.Combat);
         match.Combat = null;

@@ -40,9 +40,13 @@ public sealed class DuelPlayer : NetworkBehaviour, IAttackAuthority, IShotSink
     Vector3 previousPosition;
     // 서버에만 있다.
     DuelCombatState combat;
+    readonly ServerAttackHistory serverAttackHistory = new ServerAttackHistory();
+    bool combatEnded;
     // 오프라인 테스트의 더미가 받은 것처럼 재생하는 공격의 번호.
     uint simulatedAttackId;
     DuelBot bot;
+
+    internal bool IsServerCombatEnded => combatEnded || (Match != null && Match.CombatEnded);
 
     void Awake()
     {
@@ -67,6 +71,14 @@ public sealed class DuelPlayer : NetworkBehaviour, IAttackAuthority, IShotSink
             inventory.NetworkAuthority = arena.Weapons;
         if (IsServer)
         {
+            combatEnded = false;
+            serverAttackHistory.Clear();
+            RecordServerHeldWeapon(attack != null ? attack.CurrentWeapon : null);
+            if (attack != null)
+            {
+                attack.EquippedWeaponChanged -= OnServerEquippedWeaponChanged;
+                attack.EquippedWeaponChanged += OnServerEquippedWeaponChanged;
+            }
             combat = new DuelCombatState(slot, playerHealth.MaxHealth);
             health.Value = combat.Health;
         }
@@ -86,6 +98,7 @@ public sealed class DuelPlayer : NetworkBehaviour, IAttackAuthority, IShotSink
     {
         Debug.Log($"[Player] Despawned slot={slot} owner={OwnerClientId}.");
         if (TryGetComponent(out SecondaryWeaponHud hud)) hud.Hide();
+        if (attack != null) attack.EquippedWeaponChanged -= OnServerEquippedWeaponChanged;
         combatEnabled.OnValueChanged -= OnCombatEnabledChanged;
         health.OnValueChanged -= OnHealthChanged;
         // Authority는 그대로 둔다. 디스폰 뒤 Destroy 전에 남은 애니메이션 이벤트가 오프라인 공격으로 빠지지 않고 아래에서 무시된다.
@@ -100,6 +113,7 @@ public sealed class DuelPlayer : NetworkBehaviour, IAttackAuthority, IShotSink
     public void ServerEnableCombat()
     {
         if (!IsServer || !IsSpawned) return;
+        RecordServerHeldWeapon(attack != null ? attack.CurrentWeapon : null);
         combatEnabled.Value = true;
     }
 
@@ -107,6 +121,7 @@ public sealed class DuelPlayer : NetworkBehaviour, IAttackAuthority, IShotSink
     public void ServerDisableCombat()
     {
         if (!IsServer || !IsSpawned) return;
+        combatEnded = true;
         combatEnabled.Value = false;
         ClearServerStatusEffects();
     }
@@ -117,13 +132,30 @@ public sealed class DuelPlayer : NetworkBehaviour, IAttackAuthority, IShotSink
         if (!IsSpawned || !IsOwner || !combatEnabled.Value || playerHealth.IsDead) return;
         // 봇의 공격 시작을 받을 상대 클라이언트가 없으므로, 받은 쪽이 세던 부시 노출을 여기서 센다.
         if (IsBot && bushVisibility != null) bushVisibility.Reveal();
+        if (IsServer) RecordServerStartedAttack(attackInfo);
         PlayAttackRpc(attackInfo.Id, attackInfo.WeaponId, chargeRatio);
     }
 
     [Rpc(SendTo.NotOwner, InvokePermission = RpcInvokePermission.Owner)]
     void PlayAttackRpc(uint attackId, byte weaponId, float chargeRatio)
     {
-        if (IsClient) ReceiveAttack(new AttackInfo(attackId, weaponId), chargeRatio);
+        var attackInfo = new AttackInfo(attackId, weaponId);
+        if (IsServer) RecordServerStartedAttack(attackInfo);
+        if (IsClient) ReceiveAttack(attackInfo, chargeRatio);
+    }
+
+    void OnServerEquippedWeaponChanged() => RecordServerHeldWeapon(attack != null ? attack.CurrentWeapon : null);
+
+    void RecordServerHeldWeapon(WeaponBase weapon)
+    {
+        if (IsServer && weapon != null) serverAttackHistory.RecordWeapon(weapon.Id);
+    }
+
+    void RecordServerStartedAttack(AttackInfo attackInfo)
+    {
+        if (!IsServer || !IsSpawned || IsServerCombatEnded || !combatEnabled.Value) return;
+        if (combat != null && combat.IsDefeated) return;
+        serverAttackHistory.RecordAttack(attackInfo);
     }
 
     // 오프라인 테스트 전용. 더미는 호스트 소유라 PlayAttackRpc를 받는 클라이언트가 없으므로, 받은 것처럼 같은 처리를 한다.
@@ -178,13 +210,19 @@ public sealed class DuelPlayer : NetworkBehaviour, IAttackAuthority, IShotSink
     [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Owner)]
     void ReportHitRpc(NetworkObjectReference target, uint attackId, byte weaponId, int hitIndex, float damage)
     {
-        DuelPlayer player = ResolveTarget(target);
+        if (!IsServer || !IsSpawned) return;
+        DuelPlayer player = ResolveTarget(target, out string targetLabel);
+        var attackInfo = new AttackInfo(attackId, weaponId);
         var request = new ServerHitReport.Request
         {
             IsStatusTick = false,
             AttackerCombatEnabled = combatEnabled.Value,
-            HasTarget = player != null && player.combat != null,
+            AttackerRoundEnded = IsServerCombatEnded,
+            TargetRoundEnded = player != null && player.IsServerCombatEnded,
+            HasTarget = player != null && player.IsSpawned && player.combat != null,
             SameMatch = player != null && player.Match == Match,
+            AttackerHeldWeapon = serverAttackHistory.HasHeldWeapon(weaponId),
+            KnownStartedAttack = serverAttackHistory.HasStartedAttack(attackInfo),
             AttackerSlot = slot,
             AttackId = attackId,
             WeaponId = weaponId,
@@ -192,11 +230,17 @@ public sealed class DuelPlayer : NetworkBehaviour, IAttackAuthority, IShotSink
             Damage = damage,
             TargetCombat = player != null ? player.combat : null,
         };
-        if (ServerHitReport.TryApply(in request, out bool defeatedNow) != HitReportDecision.Accepted) return;
+        HitReportDecision decision = ServerHitReport.TryApply(in request, out bool defeatedNow);
+        if (decision != HitReportDecision.Accepted)
+        {
+            Debug.Log(ServerHitReport.FormatDropLog(
+                false, decision, slot, targetLabel, attackId, weaponId, hitIndex, damage));
+            return;
+        }
         Debug.Log($"[Combat] Hit slot={player.slot} attacker={slot} id={attackId} weapon={weaponId} hit={hitIndex} health={player.combat.Health:F3}");
         player.health.Value = player.combat.Health;
         // 피해량은 쏜 쪽 보고대로, 적중 효과는 보고에 실린 쏜 무기로 정한다. 서버도 지금 든 무기를 보지 않는다.
-        PlayerWeaponPassiveController.NotifyServerHit(attack, new AttackInfo(attackId, weaponId), this, player);
+        PlayerWeaponPassiveController.NotifyServerHit(attack, attackInfo, this, player);
         if (defeatedNow)
         {
             player.ClearServerStatusEffects();
@@ -213,6 +257,7 @@ public sealed class DuelPlayer : NetworkBehaviour, IAttackAuthority, IShotSink
         var request = new ServerHitReport.Request
         {
             IsStatusTick = true,
+            TargetRoundEnded = IsServerCombatEnded,
             HasTarget = combat != null,
             AttackerSlot = attackerSlot,
             AttackId = dotAttackId,
@@ -220,7 +265,15 @@ public sealed class DuelPlayer : NetworkBehaviour, IAttackAuthority, IShotSink
             Damage = damage,
             TargetCombat = combat,
         };
-        if (ServerHitReport.TryApply(in request, out bool defeatedNow) != HitReportDecision.Accepted) return;
+        HitReportDecision decision = ServerHitReport.TryApply(in request, out bool defeatedNow);
+        if (decision != HitReportDecision.Accepted)
+        {
+            Debug.Log(ServerHitReport.FormatDropLog(
+                true, decision, attackerSlot, slot.ToString(), dotAttackId, 0, tickIndex, damage));
+            if (decision == HitReportDecision.RoundEnded || decision == HitReportDecision.TargetAlreadyDefeated)
+                ClearServerStatusEffects();
+            return;
+        }
         Debug.Log($"[Combat] DoT slot={slot} attacker={attackerSlot} id={dotAttackId} tick={tickIndex} health={combat.Health:F3}");
         health.Value = combat.Health;
         if (defeatedNow)
@@ -230,12 +283,21 @@ public sealed class DuelPlayer : NetworkBehaviour, IAttackAuthority, IShotSink
         }
     }
 
-    DuelPlayer ResolveTarget(NetworkObjectReference target)
+    DuelPlayer ResolveTarget(NetworkObjectReference target, out string targetLabel)
     {
-        if (NetworkManager == null || NetworkManager.SpawnManager == null) return null;
-        return target.TryGet(out NetworkObject obj, NetworkManager) && obj.TryGetComponent(out DuelPlayer player)
-            ? player
-            : null;
+        if (NetworkManager == null || NetworkManager.SpawnManager == null ||
+            !target.TryGet(out NetworkObject obj, NetworkManager))
+        {
+            targetLabel = $"missing(netId={target.NetworkObjectId})";
+            return null;
+        }
+        if (!obj.TryGetComponent(out DuelPlayer player))
+        {
+            targetLabel = $"invalid(netId={target.NetworkObjectId})";
+            return null;
+        }
+        targetLabel = player.slot.ToString();
+        return player;
     }
 
     /// <summary>서버에서 적중 패시브가 상태이상을 건다. 공격자 슬롯을 그대로 쓴다.</summary>

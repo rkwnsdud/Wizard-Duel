@@ -47,7 +47,7 @@ public sealed class PlayerStatusEffects : NetworkBehaviour
     void Update()
     {
         if (!IsServer || !IsSpawned) return;
-        if (playerHealth != null && playerHealth.IsDead)
+        if ((playerHealth != null && playerHealth.IsDead) || (duelPlayer != null && duelPlayer.IsServerCombatEnded))
         {
             if (State.BurnActive || slowActive) ServerClearAll();
             return;
@@ -65,7 +65,7 @@ public sealed class PlayerStatusEffects : NetworkBehaviour
     public void ServerApplyBurn(int attackerSlot, float tickDamage, int tickCount, float duration)
     {
         if (!IsServer || !IsSpawned) return;
-        if (playerHealth != null && playerHealth.IsDead) return;
+        if ((playerHealth != null && playerHealth.IsDead) || (duelPlayer != null && duelPlayer.IsServerCombatEnded)) return;
         if (!State.ApplyBurn(attackerSlot, tickDamage, tickCount, duration, Time.time)) return;
         if (IsSpawned) burnVisible.Value = true;
     }
@@ -75,7 +75,7 @@ public sealed class PlayerStatusEffects : NetworkBehaviour
     {
         if (!IsServer || !IsSpawned) return;
         if (multiplier <= 0f || multiplier >= 1f || duration <= 0f) return;
-        if (playerHealth != null && playerHealth.IsDead) return;
+        if ((playerHealth != null && playerHealth.IsDead) || (duelPlayer != null && duelPlayer.IsServerCombatEnded)) return;
         slowActive = true;
         slowExpiryTime = Time.time + duration;
         slowMultiplierNet.Value = Mathf.Clamp(multiplier, 0.01f, 1f);
