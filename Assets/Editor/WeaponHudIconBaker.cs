@@ -52,7 +52,7 @@ public static class WeaponHudIconBaker
         {
             if (!Application.isBatchMode)
                 throw new InvalidOperationException("Open a saved scene before baking weapon icons.");
-            EditorSceneManager.OpenScene("Assets/Scenes/NetworkDemo.unity", OpenSceneMode.Single);
+            EditorSceneManager.OpenScene("Assets/Scenes/Main.unity", OpenSceneMode.Single);
         }
         Scene captureScene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Additive);
         try

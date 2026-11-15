@@ -12,25 +12,18 @@ using Debug = UnityEngine.Debug;
 // Remote Client는 로컬 서버 대신 원격 리눅스 서버(RemoteServerAddress)에 접속하는 클라이언트를 띄운다.
 public class NetworkTestWindow : EditorWindow
 {
-    const string NetworkDemoScenePath = "Assets/Scenes/NetworkDemo.unity";
-    const string NetworkDemoExePath = "Build/NetworkTest/WizardDuel.exe";
-    const string NetworkDemoLogDir = "Logs/NetworkTest";
     const string MainScenePath = "Assets/Scenes/Main.unity";
-    const string MainExePath = "Build/LobbyTest/WizardDuel.exe";
-    const string MainLogDir = "Logs/LobbyTest";
+    const string ExePath = "Build/LobbyTest/WizardDuel.exe";
+    const string LogDir = "Logs/LobbyTest";
     const string ServerArgs = "-batchmode -nographics -server";
     const string ClientWindowArgs = "-screen-fullscreen 0 -screen-width 1280 -screen-height 720";
     const string LocalServerAddress = "127.0.0.1";
     // Deploy/Server로 띄운 리눅스 전용 서버. Main 씬 서버라 Main 빌드로만 접속한다.
     const string RemoteServerAddress = "limeskin.kr";
     const string RunningKey = "NetworkTestWindow.Running";
-    const string ModeKey = "NetworkTestWindow.Mode";
-
-    enum TestMode { Main, NetworkDemo }
 
     // 플레이 모드 진입(도메인 리로드)으로 비워지면 SessionState에 남긴 "이름:PID"로 다시 찾는다.
     static List<(string name, Process process)> running;
-    TestMode mode;
     bool outdated;
 
     [MenuItem("Tools/Wizard Duel/Network Test")]
@@ -39,11 +32,7 @@ public class NetworkTestWindow : EditorWindow
     [InitializeOnLoadMethod]
     static void CloseOnQuit() => EditorApplication.quitting += () => Running().ForEach(entry => Kill(entry.process));
 
-    void OnEnable()
-    {
-        mode = (TestMode)SessionState.GetInt(ModeKey, (int)TestMode.Main);
-        OnFocus();
-    }
+    void OnEnable() => OnFocus();
 
     // 빌드 뒤에 바뀐 에셋이 있으면 다시 빌드하라고 표시한다.
     void OnFocus() => outdated = File.Exists(ExePath) && Directory.EnumerateFiles("Assets", "*", SearchOption.AllDirectories)
@@ -66,37 +55,27 @@ public class NetworkTestWindow : EditorWindow
 
     void OnGUI()
     {
-        GUI.enabled = Running().Count == 0;
-        TestMode selectedMode = (TestMode)EditorGUILayout.EnumPopup("Mode", mode);
-        if (selectedMode != mode)
-        {
-            mode = selectedMode;
-            SessionState.SetInt(ModeKey, (int)mode);
-            OnFocus();
-        }
-        selectedMode = mode;
-
         bool built = File.Exists(ExePath);
         bool serverRunning = Running().Exists(entry => entry.name == "server");
         GUILayout.Label(!built ? "No test build yet." : $"Build {File.GetLastWriteTime(ExePath):MM-dd HH:mm}" + (outdated ? " (assets changed since)" : ""));
 
         // 실행 중에는 exe가 잠겨 있어 다시 빌드할 수 없다.
         GUI.enabled = Running().Count == 0 && !EditorApplication.isPlayingOrWillChangePlaymode;
-        if (GUILayout.Button("Build")) EditorApplication.delayCall += () => Build(selectedMode);
+        if (GUILayout.Button("Build")) EditorApplication.delayCall += Build;
 
         GUILayout.BeginHorizontal();
         GUI.enabled = built && !serverRunning;
-        if (GUILayout.Button("Server")) EditorApplication.delayCall += () => Launch(selectedMode, "server", ServerArgs);
+        if (GUILayout.Button("Server")) EditorApplication.delayCall += () => Launch("server", ServerArgs);
         GUI.enabled = built;
-        if (GUILayout.Button("Client")) EditorApplication.delayCall += () => LaunchClient(selectedMode);
+        if (GUILayout.Button("Client")) EditorApplication.delayCall += () => LaunchClient();
         GUI.enabled = built && !serverRunning;
-        if (GUILayout.Button("1v1")) EditorApplication.delayCall += () => { Launch(selectedMode, "server", ServerArgs); LaunchClient(selectedMode); LaunchClient(selectedMode); };
+        if (GUILayout.Button("1v1")) EditorApplication.delayCall += () => { Launch("server", ServerArgs); LaunchClient(); LaunchClient(); };
         GUILayout.EndHorizontal();
 
         // 원격 서버와 같은 커밋으로 빌드한 클라이언트여야 접속이 거절되지 않는다.
-        GUI.enabled = built && selectedMode == TestMode.Main;
+        GUI.enabled = built;
         if (GUILayout.Button($"Remote Client ({RemoteServerAddress})"))
-            EditorApplication.delayCall += () => LaunchClient(selectedMode, "remote", RemoteServerAddress);
+            EditorApplication.delayCall += () => LaunchClient("remote", RemoteServerAddress);
 
         GUI.enabled = true;
         foreach (var (name, process) in Running())
@@ -116,30 +95,27 @@ public class NetworkTestWindow : EditorWindow
         GUI.enabled = true;
     }
 
-    void Build(TestMode selectedMode)
+    void Build()
     {
         if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo()) return;
-        string scenePath = selectedMode == TestMode.Main ? MainScenePath : NetworkDemoScenePath;
-        string exePath = ExePathFor(selectedMode);
-        var report = BuildPipeline.BuildPlayer(new[] { scenePath }, exePath, BuildTarget.StandaloneWindows64, BuildOptions.Development);
-        Debug.Log($"[NetworkTest] Build {report.summary.result}: {Path.GetFullPath(exePath)}");
+        var report = BuildPipeline.BuildPlayer(new[] { MainScenePath }, ExePath, BuildTarget.StandaloneWindows64, BuildOptions.Development);
+        Debug.Log($"[NetworkTest] Build {report.summary.result}: {Path.GetFullPath(ExePath)}");
         OnFocus();
     }
 
     // 이름 뒤 번호는 같은 접두어끼리 늘린다(client1, client2 / remote1, remote2). 로그도 이 이름으로 남는다.
-    static void LaunchClient(TestMode selectedMode, string prefix = "client", string address = LocalServerAddress)
+    static void LaunchClient(string prefix = "client", string address = LocalServerAddress)
     {
         int number = 1;
         while (Running().Exists(entry => entry.name == $"{prefix}{number}")) number++;
-        Launch(selectedMode, $"{prefix}{number}", $"-join {address} {ClientWindowArgs}");
+        Launch($"{prefix}{number}", $"-join {address} {ClientWindowArgs}");
     }
 
-    static void Launch(TestMode selectedMode, string name, string args)
+    static void Launch(string name, string args)
     {
-        string logDir = LogDirFor(selectedMode);
-        Directory.CreateDirectory(logDir);
-        string log = Path.GetFullPath($"{logDir}/{name}.log");
-        var startInfo = new ProcessStartInfo(Path.GetFullPath(ExePathFor(selectedMode)), $"{args} -logFile \"{log}\"")
+        Directory.CreateDirectory(LogDir);
+        string log = Path.GetFullPath($"{LogDir}/{name}.log");
+        var startInfo = new ProcessStartInfo(Path.GetFullPath(ExePath), $"{args} -logFile \"{log}\"")
         {
             UseShellExecute = false,
             WindowStyle = name == "server" ? ProcessWindowStyle.Hidden : ProcessWindowStyle.Normal
@@ -147,12 +123,6 @@ public class NetworkTestWindow : EditorWindow
         Running().Add((name, Process.Start(startInfo)));
         Save();
     }
-
-    string ExePath => ExePathFor(mode);
-    string LogDir => LogDirFor(mode);
-
-    static string ExePathFor(TestMode selectedMode) => selectedMode == TestMode.Main ? MainExePath : NetworkDemoExePath;
-    static string LogDirFor(TestMode selectedMode) => selectedMode == TestMode.Main ? MainLogDir : NetworkDemoLogDir;
 
     static void Kill(Process process)
     {
