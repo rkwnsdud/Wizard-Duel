@@ -17,7 +17,7 @@ public sealed class LobbyClient
     bool inLobby;
     bool createdRoom;
     bool notifyClosed;
-    bool messagesRegistered;
+    NamedMessageGroup messageHandlers;
     string requestedCode;
     string disconnectReason;
     float snapshotDeadline;
@@ -55,6 +55,10 @@ public sealed class LobbyClient
     public bool HasLocalPlayer => inLobby && getManager().LocalClient != null && getManager().LocalClient.PlayerObject != null;
 
     bool MapGenerated => getArena() != null && getArena().HasMap;
+    NamedMessageGroup MessageHandlers => messageHandlers ??= new NamedMessageGroup(
+        LobbyMessages.Snapshot.Bind(OnSnapshot),
+        LobbyMessages.Error.Bind(OnError),
+        LobbyMessages.StartRejected.Bind(OnStartRejected));
 
     public void Tick(float now)
     {
@@ -85,13 +89,13 @@ public sealed class LobbyClient
             SettingsRejected?.Invoke(reason);
             return;
         }
-        NetworkManager manager = getManager();
-        using var writer = new FastBufferWriter(LobbyNetwork.BufferSize, Allocator.Temp);
         requestedSettingsRevision++;
-        writer.WriteValueSafe(requestedSettingsRevision);
-        writer.WriteNetworkSerializable(new NetworkMapSettings(settings.Map));
-        manager.CustomMessagingManager.SendNamedMessage(LobbyNetwork.SettingsMessage, NetworkManager.ServerClientId,
-            writer, NetworkDelivery.ReliableSequenced);
+        uint revision = requestedSettingsRevision;
+        LobbyMessages.Settings.Send(getManager(), NetworkManager.ServerClientId, writer =>
+        {
+            writer.WriteValueSafe(revision);
+            writer.WriteNetworkSerializable(new NetworkMapSettings(settings.Map));
+        });
     }
 
     // 방장이 상대와 함께 로비 단계에 있을 때 한 번만 보낸다. 승인은 전투 준비 스냅샷으로, 거절은 같은 번호의 응답으로 온다.
@@ -99,12 +103,9 @@ public sealed class LobbyClient
     {
         if (!IsHost || closing || startPending || !currentSnapshot.OpponentPresent ||
             currentSnapshot.Phase != LobbyPhase.Lobby) return false;
-        NetworkManager manager = getManager();
-        using var writer = new FastBufferWriter(LobbyNetwork.BufferSize, Allocator.Temp);
         requestedStart++;
-        writer.WriteValueSafe(requestedStart);
-        manager.CustomMessagingManager.SendNamedMessage(LobbyNetwork.StartMessage, NetworkManager.ServerClientId,
-            writer, NetworkDelivery.ReliableSequenced);
+        uint request = requestedStart;
+        LobbyMessages.Start.Send(getManager(), NetworkManager.ServerClientId, writer => writer.WriteValueSafe(request));
         startPending = true;
         Debug.Log($"[Lobby] Start requested code={currentSnapshot.Code} request={requestedStart} " +
             $"revision={currentSnapshot.SettingsRevision} seed={currentSnapshot.Settings.Seed}");
@@ -146,7 +147,7 @@ public sealed class LobbyClient
         currentSnapshot = default;
         connecting = true;
         snapshotDeadline = Time.realtimeSinceStartup + manager.NetworkConfig.ClientConnectionBufferTimeout + 5;
-        using var writer = new FastBufferWriter(LobbyNetwork.BufferSize, Allocator.Temp);
+        using var writer = new FastBufferWriter(LobbyMessages.BufferSize, Allocator.Temp);
         writer.WriteNetworkSerializable(new LobbyJoinRequest(createRoom, code, settings));
         manager.NetworkConfig.ConnectionData = writer.ToArray();
         transport.SetConnectionData(serverAddress, port);
@@ -164,25 +165,14 @@ public sealed class LobbyClient
         NetworkManager manager = getManager();
         DuelArena arena = getArena();
         if (arena != null && manager != null) arena.RegisterWeaponMessages(manager);
-        if (messagesRegistered || manager == null || manager.CustomMessagingManager == null) return;
-        manager.CustomMessagingManager.RegisterNamedMessageHandler(LobbyNetwork.SnapshotMessage, OnSnapshot);
-        manager.CustomMessagingManager.RegisterNamedMessageHandler(LobbyNetwork.ErrorMessage, OnError);
-        manager.CustomMessagingManager.RegisterNamedMessageHandler(LobbyNetwork.StartRejectedMessage, OnStartRejected);
-        messagesRegistered = true;
+        MessageHandlers.Register(manager);
     }
 
     public void UnregisterMessages()
     {
-        NetworkManager manager = getManager();
         DuelArena arena = getArena();
         if (arena != null) arena.UnregisterWeaponMessages();
-        if (messagesRegistered && manager != null && manager.CustomMessagingManager != null)
-        {
-            manager.CustomMessagingManager.UnregisterNamedMessageHandler(LobbyNetwork.SnapshotMessage);
-            manager.CustomMessagingManager.UnregisterNamedMessageHandler(LobbyNetwork.ErrorMessage);
-            manager.CustomMessagingManager.UnregisterNamedMessageHandler(LobbyNetwork.StartRejectedMessage);
-        }
-        messagesRegistered = false;
+        MessageHandlers.Unregister();
     }
 
     public void OnDisconnected()
@@ -203,39 +193,36 @@ public sealed class LobbyClient
     {
         if (IsServerMode || closing || (!connecting && !inLobby) || senderId != NetworkManager.ServerClientId) return;
         NetworkManager manager = getManager();
-        NetworkLobbySnapshot snapshot;
+        NetworkLobbySnapshot snapshot = default;
         LobbyPhase previousPhase = currentSnapshot.Phase;
         uint previousRound = currentSnapshot.Round;
-        try
+        if (!LobbyMessages.Snapshot.TryRead(reader, r =>
         {
-            if (reader.Length - reader.Position > LobbyNetwork.BufferSize)
-                throw new InvalidOperationException(LobbyNetwork.InvalidRequest);
-            reader.ReadNetworkSerializable(out snapshot);
+            r.ReadNetworkSerializable(out snapshot);
             bool isHost = snapshot.HostClientId == manager.LocalClientId;
             // 시작된 방에는 새로 들어갈 수 없다. 한 판 안에서 단계는 되돌아가지 않고, 결과 뒤에만 다음 판 로비로 돌아간다.
             bool matchesRequest = createdRoom == isHost && (createdRoom || snapshot.Code == requestedCode) &&
                 snapshot.Phase == LobbyPhase.Lobby;
             bool matchesCurrentRoom = snapshot.Follows(currentSnapshot);
-            if (reader.Position != reader.Length || !snapshot.IsValidFor(manager.LocalClientId) ||
+            if (!snapshot.IsValidFor(manager.LocalClientId) ||
                 !(inLobby ? matchesCurrentRoom : matchesRequest) || (isHost && snapshot.SettingsRevision > requestedSettingsRevision))
                 throw new InvalidOperationException(LobbyNetwork.InvalidRequest);
-            connecting = false;
-            inLobby = true;
-            currentSnapshot = snapshot;
-            settledSettingsRevision = Math.Max(settledSettingsRevision, snapshot.SettingsRevision);
-            if (snapshot.Phase != LobbyPhase.Lobby) startPending = false;
-            Debug.Log($"[Lobby] Joined code={snapshot.Code} host={IsHost} " +
-                $"members={(snapshot.OpponentPresent ? 2 : 1)} round={snapshot.Round} phase={snapshot.Phase} " +
-                $"winner={(snapshot.Phase == LobbyPhase.Result ? snapshot.WinnerSlot.ToString() : "none")} " +
-                $"revision={snapshot.SettingsRevision} seed={snapshot.Settings.Seed} " +
-                $"playerobjects={manager.SpawnManager?.PlayerObjects.Count ?? 0} mapgenerated={MapGenerated}");
-        }
-        catch (Exception exception)
+            return true;
+        }, "[Lobby] Invalid snapshot"))
         {
-            Debug.LogWarning($"[Lobby] Invalid snapshot: {exception.Message}");
             StopClient(LobbyNetwork.InvalidRequest, false);
             return;
         }
+        connecting = false;
+        inLobby = true;
+        currentSnapshot = snapshot;
+        settledSettingsRevision = Math.Max(settledSettingsRevision, snapshot.SettingsRevision);
+        if (snapshot.Phase != LobbyPhase.Lobby) startPending = false;
+        Debug.Log($"[Lobby] Joined code={snapshot.Code} host={IsHost} " +
+            $"members={(snapshot.OpponentPresent ? 2 : 1)} round={snapshot.Round} phase={snapshot.Phase} " +
+            $"winner={(snapshot.Phase == LobbyPhase.Result ? snapshot.WinnerSlot.ToString() : "none")} " +
+            $"revision={snapshot.SettingsRevision} seed={snapshot.Settings.Seed} " +
+            $"playerobjects={manager.SpawnManager?.PlayerObjects.Count ?? 0} mapgenerated={MapGenerated}");
         DuelArena arena = getArena();
         // 다음 판 로비로 돌아왔다. 플레이어는 서버가 디스폰하므로 여기서는 이번 판의 전투 맵만 지운다.
         if (snapshot.Round != previousRound && arena != null) arena.Clear();
@@ -247,17 +234,16 @@ public sealed class LobbyClient
     bool SendMapReady(NetworkLobbySnapshot snapshot)
     {
         DuelArena arena = getArena();
-        NetworkManager manager = getManager();
         if (arena == null || !arena.Build(snapshot.Settings.ToSettings()))
         {
             StopClient(LobbyNetwork.MapFailed, false);
             return false;
         }
-        using var writer = new FastBufferWriter(LobbyNetwork.BufferSize, Allocator.Temp);
-        writer.WriteValueSafe(snapshot.SettingsRevision);
-        writer.WriteValueSafe(arena.Fingerprint);
-        manager.CustomMessagingManager.SendNamedMessage(LobbyNetwork.MapReadyMessage, NetworkManager.ServerClientId,
-            writer, NetworkDelivery.ReliableSequenced);
+        LobbyMessages.MapReady.Send(getManager(), NetworkManager.ServerClientId, writer =>
+        {
+            writer.WriteValueSafe(snapshot.SettingsRevision);
+            writer.WriteValueSafe(arena.Fingerprint);
+        });
         Debug.Log($"[Lobby] Battle map ready code={snapshot.Code} revision={snapshot.SettingsRevision} " +
             $"seed={snapshot.Settings.Seed} fingerprint={arena.Fingerprint}");
         return true;
@@ -266,22 +252,16 @@ public sealed class LobbyClient
     void OnError(ulong senderId, FastBufferReader reader)
     {
         if (IsServerMode || closing || !inLobby || senderId != NetworkManager.ServerClientId) return;
-        uint revision;
-        string reason;
-        try
+        uint revision = 0;
+        string reason = null;
+        if (!LobbyMessages.Error.TryRead(reader, r =>
         {
-            if (reader.Length - reader.Position > LobbyNetwork.BufferSize)
+            r.ReadValueSafe(out revision);
+            r.ReadValueSafe(out reason);
+            if (revision > requestedSettingsRevision)
                 throw new InvalidOperationException(LobbyNetwork.InvalidRequest);
-            reader.ReadValueSafe(out revision);
-            reader.ReadValueSafe(out reason);
-            if (reader.Position != reader.Length || revision > requestedSettingsRevision)
-                throw new InvalidOperationException(LobbyNetwork.InvalidRequest);
-        }
-        catch (Exception exception)
-        {
-            Debug.LogWarning($"[Lobby] Invalid error message: {exception.Message}");
-            return;
-        }
+            return true;
+        }, "[Lobby] Invalid error message")) return;
         settledSettingsRevision = Math.Max(settledSettingsRevision, revision);
         Debug.Log($"[Lobby] Settings rejected revision={revision}: {reason}");
         SettingsRejected?.Invoke(reason);
@@ -290,22 +270,16 @@ public sealed class LobbyClient
     void OnStartRejected(ulong senderId, FastBufferReader reader)
     {
         if (IsServerMode || closing || !inLobby || senderId != NetworkManager.ServerClientId) return;
-        uint request;
-        string reason;
-        try
+        uint request = 0;
+        string reason = null;
+        if (!LobbyMessages.StartRejected.TryRead(reader, r =>
         {
-            if (reader.Length - reader.Position > LobbyNetwork.BufferSize)
+            r.ReadValueSafe(out request);
+            r.ReadValueSafe(out reason);
+            if (request > requestedStart)
                 throw new InvalidOperationException(LobbyNetwork.InvalidRequest);
-            reader.ReadValueSafe(out request);
-            reader.ReadValueSafe(out reason);
-            if (reader.Position != reader.Length || request > requestedStart)
-                throw new InvalidOperationException(LobbyNetwork.InvalidRequest);
-        }
-        catch (Exception exception)
-        {
-            Debug.LogWarning($"[Lobby] Invalid start rejection: {exception.Message}");
-            return;
-        }
+            return true;
+        }, "[Lobby] Invalid start rejection")) return;
         // 이미 승인되었거나 더 새 요청을 기다리는 중이면 늦게 온 거절을 무시한다.
         if (!startPending || request != requestedStart) return;
         startPending = false;

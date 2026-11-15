@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using Unity.Collections;
 using Unity.Netcode;
 using UnityEngine;
 
@@ -110,49 +109,52 @@ public sealed class WeaponSpawnServer
     {
         NetworkManager manager = getManager();
         if (manager == null || !manager.IsServer) return;
-        try
+        uint requestedEpoch = 0;
+        uint request = 0;
+        byte action = 0;
+        uint pickup = 0;
+        if (!ArenaWeaponSpawner.RequestChannel.TryRead(reader, r =>
         {
-            reader.ReadValueSafe(out uint requestedEpoch);
-            reader.ReadValueSafe(out uint request);
-            reader.ReadValueSafe(out byte action);
-            reader.ReadValueSafe(out uint pickup);
-            if (reader.Position != reader.Length || action > 1) return;
-            if (!manager.ConnectedClients.TryGetValue(sender, out var client) || client.PlayerObject == null) return;
-            var player = client.PlayerObject.GetComponent<DuelPlayer>();
-            if (player == null || !serverPlayers.TryGetValue(player.NetworkObjectId, out var room) ||
-                player.Match != room.Match || !room.Slots.TryGetValue(player.NetworkObjectId, out var state)) return;
-            if (room.ProcessedRequests.TryGetValue(sender, out uint previous) && request <= previous)
-            { SendSnapshot(room, sender, request); return; }
-            room.ProcessedRequests[sender] = request;
-            if (requestedEpoch != room.Epoch || !room.Drops.Running || !player.CanUseInventory)
-            { SendSnapshot(room, sender, request); return; }
-            var inventory = player.GetComponent<PlayerWeaponInventory>();
-            if (!player.GetComponent<PlayerAttack>().CanChangeWeapon)
-            { SendSnapshot(room, sender, request); return; }
+            r.ReadValueSafe(out requestedEpoch);
+            r.ReadValueSafe(out request);
+            r.ReadValueSafe(out action);
+            r.ReadValueSafe(out pickup);
+            return action <= 1;
+        }, "[WeaponSpawn] Invalid request")) return;
+        if (!manager.ConnectedClients.TryGetValue(sender, out var client) || client.PlayerObject == null) return;
+        var player = client.PlayerObject.GetComponent<DuelPlayer>();
+        if (player == null || !serverPlayers.TryGetValue(player.NetworkObjectId, out var room) ||
+            player.Match != room.Match || !room.Slots.TryGetValue(player.NetworkObjectId, out var state)) return;
+        if (room.ProcessedRequests.TryGetValue(sender, out uint previous) && request <= previous)
+        { SendSnapshot(room, sender, request); return; }
+        room.ProcessedRequests[sender] = request;
+        if (requestedEpoch != room.Epoch || !room.Drops.Running || !player.CanUseInventory)
+        { SendSnapshot(room, sender, request); return; }
+        var inventory = player.GetComponent<PlayerWeaponInventory>();
+        if (!player.GetComponent<PlayerAttack>().CanChangeWeapon)
+        { SendSnapshot(room, sender, request); return; }
 
-            WeaponSlotState next = state;
-            if (action == 1)
-            {
-                if (state.Stored == 0) { SendSnapshot(room, sender, request); return; }
-                next.Equipped = state.Stored;
-                next.Stored = state.Equipped;
-            }
-            else
-            {
-                if (!room.Drops.Drops.TryGetValue(pickup, out var drop) ||
-                    !InReach(room, player.transform.position, drop.Ground) ||
-                    drop.Weapon == state.Equipped || drop.Weapon == state.Stored)
-                { SendSnapshot(room, sender, request); return; }
-                if (state.Stored == 0) next.Stored = drop.Weapon;
-                else next.Equipped = drop.Weapon;
-            }
-            if (!ArenaWeaponSpawner.ApplySlots(getCatalog(), inventory, next)) { SendSnapshot(room, sender, request); return; }
-            room.Slots[state.Player] = next;
-            if (action == 0) room.Drops.Remove(pickup); // One server transaction: grant before remove, no double claim.
-            room.Revision++;
-            Broadcast(room, sender, request);
+        WeaponSlotState next = state;
+        if (action == 1)
+        {
+            if (state.Stored == 0) { SendSnapshot(room, sender, request); return; }
+            next.Equipped = state.Stored;
+            next.Stored = state.Equipped;
         }
-        catch (Exception exception) { Debug.LogWarning("[WeaponSpawn] Invalid request: " + exception.Message); }
+        else
+        {
+            if (!room.Drops.Drops.TryGetValue(pickup, out var drop) ||
+                !InReach(room, player.transform.position, drop.Ground) ||
+                drop.Weapon == state.Equipped || drop.Weapon == state.Stored)
+            { SendSnapshot(room, sender, request); return; }
+            if (state.Stored == 0) next.Stored = drop.Weapon;
+            else next.Equipped = drop.Weapon;
+        }
+        if (!ArenaWeaponSpawner.ApplySlots(getCatalog(), inventory, next)) { SendSnapshot(room, sender, request); return; }
+        room.Slots[state.Player] = next;
+        if (action == 0) room.Drops.Remove(pickup); // One server transaction: grant before remove, no double claim.
+        room.Revision++;
+        Broadcast(room, sender, request);
     }
 
     bool SiteAvailable(ServerRound state, Vector3 position)
@@ -188,31 +190,28 @@ public sealed class WeaponSpawnServer
 
     void SendSnapshot(ServerRound state, ulong recipient, uint acknowledgement)
     {
-        NetworkManager manager = getManager();
-        // Disconnect callbacks can run after Netcode has disposed its messaging system.
-        if (manager == null || manager.ShutdownInProgress || manager.CustomMessagingManager == null) return;
-        using var writer = new FastBufferWriter(4096, Allocator.Temp);
-        writer.WriteValueSafe(state.Epoch);
-        writer.WriteValueSafe(state.Revision);
-        writer.WriteValueSafe(acknowledgement);
-        writer.WriteValueSafe(state.Drops.Running);
-        writer.WriteValueSafe(state.Drops.Drops.Count);
-        foreach (var pair in state.Drops.Drops)
+        ArenaWeaponSpawner.SnapshotChannel.Send(getManager(), recipient, writer =>
         {
-            var drop = pair.Value;
-            writer.WriteValueSafe(drop.Id);
-            writer.WriteValueSafe(drop.Weapon);
-            writer.WriteValueSafe(drop.Ground);
-            writer.WriteValueSafe(drop.Born);
-        }
-        writer.WriteValueSafe(state.Slots.Count);
-        foreach (var pair in state.Slots)
-        {
-            writer.WriteValueSafe(pair.Value.Player);
-            writer.WriteValueSafe(pair.Value.Equipped);
-            writer.WriteValueSafe(pair.Value.Stored);
-        }
-        manager.CustomMessagingManager.SendNamedMessage(ArenaWeaponSpawner.SnapshotMessage, recipient, writer,
-            NetworkDelivery.ReliableSequenced);
+            writer.WriteValueSafe(state.Epoch);
+            writer.WriteValueSafe(state.Revision);
+            writer.WriteValueSafe(acknowledgement);
+            writer.WriteValueSafe(state.Drops.Running);
+            writer.WriteValueSafe(state.Drops.Drops.Count);
+            foreach (var pair in state.Drops.Drops)
+            {
+                var drop = pair.Value;
+                writer.WriteValueSafe(drop.Id);
+                writer.WriteValueSafe(drop.Weapon);
+                writer.WriteValueSafe(drop.Ground);
+                writer.WriteValueSafe(drop.Born);
+            }
+            writer.WriteValueSafe(state.Slots.Count);
+            foreach (var pair in state.Slots)
+            {
+                writer.WriteValueSafe(pair.Value.Player);
+                writer.WriteValueSafe(pair.Value.Equipped);
+                writer.WriteValueSafe(pair.Value.Stored);
+            }
+        });
     }
 }

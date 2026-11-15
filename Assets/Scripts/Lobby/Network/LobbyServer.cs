@@ -19,7 +19,7 @@ public sealed class LobbyServer
     LobbyDirectory directory;
     bool closing;
     bool restartRequested;
-    bool messagesRegistered;
+    NamedMessageGroup messageHandlers;
 
     public LobbyServer(
         Func<NetworkManager> getManager,
@@ -38,6 +38,11 @@ public sealed class LobbyServer
     public bool IsClosing => closing;
 
     LobbyDirectory Directory => directory ??= new LobbyDirectory(Mathf.Max(1, getMaxRooms()));
+
+    NamedMessageGroup MessageHandlers => messageHandlers ??= new NamedMessageGroup(
+        LobbyMessages.Settings.Bind(OnSettings),
+        LobbyMessages.Start.Bind(OnStart),
+        LobbyMessages.MapReady.Bind(OnMapReady));
 
     public void Start(ushort port)
     {
@@ -84,25 +89,14 @@ public sealed class LobbyServer
         NetworkManager manager = getManager();
         DuelArena arena = getArena();
         if (arena != null && manager != null) arena.RegisterWeaponMessages(manager);
-        if (messagesRegistered || manager == null || manager.CustomMessagingManager == null) return;
-        manager.CustomMessagingManager.RegisterNamedMessageHandler(LobbyNetwork.SettingsMessage, OnSettings);
-        manager.CustomMessagingManager.RegisterNamedMessageHandler(LobbyNetwork.StartMessage, OnStart);
-        manager.CustomMessagingManager.RegisterNamedMessageHandler(LobbyNetwork.MapReadyMessage, OnMapReady);
-        messagesRegistered = true;
+        MessageHandlers.Register(manager);
     }
 
     public void UnregisterMessages()
     {
-        NetworkManager manager = getManager();
         DuelArena arena = getArena();
         if (arena != null) arena.UnregisterWeaponMessages();
-        if (messagesRegistered && manager != null && manager.CustomMessagingManager != null)
-        {
-            manager.CustomMessagingManager.UnregisterNamedMessageHandler(LobbyNetwork.SettingsMessage);
-            manager.CustomMessagingManager.UnregisterNamedMessageHandler(LobbyNetwork.StartMessage);
-            manager.CustomMessagingManager.UnregisterNamedMessageHandler(LobbyNetwork.MapReadyMessage);
-        }
-        messagesRegistered = false;
+        MessageHandlers.Unregister();
     }
 
     public void ApproveConnection(NetworkManager.ConnectionApprovalRequest request,
@@ -113,7 +107,7 @@ public sealed class LobbyServer
         response.Pending = false;
         response.Approved = false;
         response.Reason = LobbyNetwork.InvalidRequest;
-        if (closing || request.Payload == null || request.Payload.Length > LobbyNetwork.BufferSize) return;
+        if (closing || request.Payload == null || request.Payload.Length > LobbyMessages.BufferSize) return;
         ExpireReservations(Time.realtimeSinceStartup);
         try
         {
@@ -180,10 +174,12 @@ public sealed class LobbyServer
         LobbySession session = room.Session;
         NetworkLobbySnapshot snapshot = session.Snapshot;
         snapshot.SettingsRevision = room.SettingsRevision;
-        using var writer = new FastBufferWriter(LobbyNetwork.BufferSize, Allocator.Temp);
-        writer.WriteNetworkSerializable(snapshot);
-        SendSnapshot(manager, session.HostClientId, session, writer);
-        if (session.OpponentPresent) SendSnapshot(manager, session.GuestClientId, session, writer);
+        Span<ulong> recipients = stackalloc ulong[session.OpponentPresent ? 2 : 1];
+        recipients[0] = session.HostClientId;
+        if (session.OpponentPresent) recipients[1] = session.GuestClientId;
+        LobbyMessages.Snapshot.SendToRecipients(manager, recipients,
+            clientId => session.Contains(clientId) && manager.ConnectedClients.ContainsKey(clientId),
+            writer => writer.WriteNetworkSerializable(snapshot));
         Debug.Log($"[Lobby] Snapshot code={snapshot.Code} host={snapshot.HostClientId} " +
             $"members={(snapshot.OpponentPresent ? 2 : 1)} round={snapshot.Round} phase={snapshot.Phase} " +
             $"winner={(snapshot.Phase == LobbyPhase.Result ? snapshot.WinnerSlot.ToString() : "none")} revision={snapshot.SettingsRevision} " +
@@ -191,26 +187,20 @@ public sealed class LobbyServer
             $"players={room.Match?.PlayerCount ?? 0} rooms={Directory.Count} playerobjects={manager.SpawnManager.PlayerObjects.Count}");
     }
 
-    static void SendSnapshot(NetworkManager manager, ulong clientId, LobbySession session, FastBufferWriter writer)
-    {
-        if (!session.Contains(clientId) || !manager.ConnectedClients.ContainsKey(clientId)) return;
-        manager.CustomMessagingManager.SendNamedMessage(LobbyNetwork.SnapshotMessage, clientId, writer,
-            NetworkDelivery.ReliableSequenced);
-    }
-
     void OnSettings(ulong senderId, FastBufferReader reader)
     {
         LobbyRoom room = RoomOf(senderId);
         if (room == null) return;
         uint revision = 0;
+        NetworkMapSettings mapSettings = default;
         string reason = LobbyNetwork.InvalidRequest;
-        try
+        if (LobbyMessages.Settings.TryRead(reader, r =>
         {
-            if (reader.Length - reader.Position > LobbyNetwork.BufferSize)
-                throw new InvalidOperationException(LobbyNetwork.InvalidRequest);
-            reader.ReadValueSafe(out revision);
-            reader.ReadNetworkSerializable(out NetworkMapSettings mapSettings);
-            if (reader.Position != reader.Length) throw new InvalidOperationException(LobbyNetwork.InvalidRequest);
+            r.ReadValueSafe(out revision);
+            r.ReadNetworkSerializable(out mapSettings);
+            return true;
+        }, $"[Lobby] Invalid settings client={senderId}"))
+        {
             if (revision == 0 || revision <= room.SettingsRevision)
                 reason = "The settings update is out of date.";
             else if (room.Session.TryUpdateSettings(senderId, new DuelSettings { Map = mapSettings.ToSettings() }, out reason))
@@ -220,16 +210,11 @@ public sealed class LobbyServer
                 return;
             }
         }
-        catch (Exception exception)
+        LobbyMessages.Error.Send(getManager(), senderId, writer =>
         {
-            Debug.LogWarning($"[Lobby] Invalid settings client={senderId}: {exception.Message}");
-        }
-        NetworkManager manager = getManager();
-        using var writer = new FastBufferWriter(LobbyNetwork.BufferSize, Allocator.Temp);
-        writer.WriteValueSafe(revision);
-        writer.WriteValueSafe(reason);
-        manager.CustomMessagingManager.SendNamedMessage(LobbyNetwork.ErrorMessage, senderId, writer,
-            NetworkDelivery.ReliableSequenced);
+            writer.WriteValueSafe(revision);
+            writer.WriteValueSafe(reason);
+        });
     }
 
     // 서버: 방장만, 두 명이 모두 확정 참가한 로비 단계에서만 시작을 받는다. 맵은 저장된 설정 그대로 만든다.
@@ -239,12 +224,12 @@ public sealed class LobbyServer
         if (room == null) return;
         uint request = 0;
         string reason = LobbyNetwork.InvalidRequest;
-        try
+        if (LobbyMessages.Start.TryRead(reader, r =>
         {
-            if (reader.Length - reader.Position > LobbyNetwork.BufferSize)
-                throw new InvalidOperationException(LobbyNetwork.InvalidRequest);
-            reader.ReadValueSafe(out request);
-            if (reader.Position != reader.Length) throw new InvalidOperationException(LobbyNetwork.InvalidRequest);
+            r.ReadValueSafe(out request);
+            return true;
+        }, $"[Lobby] Invalid start client={senderId}"))
+        {
             if (room.Session.TryStart(senderId, out reason))
             {
                 if (PrepareMatch(room))
@@ -256,17 +241,12 @@ public sealed class LobbyServer
                 reason = LobbyNetwork.MapFailed;
             }
         }
-        catch (Exception exception)
-        {
-            Debug.LogWarning($"[Lobby] Invalid start client={senderId}: {exception.Message}");
-        }
         Debug.Log($"[Lobby] Start rejected code={room.Code} client={senderId} request={request} phase={room.Session.Phase}: {reason}");
-        NetworkManager manager = getManager();
-        using var writer = new FastBufferWriter(LobbyNetwork.BufferSize, Allocator.Temp);
-        writer.WriteValueSafe(request);
-        writer.WriteValueSafe(reason);
-        manager.CustomMessagingManager.SendNamedMessage(LobbyNetwork.StartRejectedMessage, senderId, writer,
-            NetworkDelivery.ReliableSequenced);
+        LobbyMessages.StartRejected.Send(getManager(), senderId, writer =>
+        {
+            writer.WriteValueSafe(request);
+            writer.WriteValueSafe(reason);
+        });
     }
 
     // 서버: 보낸 클라이언트가 접속을 끝낸 구성원인 방. 닫는 중이거나 방이 없으면 null이다.
@@ -301,19 +281,15 @@ public sealed class LobbyServer
         NetworkManager manager = getManager();
         DuelArena arena = getArena();
         LobbySession session = room.Session;
-        uint revision;
-        string fingerprint;
-        try
+        uint revision = 0;
+        string fingerprint = null;
+        if (!LobbyMessages.MapReady.TryRead(reader, r =>
         {
-            if (reader.Length - reader.Position > LobbyNetwork.BufferSize)
-                throw new InvalidOperationException(LobbyNetwork.InvalidRequest);
-            reader.ReadValueSafe(out revision);
-            reader.ReadValueSafe(out fingerprint);
-            if (reader.Position != reader.Length) throw new InvalidOperationException(LobbyNetwork.InvalidRequest);
-        }
-        catch (Exception exception)
+            r.ReadValueSafe(out revision);
+            r.ReadValueSafe(out fingerprint);
+            return true;
+        }, $"[Lobby] Invalid map ready client={senderId}"))
         {
-            Debug.LogWarning($"[Lobby] Invalid map ready client={senderId}: {exception.Message}");
             manager.DisconnectClient(senderId, LobbyNetwork.InvalidRequest);
             return;
         }

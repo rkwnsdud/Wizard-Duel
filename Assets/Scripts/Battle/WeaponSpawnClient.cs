@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using Unity.Collections;
 using Unity.Netcode;
 using UnityEngine;
 
@@ -74,67 +73,73 @@ public sealed class WeaponSpawnClient
         NetworkManager manager = getManager();
         WeaponSpawnCatalog catalog = getCatalog();
         if (manager == null || catalog == null) return;
-        try
+        uint incomingEpoch = 0;
+        uint incomingRevision = 0;
+        uint acknowledgement = 0;
+        bool active = false;
+        Dictionary<uint, SpawnedWeapon> drops = null;
+        List<WeaponSlotState> incomingSlots = null;
+        if (!ArenaWeaponSpawner.SnapshotChannel.TryRead(reader, r =>
         {
-            reader.ReadValueSafe(out uint incomingEpoch);
-            reader.ReadValueSafe(out uint incomingRevision);
-            reader.ReadValueSafe(out uint acknowledgement);
-            reader.ReadValueSafe(out bool active);
-            if (incomingEpoch < epoch || incomingEpoch == epoch && incomingRevision < revision) return;
-            reader.ReadValueSafe(out int count);
-            if (count < 0 || count > 12) return;
-            var drops = new Dictionary<uint, SpawnedWeapon>();
+            r.ReadValueSafe(out incomingEpoch);
+            r.ReadValueSafe(out incomingRevision);
+            r.ReadValueSafe(out acknowledgement);
+            r.ReadValueSafe(out active);
+            if (incomingEpoch < epoch || incomingEpoch == epoch && incomingRevision < revision) return false;
+            r.ReadValueSafe(out int count);
+            if (count < 0 || count > 12) return false;
+            drops = new Dictionary<uint, SpawnedWeapon>();
             for (int i = 0; i < count; i++)
             {
-                reader.ReadValueSafe(out uint id);
-                reader.ReadValueSafe(out byte weapon);
-                reader.ReadValueSafe(out Vector3 ground);
-                reader.ReadValueSafe(out double born);
-                if (catalog.Find(weapon) == null) return;
+                r.ReadValueSafe(out uint id);
+                r.ReadValueSafe(out byte weapon);
+                r.ReadValueSafe(out Vector3 ground);
+                r.ReadValueSafe(out double born);
+                if (catalog.Find(weapon) == null) return false;
                 drops.Add(id, new SpawnedWeapon(id, -1, weapon, ground, born));
             }
-            reader.ReadValueSafe(out int playerCount);
-            if (playerCount < 0 || playerCount > 2) return;
-            var incomingSlots = new List<WeaponSlotState>();
+            r.ReadValueSafe(out int playerCount);
+            if (playerCount < 0 || playerCount > 2) return false;
+            incomingSlots = new List<WeaponSlotState>();
             for (int i = 0; i < playerCount; i++)
             {
-                reader.ReadValueSafe(out ulong player);
-                reader.ReadValueSafe(out byte equipped);
-                reader.ReadValueSafe(out byte stored);
-                if (catalog.Find(equipped) == null || stored != 0 && catalog.Find(stored) == null) return;
+                r.ReadValueSafe(out ulong player);
+                r.ReadValueSafe(out byte equipped);
+                r.ReadValueSafe(out byte stored);
+                if (catalog.Find(equipped) == null || stored != 0 && catalog.Find(stored) == null) return false;
                 incomingSlots.Add(new WeaponSlotState { Player = player, Equipped = equipped, Stored = stored });
             }
-            if (reader.Position != reader.Length) return;
-            if (incomingEpoch != epoch)
-            {
-                ReleaseRequest();
-                slots.Clear();
-                needsApply.Clear();
-            }
-            epoch = incomingEpoch;
-            revision = incomingRevision;
-            running = active;
-            clientDrops.Clear();
-            foreach (var drop in drops) clientDrops.Add(drop.Key, drop.Value);
-            foreach (var state in incomingSlots)
-            {
-                bool changed = !slots.TryGetValue(state.Player, out var previous) ||
-                    previous.Equipped != state.Equipped || previous.Stored != state.Stored;
-                slots[state.Player] = state;
-                if (changed || !manager.IsServer) needsApply.Add(state.Player);
-            }
-            ReconcileVisuals(drops);
-            if (acknowledgement == pendingRequest && pendingRequest != 0) acknowledgedRequest = acknowledgement;
-            if (!active)
-            {
-                ReleaseRequest();
-                slots.Clear();
-                needsApply.Clear();
-                if (notification != null) notification.Hide();
-            }
-            else ApplyPendingSlots();
+            return true;
+        }, "[WeaponSpawn] Invalid snapshot")) return;
+
+        if (incomingEpoch != epoch)
+        {
+            ReleaseRequest();
+            slots.Clear();
+            needsApply.Clear();
         }
-        catch (Exception exception) { Debug.LogWarning("[WeaponSpawn] Invalid snapshot: " + exception.Message); }
+        epoch = incomingEpoch;
+        revision = incomingRevision;
+        running = active;
+        clientDrops.Clear();
+        foreach (var drop in drops) clientDrops.Add(drop.Key, drop.Value);
+        foreach (var state in incomingSlots)
+        {
+            bool changed = !slots.TryGetValue(state.Player, out var previous) ||
+                previous.Equipped != state.Equipped || previous.Stored != state.Stored;
+            slots[state.Player] = state;
+            if (changed || !manager.IsServer) needsApply.Add(state.Player);
+        }
+        ReconcileVisuals(drops);
+        if (acknowledgement == pendingRequest && pendingRequest != 0) acknowledgedRequest = acknowledgement;
+        if (!active)
+        {
+            ReleaseRequest();
+            slots.Clear();
+            needsApply.Clear();
+            if (notification != null) notification.Hide();
+        }
+        else ApplyPendingSlots();
     }
 
     public void ApplyPendingSlots()
@@ -190,13 +195,15 @@ public sealed class WeaponSpawnClient
         pendingRequest = ++requestSequence;
         acknowledgedRequest = 0;
         attack.InventoryChangePending = true;
-        using var writer = new FastBufferWriter(32, Allocator.Temp);
-        writer.WriteValueSafe(epoch);
-        writer.WriteValueSafe(pendingRequest);
-        writer.WriteValueSafe(action);
-        writer.WriteValueSafe(pickup);
-        manager.CustomMessagingManager.SendNamedMessage(ArenaWeaponSpawner.RequestMessage, NetworkManager.ServerClientId,
-            writer, NetworkDelivery.ReliableSequenced);
+        uint currentEpoch = epoch;
+        uint requestId = pendingRequest;
+        ArenaWeaponSpawner.RequestChannel.Send(manager, NetworkManager.ServerClientId, writer =>
+        {
+            writer.WriteValueSafe(currentEpoch);
+            writer.WriteValueSafe(requestId);
+            writer.WriteValueSafe(action);
+            writer.WriteValueSafe(pickup);
+        });
         return true;
     }
 

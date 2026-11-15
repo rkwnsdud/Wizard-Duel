@@ -7,8 +7,10 @@ using UnityEngine;
 // pickup visuals have no NetworkObject, combat components, or client-side authority.
 public sealed class ArenaWeaponSpawner : MonoBehaviour
 {
-    internal const string SnapshotMessage = "WizardDuel.WeaponSnapshot.v1";
-    internal const string RequestMessage = "WizardDuel.WeaponRequest.v1";
+    internal static readonly NamedMessageChannel SnapshotChannel =
+        new NamedMessageChannel("WizardDuel.WeaponSnapshot.v1", 4096);
+    internal static readonly NamedMessageChannel RequestChannel =
+        new NamedMessageChannel("WizardDuel.WeaponRequest.v1", 32);
     internal const float PickupRange = 2f;
     const int Blockers = (1 << 9) | (1 << 10);
 
@@ -16,7 +18,7 @@ public sealed class ArenaWeaponSpawner : MonoBehaviour
     WeaponSpawnCatalog catalog;
     WeaponSpawnServer server;
     WeaponSpawnClient client;
-    bool registered;
+    NamedMessageGroup messageHandlers;
 
     public bool Running => manager != null && (manager.IsServer ? server != null && server.HasActiveRounds : client != null && client.Running);
     // 무기 정의 id의 프리팹. 인벤토리가 이 화면에 없던 무기를 만들 때 쓴다.
@@ -25,17 +27,18 @@ public sealed class ArenaWeaponSpawner : MonoBehaviour
 
     WeaponSpawnServer Server => server ??= new WeaponSpawnServer(() => manager, () => catalog, this);
     WeaponSpawnClient Client => client ??= new WeaponSpawnClient(() => manager, () => catalog, gameObject, this);
+    NamedMessageGroup MessageHandlers => messageHandlers ??= new NamedMessageGroup(
+        SnapshotChannel.Bind(Client.OnSnapshot),
+        RequestChannel.Bind(Server.OnRequest));
 
     public void Initialize(NetworkManager network, WeaponSpawnCatalog definitions)
     {
-        if (registered) Shutdown();
+        if (MessageHandlers.IsRegistered) Shutdown();
         manager = network;
         catalog = definitions;
         Server.Reset();
         Client.Reset();
-        manager.CustomMessagingManager.RegisterNamedMessageHandler(SnapshotMessage, Client.OnSnapshot);
-        manager.CustomMessagingManager.RegisterNamedMessageHandler(RequestMessage, Server.OnRequest);
-        registered = true;
+        MessageHandlers.Register(manager);
     }
 
     // Capture the locations while the temporary server map still has colliders.
@@ -71,12 +74,7 @@ public sealed class ArenaWeaponSpawner : MonoBehaviour
     {
         server?.Clear();
         client?.Clear();
-        if (registered && manager != null && manager.CustomMessagingManager != null)
-        {
-            manager.CustomMessagingManager.UnregisterNamedMessageHandler(SnapshotMessage);
-            manager.CustomMessagingManager.UnregisterNamedMessageHandler(RequestMessage);
-        }
-        registered = false;
+        messageHandlers?.Unregister();
     }
 
     void OnDestroy() => Shutdown();

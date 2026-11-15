@@ -18,18 +18,11 @@ public sealed class LobbyNetwork : MonoBehaviour
     [Tooltip("서버가 동시에 열어 둘 수 있는 방 수. 가득 차면 새 방 생성을 거절한다.")]
     [SerializeField, Min(1)] int maxRooms = 50;
 
-    internal const string SnapshotMessage = "WizardDuel.LobbySnapshot";
-    internal const string SettingsMessage = "WizardDuel.LobbySettings";
-    internal const string ErrorMessage = "WizardDuel.LobbyError";
-    internal const string StartMessage = "WizardDuel.LobbyStart";
-    internal const string StartRejectedMessage = "WizardDuel.LobbyStartRejected";
-    internal const string MapReadyMessage = "WizardDuel.LobbyMapReady";
     internal const string RoomClosed = "A player left, so the room was closed.";
     internal const string InvalidRequest = "The lobby request is invalid.";
     internal const string ConnectionFailed = "Disconnected from the server.";
     internal const string MapFailed = "The battle map could not be generated.";
     internal const string MapMismatch = "Generated map does not match the server.";
-    internal const int BufferSize = 256;
 
     LobbyServer server;
     LobbyClient client;
