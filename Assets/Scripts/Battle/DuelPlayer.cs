@@ -219,9 +219,11 @@ public sealed class DuelPlayer : NetworkBehaviour, IAttackAuthority, IShotSink
 
     void OnHealthChanged(float previous, float current) => ApplyHealth(current);
 
-    // 체력은 줄기만 하므로 서버 체력과의 차이만큼 깎는다. 0이 되면 PlayerHealth가 이동·조준·공격과 애니메이터를 멈춘다.
+    // 체력은 줄기만 하므로 서버 체력과의 차이만큼 깎는다. 0이 되면 PlayerHealth가 이동·조준·공격·자세 스크립트를 멈추고
+    // 사망 모션(Dying.fbx의 mixamo.com 클립)을 재생한다.
     void ApplyHealth(float value)
     {
+        if (playerHealth.IsDead) return;
         playerHealth.TakeDamage(playerHealth.CurrentHealth - value);
         if (playerHealth.IsDead) attack.CancelAttack();
     }
@@ -274,9 +276,11 @@ public sealed class DuelPlayer : NetworkBehaviour, IAttackAuthority, IShotSink
 
     void LateUpdate()
     {
-        // 쓰러지면 PlayerHealth가 애니메이터를 끈다.
+        // 쓰러지면 PlayerHealth가 사망 모션을 재생한다. 애니메이터는 켜 두므로 죽은 뒤에는
+        // 원격 걷기 갱신이 사망 자세를 덮지 않게 여기서 멈춘다.
         // 내 캐릭터는 PlayerMovement가 걷기 값을 넣는다. 상대와 봇은 한 프레임에 걸은 거리로 넣는다.
-        if (!IsClient || !IsSpawned || (IsOwner && !IsBot) || !animator.enabled) return;
+        if (!IsClient || !IsSpawned || (IsOwner && !IsBot) || !animator.enabled ||
+            (playerHealth != null && playerHealth.IsDead)) return;
         // 상대의 거리는 소유자가 보낸 속도로 구한다. 화면의 자리는 늦은 패킷을 따라잡느라 조금 더 나가거나
         // 되돌아오는데, 그 움직임까지 걸음으로 치면 멈춘 뒤에도 발을 구른다. 봇은 실제로 움직인 거리를 쓴다.
         Vector3 displacement = moveSync != null && moveSync.TryGetRemoteVelocity(out Vector3 remoteVelocity)

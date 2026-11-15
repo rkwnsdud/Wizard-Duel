@@ -4,19 +4,27 @@ using System.Collections.Generic;
 using Unity.Netcode;
 using UnityEngine;
 
-// 서버에서 방 하나가 치르는 한 판. 서버는 물리 판정을 하지 않으므로 맵에서 지문과 스폰 자리만 받아 두고,
+// 서버에서 방 하나가 치르는 한 판. 임시 맵에서 지문, 스폰 자리, 무기 위치와 지형 정보를 받아 두고,
 // 소환한 플레이어를 방마다 따로 가진다. 여러 방의 플레이어가 서버 씬의 같은 자리에 있어도 서로 보이지 않는다.
 public sealed class DuelMatch
 {
-    public DuelMatch(string fingerprint, Pose[] spawns)
+    public DuelMatch(string fingerprint, Pose[] spawns, Vector3[] weaponSites,
+        MapLayout layout, Matrix4x4 worldToMap)
     {
         Fingerprint = fingerprint;
         Spawns = spawns;
+        WeaponSites = weaponSites;
+        Layout = layout;
+        WorldToMap = worldToMap;
     }
 
     public string Fingerprint { get; }
     // 0은 방장, 1은 참가자의 스폰 자리.
     public Pose[] Spawns { get; }
+    // The server keeps these after removing its temporary map for the next room.
+    public Vector3[] WeaponSites { get; }
+    public MapLayout Layout { get; }
+    public Matrix4x4 WorldToMap { get; }
     public int PlayerCount => Players.Count;
 
     internal readonly List<NetworkObject> Players = new List<NetworkObject>();
@@ -94,7 +102,7 @@ public sealed class DuelArena : MonoBehaviour
         return true;
     }
 
-    // 서버에서 방 하나의 판을 준비한다. 씬의 맵을 작업대로 써서 지문과 스폰 자리만 받아 두고 맵은 곧바로 지운다.
+    // 서버에서 방 하나의 판을 준비한다. 경기 정보를 저장한 뒤 임시 맵 오브젝트는 곧바로 지운다.
     // 다른 방이 같은 프레임에 준비해도 서로의 맵을 건드리지 않는다. 만들 수 없는 설정이면 null이다.
     public DuelMatch Prepare(MapGenerationSettings settings)
     {
@@ -113,7 +121,8 @@ public sealed class DuelArena : MonoBehaviour
         var spawns = new Pose[map.SpawnPoints.Length];
         for (int slot = 0; slot < spawns.Length; slot++)
             spawns[slot] = new Pose(map.SpawnPoints[slot].position, map.SpawnPoints[slot].rotation);
-        return new DuelMatch(Fingerprint, spawns);
+        return new DuelMatch(Fingerprint, spawns, ArenaWeaponSpawner.FindSites(map),
+            map.GeneratedLayout, map.transform.worldToLocalMatrix);
     }
 
     // 서버에서 방장과 참가자를 각자의 스폰 위치에 소환하고, 스폰 이펙트가 끝나면 전투 입력을 켠다.
@@ -208,8 +217,7 @@ public sealed class DuelArena : MonoBehaviour
         match.Combat = null;
         foreach (DuelPlayer player in spawned)
             if (player != null) player.ServerEnableCombat();
-        // 무기 스폰은 맵이 서 있는 쪽에서만 연다. 전용 서버는 맵을 지문만 뽑고 지우며 방이 여럿이라 판을 열지 않는다.
-        if (HasMap) Weapons?.BeginRound(map, match.Duelists);
+        Weapons?.BeginRound(match);
         combatEnabled?.Invoke();
     }
 
@@ -217,7 +225,7 @@ public sealed class DuelArena : MonoBehaviour
     public void EndCombat(DuelMatch match)
     {
         if (match == null) return;
-        if (HasMap) Weapons?.EndRound();
+        Weapons?.EndRound(match);
         if (match.Combat != null) StopCoroutine(match.Combat);
         match.Combat = null;
         match.PlayerDefeated = null;
@@ -229,7 +237,7 @@ public sealed class DuelArena : MonoBehaviour
     public void Clear(DuelMatch match)
     {
         if (match == null) return;
-        if (HasMap) Weapons?.Clear();
+        Weapons?.Clear(match);
         if (match.Combat != null) StopCoroutine(match.Combat);
         match.Combat = null;
         match.PlayerDefeated = null;

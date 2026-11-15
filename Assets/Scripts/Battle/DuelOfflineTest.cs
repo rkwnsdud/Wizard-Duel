@@ -192,7 +192,15 @@ public sealed class DuelOfflineTest : MonoBehaviour
         if (target != null && target.IsSpawned) target.NetworkObject.Despawn();
     }
 
-    void OnDummyDefeated(DuelPlayer defeated) => dummyRespawnAt = Time.time + dummyRespawnDelay;
+    void OnDummyDefeated(DuelPlayer defeated)
+    {
+        // 사망 모션(mixamo.com, 약 4.38초)을 끝까지 보여 주고 리스폰한다.
+        // 씬에 저장된 dummyRespawnDelay가 모션보다 짧으면 모션 길이에 맞춘다.
+        float delay = dummyRespawnDelay;
+        if (defeated != null && defeated.TryGetComponent(out PlayerHealth health))
+            delay = Mathf.Max(delay, health.DeathDuration + 0.5f);
+        dummyRespawnAt = Time.time + delay;
+    }
 
     // 더미를 맵의 부시 덩어리 한가운데로 차례로 옮긴다. 마지막 덩어리 다음에는 스폰 자리로 돌아온다.
     void MoveDummyToNextBush()
