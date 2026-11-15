@@ -19,16 +19,17 @@ public sealed class DuelCombatState
 
     // (공격 id, 타격 번호)마다 한 번만 피해를 받는다. 늦게 도착한 이전 공격도 받는다.
     // 체력은 0 아래로 내려가지 않고, 사망은 0이 되는 순간에만 알린다.
-    public bool TryTakeHit(int attackerSlot, uint attackId, int hitIndex, float damage, out bool defeatedNow)
-    {
-        defeatedNow = false;
-        if (attackerSlot == Slot || IsDefeated || !IsFinite(damage) || damage <= 0f) return false;
-        if (!hits.Add((attackerSlot, attackId, hitIndex))) return false;
+    public bool TryTakeHit(int attackerSlot, uint attackId, int hitIndex, float damage, out bool defeatedNow) =>
+        ServerHitReport.TryApplyTargetHit(this, attackerSlot, attackId, hitIndex, damage, out defeatedNow) ==
+        HitReportDecision.Accepted;
 
+    internal bool HasHit(int attackerSlot, uint attackId, int hitIndex) =>
+        hits.Contains((attackerSlot, attackId, hitIndex));
+
+    internal void ApplyAcceptedHit(int attackerSlot, uint attackId, int hitIndex, float damage, out bool defeatedNow)
+    {
+        hits.Add((attackerSlot, attackId, hitIndex));
         Health = Mathf.Max(0f, Health - damage);
         defeatedNow = IsDefeated;
-        return true;
     }
-
-    static bool IsFinite(float value) => !float.IsNaN(value) && !float.IsInfinity(value);
 }

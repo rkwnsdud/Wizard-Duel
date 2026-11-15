@@ -178,10 +178,21 @@ public sealed class DuelPlayer : NetworkBehaviour, IAttackAuthority, IShotSink
     [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Owner)]
     void ReportHitRpc(NetworkObjectReference target, uint attackId, byte weaponId, int hitIndex, float damage)
     {
-        // 서버에는 여러 방의 플레이어가 함께 있다. 같은 판의 플레이어만 맞힐 수 있다.
-        if (!combatEnabled.Value || !target.TryGet(out NetworkObject obj, NetworkManager) ||
-            !obj.TryGetComponent(out DuelPlayer player) || player.Match != Match ||
-            !player.combat.TryTakeHit(slot, attackId, hitIndex, damage, out bool defeatedNow)) return;
+        DuelPlayer player = ResolveTarget(target);
+        var request = new ServerHitReport.Request
+        {
+            IsStatusTick = false,
+            AttackerCombatEnabled = combatEnabled.Value,
+            HasTarget = player != null && player.combat != null,
+            SameMatch = player != null && player.Match == Match,
+            AttackerSlot = slot,
+            AttackId = attackId,
+            WeaponId = weaponId,
+            HitIndex = hitIndex,
+            Damage = damage,
+            TargetCombat = player != null ? player.combat : null,
+        };
+        if (ServerHitReport.TryApply(in request, out bool defeatedNow) != HitReportDecision.Accepted) return;
         Debug.Log($"[Combat] Hit slot={player.slot} attacker={slot} id={attackId} weapon={weaponId} hit={hitIndex} health={player.combat.Health:F3}");
         player.health.Value = player.combat.Health;
         // 피해량은 쏜 쪽 보고대로, 적중 효과는 보고에 실린 쏜 무기로 정한다. 서버도 지금 든 무기를 보지 않는다.
@@ -198,8 +209,18 @@ public sealed class DuelPlayer : NetworkBehaviour, IAttackAuthority, IShotSink
     {
         // NOTE: combatEnabled is input gating for the owner. DoT must still tick on
         // dummies / remote players whose combat input was never enabled.
-        if (!IsServer || !IsSpawned || combat == null) return;
-        if (!combat.TryTakeHit(attackerSlot, dotAttackId, tickIndex, damage, out bool defeatedNow)) return;
+        if (!IsServer || !IsSpawned) return;
+        var request = new ServerHitReport.Request
+        {
+            IsStatusTick = true,
+            HasTarget = combat != null,
+            AttackerSlot = attackerSlot,
+            AttackId = dotAttackId,
+            HitIndex = tickIndex,
+            Damage = damage,
+            TargetCombat = combat,
+        };
+        if (ServerHitReport.TryApply(in request, out bool defeatedNow) != HitReportDecision.Accepted) return;
         Debug.Log($"[Combat] DoT slot={slot} attacker={attackerSlot} id={dotAttackId} tick={tickIndex} health={combat.Health:F3}");
         health.Value = combat.Health;
         if (defeatedNow)
@@ -207,6 +228,14 @@ public sealed class DuelPlayer : NetworkBehaviour, IAttackAuthority, IShotSink
             ClearServerStatusEffects();
             Defeated?.Invoke(this);
         }
+    }
+
+    DuelPlayer ResolveTarget(NetworkObjectReference target)
+    {
+        if (NetworkManager == null || NetworkManager.SpawnManager == null) return null;
+        return target.TryGet(out NetworkObject obj, NetworkManager) && obj.TryGetComponent(out DuelPlayer player)
+            ? player
+            : null;
     }
 
     /// <summary>서버에서 적중 패시브가 상태이상을 건다. 공격자 슬롯을 그대로 쓴다.</summary>
