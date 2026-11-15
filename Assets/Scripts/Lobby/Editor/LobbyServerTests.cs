@@ -59,30 +59,51 @@ public class LobbyServerTests
     }
 
     [Test]
-    public void LocalHostApproval_AllowsLocalHostAndRejectsExternalClientWhenNotServerMode()
+    public void SessionModeApproval_AllowsLocalHostOnlyInLocalHostMode_AndRejectsExternalAndOffline()
     {
-        LobbyServer server = CreateServer(maxRooms: 4);
+        CreateServer(maxRooms: 4);
         var network = root.AddComponent<LobbyNetwork>();
         typeof(LobbyNetwork).GetField("manager", PrivateInstance).SetValue(network, manager);
         MethodInfo approve = typeof(LobbyNetwork).GetMethod("ApproveConnection", PrivateInstance);
+        MethodInfo beginLocalHost = typeof(LobbyNetwork).GetMethod("BeginLocalHost", PrivateInstance);
+        MethodInfo endLocalHost = typeof(LobbyNetwork).GetMethod("EndLocalHost", PrivateInstance);
+        string invalidReason = LobbyReasonCodec.ToWireReason(LobbyReason.InvalidRequest);
 
-        var hostResponse = new NetworkManager.ConnectionApprovalResponse();
-        approve.Invoke(network, new object[]
-        {
-            new NetworkManager.ConnectionApprovalRequest { ClientNetworkId = NetworkManager.ServerClientId },
-            hostResponse
-        });
+        Assert.That(network.Mode, Is.EqualTo(NetworkSessionMode.Offline));
+        NetworkManager.ConnectionApprovalResponse offlineHost = InvokeApprove(approve, network, NetworkManager.ServerClientId);
+        Assert.That(offlineHost.Approved, Is.False);
+        Assert.That(offlineHost.Reason, Is.EqualTo(invalidReason));
+
+        Assert.That((bool)beginLocalHost.Invoke(network, null), Is.True);
+        Assert.That(network.Mode, Is.EqualTo(NetworkSessionMode.LocalHost));
+
+        NetworkManager.ConnectionApprovalResponse hostResponse = InvokeApprove(approve, network, NetworkManager.ServerClientId);
         Assert.That(hostResponse.Approved, Is.True);
         Assert.That(hostResponse.Reason, Is.Empty);
 
-        var remoteResponse = new NetworkManager.ConnectionApprovalResponse();
+        NetworkManager.ConnectionApprovalResponse remoteResponse = InvokeApprove(approve, network, 42);
+        Assert.That(remoteResponse.Approved, Is.False);
+        Assert.That(remoteResponse.Reason, Is.EqualTo(invalidReason));
+
+        endLocalHost.Invoke(network, null);
+        Assert.That(network.Mode, Is.EqualTo(NetworkSessionMode.Offline));
+
+        typeof(LobbyNetwork).GetField("mode", PrivateInstance).SetValue(network, NetworkSessionMode.OnlineClient);
+        Assert.That((bool)beginLocalHost.Invoke(network, null), Is.False);
+        NetworkManager.ConnectionApprovalResponse onlineClientHost = InvokeApprove(approve, network, NetworkManager.ServerClientId);
+        Assert.That(onlineClientHost.Approved, Is.False);
+        Assert.That(onlineClientHost.Reason, Is.EqualTo(invalidReason));
+    }
+
+    static NetworkManager.ConnectionApprovalResponse InvokeApprove(MethodInfo approve, LobbyNetwork network, ulong clientId)
+    {
+        var response = new NetworkManager.ConnectionApprovalResponse();
         approve.Invoke(network, new object[]
         {
-            new NetworkManager.ConnectionApprovalRequest { ClientNetworkId = 42 },
-            remoteResponse
+            new NetworkManager.ConnectionApprovalRequest { ClientNetworkId = clientId },
+            response
         });
-        Assert.That(remoteResponse.Approved, Is.False);
-        Assert.That(remoteResponse.Reason, Is.EqualTo(LobbyReasonCodec.ToWireReason(LobbyReason.InvalidRequest)));
+        return response;
     }
 
     LobbyServer CreateServer(int maxRooms)

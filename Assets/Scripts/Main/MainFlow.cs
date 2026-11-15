@@ -23,7 +23,7 @@ public class MainFlow : MonoBehaviour
     [SerializeField] LobbyNetwork network;
     [SerializeField] AiDuel aiDuel;
 
-    DuelSettings settings = new DuelSettings();
+    DuelSettings settings = NetworkDuelConfig.DefaultDuelSettings();
     NetworkLobbySnapshot latest;
     Coroutine transition;
     bool wantsLobby;
@@ -37,7 +37,7 @@ public class MainFlow : MonoBehaviour
     // AI 로비 화면에 있거나 거기서 시작한 전투 중이다. 이동안 로비 화면의 이벤트는 서버에 보내지 않고 여기서 처리한다.
     bool aiLobby;
     // AI 로비 화면의 "게임 설정" 탭에서 고른 값. 이번 실행 동안 기억한다.
-    AiDuelOptions aiOptions = new AiDuelOptions();
+    AiDuelOptions aiOptions = NetworkDuelConfig.DefaultAiOptions();
 
     void OnEnable()
     {

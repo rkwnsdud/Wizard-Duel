@@ -10,7 +10,8 @@ public sealed class LobbyClient
     readonly Func<NetworkManager> getManager;
     readonly Func<UnityTransport> getTransport;
     readonly Func<DuelArena> getArena;
-    readonly Func<bool> isServerMode;
+    readonly Func<NetworkSessionMode> getMode;
+    readonly Action<NetworkSessionMode> setMode;
 
     bool connecting;
     bool closing;
@@ -32,12 +33,14 @@ public sealed class LobbyClient
         Func<NetworkManager> getManager,
         Func<UnityTransport> getTransport,
         Func<DuelArena> getArena,
-        Func<bool> isServerMode)
+        Func<NetworkSessionMode> getMode,
+        Action<NetworkSessionMode> setMode = null)
     {
         this.getManager = getManager;
         this.getTransport = getTransport;
         this.getArena = getArena;
-        this.isServerMode = isServerMode;
+        this.getMode = getMode;
+        this.setMode = setMode;
     }
 
     public event Action<NetworkLobbySnapshot> SnapshotChanged;
@@ -69,6 +72,8 @@ public sealed class LobbyClient
         if (!closing || manager.IsListening || manager.ShutdownInProgress) return;
 
         closing = false;
+        if (getMode != null && getMode() == NetworkSessionMode.OnlineClient)
+            setMode?.Invoke(NetworkSessionMode.Offline);
         // 소환된 플레이어는 연결 종료 때 Netcode가 지운다. 시작 화면으로 돌아가는 프레임에 맵도 지운다.
         DuelArena arena = getArena();
         if (arena != null) arena.Clear();
@@ -112,17 +117,18 @@ public sealed class LobbyClient
         return true;
     }
 
-    bool IsServerMode => isServerMode != null && isServerMode();
+    bool AllowsClientSession => getMode == null ||
+        (getMode() != NetworkSessionMode.DedicatedServer && getMode() != NetworkSessionMode.LocalHost);
 
     public void Cancel()
     {
-        if (IsServerMode || closing || (!connecting && !inLobby)) return;
+        if (!AllowsClientSession || closing || (!connecting && !inLobby)) return;
         StopClient(LobbyReason.None, true);
     }
 
     public void StartRequest(bool createRoom, string code, DuelSettings settings, string serverAddress, ushort port)
     {
-        if (IsServerMode || IsBusy) return;
+        if (!AllowsClientSession || (getMode != null && getMode() != NetworkSessionMode.Offline) || IsBusy) return;
         LobbyReason reason = LobbyReason.InvalidRoomCode;
         bool isValid = createRoom ? DuelSettings.ValidateSettings(settings, out reason) : LobbySession.IsValidCode(code);
         if (!isValid)
@@ -146,11 +152,13 @@ public sealed class LobbyClient
         startPending = false;
         currentSnapshot = default;
         connecting = true;
-        snapshotDeadline = Time.realtimeSinceStartup + manager.NetworkConfig.ClientConnectionBufferTimeout + 5;
+        snapshotDeadline = Time.realtimeSinceStartup + manager.NetworkConfig.ClientConnectionBufferTimeout +
+            NetworkDuelConfig.ClientSnapshotTimeoutMarginSeconds;
         using var writer = new FastBufferWriter(LobbyMessages.BufferSize, Allocator.Temp);
         writer.WriteNetworkSerializable(new LobbyJoinRequest(createRoom, code, settings));
         manager.NetworkConfig.ConnectionData = writer.ToArray();
-        transport.SetConnectionData(serverAddress, port);
+        NetworkDuelConfig.ConfigureClientTransport(transport, serverAddress, port);
+        setMode?.Invoke(NetworkSessionMode.OnlineClient);
         Debug.Log($"[Lobby] Connecting address={serverAddress}:{port} create={createdRoom} code={requestedCode}");
         if (!manager.StartClient())
         {
@@ -160,20 +168,9 @@ public sealed class LobbyClient
         RegisterMessages();
     }
 
-    public void RegisterMessages()
-    {
-        NetworkManager manager = getManager();
-        DuelArena arena = getArena();
-        if (arena != null && manager != null) arena.RegisterWeaponMessages(manager);
-        MessageHandlers.Register(manager);
-    }
+    public void RegisterMessages() => NetworkDuelConfig.RegisterMessages(getManager(), getArena(), MessageHandlers);
 
-    public void UnregisterMessages()
-    {
-        DuelArena arena = getArena();
-        if (arena != null) arena.UnregisterWeaponMessages();
-        MessageHandlers.Unregister();
-    }
+    public void UnregisterMessages() => NetworkDuelConfig.UnregisterMessages(getArena(), MessageHandlers);
 
     public void OnDisconnected()
     {
@@ -191,7 +188,7 @@ public sealed class LobbyClient
 
     void OnSnapshot(ulong senderId, FastBufferReader reader)
     {
-        if (IsServerMode || closing || (!connecting && !inLobby) || senderId != NetworkManager.ServerClientId) return;
+        if (!AllowsClientSession || closing || (!connecting && !inLobby) || senderId != NetworkManager.ServerClientId) return;
         NetworkManager manager = getManager();
         NetworkLobbySnapshot snapshot = default;
         LobbyPhase previousPhase = currentSnapshot.Phase;
@@ -251,7 +248,7 @@ public sealed class LobbyClient
 
     void OnError(ulong senderId, FastBufferReader reader)
     {
-        if (IsServerMode || closing || !inLobby || senderId != NetworkManager.ServerClientId) return;
+        if (!AllowsClientSession || closing || !inLobby || senderId != NetworkManager.ServerClientId) return;
         if (!TryReadRejection(LobbyMessages.Error, reader, requestedSettingsRevision, "[Lobby] Invalid error message",
             out uint revision, out LobbyReason reason)) return;
         settledSettingsRevision = Math.Max(settledSettingsRevision, revision);
@@ -261,7 +258,7 @@ public sealed class LobbyClient
 
     void OnStartRejected(ulong senderId, FastBufferReader reader)
     {
-        if (IsServerMode || closing || !inLobby || senderId != NetworkManager.ServerClientId) return;
+        if (!AllowsClientSession || closing || !inLobby || senderId != NetworkManager.ServerClientId) return;
         if (!TryReadRejection(LobbyMessages.StartRejected, reader, requestedStart, "[Lobby] Invalid start rejection",
             out uint request, out LobbyReason reason)) return;
         // 이미 승인되었거나 더 새 요청을 기다리는 중이면 늦게 온 거절을 무시한다.

@@ -12,7 +12,7 @@ public sealed class AiDuel : MonoBehaviour
     [SerializeField] UnityTransport transport;
     [SerializeField] DuelArena arena;
     [Tooltip("승부가 난 뒤 승자를 보여 주는 시간. 지나면 플레이어와 맵을 정리한다.")]
-    [SerializeField, Min(0f)] float resultDuration = 3f;
+    [SerializeField, Min(0f)] float resultDuration = NetworkDuelConfig.DefaultResultDuration;
     [Tooltip("난이도별 봇 실력. 순서는 쉬움, 보통, 어려움(BotDifficulty)이다.")]
     [SerializeField] DuelBotTuning[] difficulties = { DuelBotTuning.Easy(), DuelBotTuning.Normal(), DuelBotTuning.Hard() };
 
@@ -27,6 +27,7 @@ public sealed class AiDuel : MonoBehaviour
     // Begin이 성공한 뒤부터 Ended를 알릴 때까지.
     public bool IsRunning { get; private set; }
 
+    LobbyNetwork lobby;
     DuelMatch match;
     bool stopping;
     // 0보다 작으면 예약이 없다.
@@ -37,24 +38,32 @@ public sealed class AiDuel : MonoBehaviour
     {
         if (IsRunning || manager == null || transport == null || arena == null ||
             manager.IsListening || manager.ShutdownInProgress) return false;
-        options ??= new AiDuelOptions();
+        lobby ??= manager.GetComponent<LobbyNetwork>();
+        if (lobby != null && !lobby.BeginLocalHost()) return false;
+        options ??= NetworkDuelConfig.DefaultAiOptions();
         match = arena.PrepareLocal(settings);
-        if (match == null) return false;
-        // 루프백의 빈 포트에서만 듣는다. 같은 PC의 전용 서버나 다른 게임 창과 포트가 겹치지 않고, 밖에서는 접속할 수 없다.
-        transport.SetConnectionData("127.0.0.1", 0, "127.0.0.1");
+        if (match == null)
+        {
+            CleanupLocalHostSession();
+            return false;
+        }
+        if (lobby == null)
+            NetworkDuelConfig.ConfigureNetworkManager(manager, NetworkDuelConfig.ApproveLocalHostOnly);
+        NetworkDuelConfig.ConfigureLocalHostTransport(transport);
         if (!manager.StartHost())
         {
             Debug.LogError("[AiDuel] Could not start a local host.");
             match = null;
             arena.Clear();
+            CleanupLocalHostSession();
             return false;
         }
         IsRunning = true;
         stopping = false;
         stopAt = -1f;
-        // 전투 중 무기 스폰과 줍기·교체는 이 메시지로 오간다. 온라인에서는 LobbyNetwork가 걸고, 여기서는 호스트를 연 쪽이 건다.
+        // 전투 중 무기 스폰과 줍기·교체는 이 메시지로 오간다. 온라인(LobbyServer/LobbyClient)과 같은 등록 도우미를 쓴다.
         // 플레이어가 소환될 때 인벤토리가 이 스포너를 물어 가므로 소환보다 먼저 건다.
-        arena.RegisterWeaponMessages(manager);
+        NetworkDuelConfig.RegisterMessages(manager, arena);
         arena.SpawnAgainstBot(match, manager.LocalClientId, options.MyWeapon, options.OpponentWeapon,
             Tuning(options.Difficulty), null, OnPlayerDefeated);
         Debug.Log($"[AiDuel] Started seed={settings.Seed} fingerprint={match.Fingerprint} weapon={options.MyWeapon} " +
@@ -70,7 +79,7 @@ public sealed class AiDuel : MonoBehaviour
         stopAt = -1f;
         arena.Clear(match);
         match = null;
-        arena.UnregisterWeaponMessages();
+        NetworkDuelConfig.UnregisterMessages(arena);
         if (manager.IsListening && !manager.ShutdownInProgress) manager.Shutdown();
     }
 
@@ -104,6 +113,24 @@ public sealed class AiDuel : MonoBehaviour
         IsRunning = false;
         // 소환된 플레이어는 위에서 디스폰했다. 연결이 닫힌 프레임에 전투 맵도 지운다.
         arena.Clear();
+        CleanupLocalHostSession();
         Ended?.Invoke();
+    }
+
+    void OnDestroy()
+    {
+        if (IsRunning || stopping) NetworkDuelConfig.UnregisterMessages(arena);
+        CleanupLocalHostSession();
+    }
+
+    void CleanupLocalHostSession()
+    {
+        if (lobby != null)
+        {
+            lobby.EndLocalHost();
+            return;
+        }
+        if (manager != null && manager.ConnectionApprovalCallback == NetworkDuelConfig.ApproveLocalHostOnly)
+            manager.ConnectionApprovalCallback = null;
     }
 }

@@ -49,7 +49,7 @@ public sealed class LobbyServer
         NetworkManager manager = getManager();
         UnityTransport transport = getTransport();
         if (manager == null || transport == null || manager.IsListening || manager.ShutdownInProgress) return;
-        transport.SetConnectionData("127.0.0.1", port, "0.0.0.0");
+        NetworkDuelConfig.ConfigureServerTransport(transport, port);
         if (!manager.StartServer())
         {
             Debug.LogError($"[Lobby] Could not listen on UDP {port}.");
@@ -84,20 +84,9 @@ public sealed class LobbyServer
         }
     }
 
-    public void RegisterMessages()
-    {
-        NetworkManager manager = getManager();
-        DuelArena arena = getArena();
-        if (arena != null && manager != null) arena.RegisterWeaponMessages(manager);
-        MessageHandlers.Register(manager);
-    }
+    public void RegisterMessages() => NetworkDuelConfig.RegisterMessages(getManager(), getArena(), MessageHandlers);
 
-    public void UnregisterMessages()
-    {
-        DuelArena arena = getArena();
-        if (arena != null) arena.UnregisterWeaponMessages();
-        MessageHandlers.Unregister();
-    }
+    public void UnregisterMessages() => NetworkDuelConfig.UnregisterMessages(getArena(), MessageHandlers);
 
     public void ApproveConnection(NetworkManager.ConnectionApprovalRequest request,
         NetworkManager.ConnectionApprovalResponse response)
@@ -122,7 +111,8 @@ public sealed class LobbyServer
             response.Approved = approved;
             response.Reason = approved ? string.Empty : LobbyReasonCodec.ToWireReason(reason);
             if (approved)
-                reservations[request.ClientNetworkId] = Time.realtimeSinceStartup + manager.NetworkConfig.ClientConnectionBufferTimeout + 1;
+                reservations[request.ClientNetworkId] = Time.realtimeSinceStartup +
+                    manager.NetworkConfig.ClientConnectionBufferTimeout + NetworkDuelConfig.ServerReservationTimeoutMarginSeconds;
             Debug.Log($"[Lobby] Approval client={request.ClientNetworkId} create={payload.CreateRoom} approved={approved} " +
                 $"code={(approved ? room.Code : "none")} rooms={Directory.Count} reason={(approved ? LobbyReason.None : reason)}");
         }

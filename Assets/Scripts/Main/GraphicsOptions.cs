@@ -162,7 +162,7 @@ public class GraphicsOptions
     }
 
     static bool Headless => Application.isBatchMode || SystemInfo.graphicsDeviceType == GraphicsDeviceType.Null ||
-        Array.IndexOf(Environment.GetCommandLineArgs(), "-server") >= 0;
+        NetworkDuelConfig.IsDedicatedServerLaunch;
 
 #if UNITY_EDITOR
     // 에디터에서 URP 에셋과 품질 설정은 프로젝트 파일이다. 플레이 중에 바꾼 값이 남지 않게, 플레이가 끝나면 처음 값으로 되돌린다.
