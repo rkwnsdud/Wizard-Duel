@@ -27,9 +27,6 @@ public sealed class LobbyRoom
 // 네트워크 콜백과 맵 생성에 의존하지 않는다.
 public sealed class LobbyDirectory
 {
-    public const string ServerFull = "The server is full.";
-    const string AlreadyInRoom = "This client already belongs to a room.";
-
     readonly Dictionary<string, LobbyRoom> byCode = new Dictionary<string, LobbyRoom>();
     // 예약만 한 클라이언트도 들어 있다. 확정 여부는 방의 LobbySession이 안다.
     readonly Dictionary<ulong, LobbyRoom> byClient = new Dictionary<ulong, LobbyRoom>();
@@ -49,12 +46,12 @@ public sealed class LobbyDirectory
     public IReadOnlyList<LobbyRoom> Rooms => rooms;
     public int Count => rooms.Count;
 
-    public bool TryCreate(ulong clientId, DuelSettings settings, out LobbyRoom room, out string reason)
+    public bool TryCreate(ulong clientId, DuelSettings settings, out LobbyRoom room, out LobbyReason reason)
     {
         room = null;
-        reason = AlreadyInRoom;
+        reason = LobbyReason.AlreadyInRoom;
         if (byClient.ContainsKey(clientId)) return false;
-        reason = ServerFull;
+        reason = LobbyReason.ServerFull;
         if (rooms.Count >= maxRooms) return false;
 
         // 열린 방의 코드와 방금 닫힌 방의 코드는 피한다. 늦게 온 참가 요청이 다른 방에 들어가지 않는다.
@@ -67,14 +64,14 @@ public sealed class LobbyDirectory
         return true;
     }
 
-    public bool TryJoin(ulong clientId, string code, out LobbyRoom room, out string reason)
+    public bool TryJoin(ulong clientId, string code, out LobbyRoom room, out LobbyReason reason)
     {
         room = null;
-        reason = "Enter a six-digit room code.";
+        reason = LobbyReason.InvalidRoomCode;
         if (!LobbySession.IsValidCode(code)) return false;
-        reason = AlreadyInRoom;
+        reason = LobbyReason.AlreadyInRoom;
         if (byClient.ContainsKey(clientId)) return false;
-        reason = "The room code is invalid.";
+        reason = LobbyReason.RoomNotFound;
         if (!byCode.TryGetValue(code, out LobbyRoom found)) return false;
         if (!found.Session.TryJoin(clientId, code, out reason)) return false;
         byClient[clientId] = found;

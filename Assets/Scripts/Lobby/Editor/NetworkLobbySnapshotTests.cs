@@ -227,19 +227,19 @@ public class NetworkLobbySnapshotTests
             Assert.That(writer.Length, Is.LessThanOrEqualTo(bufferSize));
         }
 
-        string[] reasons =
+        LobbyReason[] reasons =
         {
-            "The lobby request is invalid.",
-            "Only the connected host can start the duel.",
-            "Two players must join before the duel starts.",
-            "The duel has already started.",
-            "The battle map could not be generated."
+            LobbyReason.InvalidRequest,
+            LobbyReason.NotHost,
+            LobbyReason.OpponentMissing,
+            LobbyReason.AlreadyStarted,
+            LobbyReason.MapGenerationFailed
         };
-        foreach (string reason in reasons)
+        foreach (LobbyReason reason in reasons)
         {
             using var rejection = new FastBufferWriter(bufferSize, Allocator.Temp);
             rejection.WriteValueSafe(uint.MaxValue);
-            rejection.WriteValueSafe(reason);
+            rejection.WriteValueSafe((byte)reason);
             Assert.That(rejection.Length, Is.LessThanOrEqualTo(bufferSize));
         }
 
@@ -307,8 +307,8 @@ public class NetworkLobbySnapshotTests
                 NoiseScale = 1.8f
             }
         };
-        Assert.That(session.TryUpdateSettings(1, latest, out string reason), Is.True, reason);
-        Assert.That(session.TryJoin(2, session.RoomCode, out string joinReason), Is.True, joinReason);
+        Assert.That(session.TryUpdateSettings(1, latest, out LobbyReason reason), Is.True, $"{reason}");
+        Assert.That(session.TryJoin(2, session.RoomCode, out LobbyReason joinReason), Is.True, $"{joinReason}");
         Assert.That(session.Confirm(2), Is.True);
 
         NetworkLobbySnapshot lateJoinSnapshot = session.Snapshot;
@@ -396,14 +396,14 @@ public class NetworkLobbySnapshotTests
 
     static void AssertInvalid(DuelSettings settings)
     {
-        Assert.That(DuelSettings.ValidateSettings(settings, out string reason), Is.False);
-        Assert.That(reason, Is.EqualTo("Room settings are invalid."));
+        Assert.That(DuelSettings.ValidateSettings(settings, out LobbyReason reason), Is.False);
+        Assert.That(reason, Is.EqualTo(LobbyReason.InvalidSettings));
     }
 
     static void AssertValid(DuelSettings settings)
     {
-        Assert.That(DuelSettings.ValidateSettings(settings, out string reason), Is.True, reason);
-        Assert.That(reason, Is.Empty);
+        Assert.That(DuelSettings.ValidateSettings(settings, out LobbyReason reason), Is.True, $"{reason}");
+        Assert.That(reason, Is.EqualTo(LobbyReason.None));
     }
 
     static DuelSettings WithMapSizeAndRanges(Vector2Int? size, float density, float strength, float scale, float bushDensity = 0.05f)

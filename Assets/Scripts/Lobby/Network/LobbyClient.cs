@@ -19,7 +19,7 @@ public sealed class LobbyClient
     bool notifyClosed;
     NamedMessageGroup messageHandlers;
     string requestedCode;
-    string disconnectReason;
+    LobbyReason disconnectReason;
     float snapshotDeadline;
     NetworkLobbySnapshot currentSnapshot;
     uint requestedSettingsRevision;
@@ -41,10 +41,10 @@ public sealed class LobbyClient
     }
 
     public event Action<NetworkLobbySnapshot> SnapshotChanged;
-    public event Action<string> Failed;
-    public event Action<string> Closed;
-    public event Action<string> SettingsRejected;
-    public event Action<string> StartRejected;
+    public event Action<LobbyReason> Failed;
+    public event Action<LobbyReason> Closed;
+    public event Action<LobbyReason> SettingsRejected;
+    public event Action<LobbyReason> StartRejected;
 
     public bool IsBusy => connecting || closing || inLobby || (getManager() != null && getManager().ShutdownInProgress);
     public bool IsInLobby => inLobby;
@@ -65,25 +65,25 @@ public sealed class LobbyClient
         NetworkManager manager = getManager();
         if (manager == null) return;
         if (connecting && !closing && now >= snapshotDeadline)
-            StopClient("The connection timed out.", false);
+            StopClient(LobbyReason.ConnectionTimedOut, false);
         if (!closing || manager.IsListening || manager.ShutdownInProgress) return;
 
         closing = false;
         // 소환된 플레이어는 연결 종료 때 Netcode가 지운다. 시작 화면으로 돌아가는 프레임에 맵도 지운다.
         DuelArena arena = getArena();
         if (arena != null) arena.Clear();
-        string reason = disconnectReason;
+        LobbyReason reason = disconnectReason;
         bool wasInLobby = notifyClosed;
-        disconnectReason = null;
+        disconnectReason = LobbyReason.None;
         notifyClosed = false;
-        if (wasInLobby) Closed?.Invoke(reason ?? string.Empty);
-        else if (!string.IsNullOrEmpty(reason)) Failed?.Invoke(reason);
+        if (wasInLobby) Closed?.Invoke(reason);
+        else if (reason != LobbyReason.None) Failed?.Invoke(reason);
     }
 
     public void UpdateSettings(DuelSettings settings)
     {
         if (!IsInLobby || closing || currentSnapshot.Phase != LobbyPhase.Lobby) return;
-        if (!DuelSettings.ValidateSettings(settings, out string reason))
+        if (!DuelSettings.ValidateSettings(settings, out LobbyReason reason))
         {
             Debug.Log($"[Lobby] Settings rejected: {reason}");
             SettingsRejected?.Invoke(reason);
@@ -117,13 +117,13 @@ public sealed class LobbyClient
     public void Cancel()
     {
         if (IsServerMode || closing || (!connecting && !inLobby)) return;
-        StopClient(string.Empty, true);
+        StopClient(LobbyReason.None, true);
     }
 
     public void StartRequest(bool createRoom, string code, DuelSettings settings, string serverAddress, ushort port)
     {
         if (IsServerMode || IsBusy) return;
-        string reason = "Enter a six-digit room code.";
+        LobbyReason reason = LobbyReason.InvalidRoomCode;
         bool isValid = createRoom ? DuelSettings.ValidateSettings(settings, out reason) : LobbySession.IsValidCode(code);
         if (!isValid)
         {
@@ -134,7 +134,7 @@ public sealed class LobbyClient
         UnityTransport transport = getTransport();
         if (manager == null || transport == null)
         {
-            Failed?.Invoke("The lobby network is not configured.");
+            Failed?.Invoke(LobbyReason.NetworkNotConfigured);
             return;
         }
         if (manager.IsListening || manager.ShutdownInProgress) return;
@@ -154,7 +154,7 @@ public sealed class LobbyClient
         Debug.Log($"[Lobby] Connecting address={serverAddress}:{port} create={createdRoom} code={requestedCode}");
         if (!manager.StartClient())
         {
-            StopClient("Could not start the connection.", false);
+            StopClient(LobbyReason.ConnectionStartFailed, false);
             return;
         }
         RegisterMessages();
@@ -180,13 +180,13 @@ public sealed class LobbyClient
         if (closing) return;
         NetworkManager manager = getManager();
         if (connecting || inLobby)
-            StopClient(string.IsNullOrEmpty(manager.DisconnectReason) ? LobbyNetwork.ConnectionFailed : manager.DisconnectReason, false);
+            StopClient(LobbyReasonCodec.FromWireReason(manager.DisconnectReason, LobbyReason.Disconnected), false);
     }
 
     public void OnTransportFailure()
     {
         if (closing) return;
-        if (connecting || inLobby) StopClient(LobbyNetwork.ConnectionFailed, false);
+        if (connecting || inLobby) StopClient(LobbyReason.Disconnected, false);
     }
 
     void OnSnapshot(ulong senderId, FastBufferReader reader)
@@ -206,11 +206,11 @@ public sealed class LobbyClient
             bool matchesCurrentRoom = snapshot.Follows(currentSnapshot);
             if (!snapshot.IsValidFor(manager.LocalClientId) ||
                 !(inLobby ? matchesCurrentRoom : matchesRequest) || (isHost && snapshot.SettingsRevision > requestedSettingsRevision))
-                throw new InvalidOperationException(LobbyNetwork.InvalidRequest);
+                throw new InvalidOperationException(nameof(LobbyReason.InvalidRequest));
             return true;
         }, "[Lobby] Invalid snapshot"))
         {
-            StopClient(LobbyNetwork.InvalidRequest, false);
+            StopClient(LobbyReason.InvalidRequest, false);
             return;
         }
         connecting = false;
@@ -236,7 +236,7 @@ public sealed class LobbyClient
         DuelArena arena = getArena();
         if (arena == null || !arena.Build(snapshot.Settings.ToSettings()))
         {
-            StopClient(LobbyNetwork.MapFailed, false);
+            StopClient(LobbyReason.MapGenerationFailed, false);
             return false;
         }
         LobbyMessages.MapReady.Send(getManager(), NetworkManager.ServerClientId, writer =>
@@ -252,16 +252,8 @@ public sealed class LobbyClient
     void OnError(ulong senderId, FastBufferReader reader)
     {
         if (IsServerMode || closing || !inLobby || senderId != NetworkManager.ServerClientId) return;
-        uint revision = 0;
-        string reason = null;
-        if (!LobbyMessages.Error.TryRead(reader, r =>
-        {
-            r.ReadValueSafe(out revision);
-            r.ReadValueSafe(out reason);
-            if (revision > requestedSettingsRevision)
-                throw new InvalidOperationException(LobbyNetwork.InvalidRequest);
-            return true;
-        }, "[Lobby] Invalid error message")) return;
+        if (!TryReadRejection(LobbyMessages.Error, reader, requestedSettingsRevision, "[Lobby] Invalid error message",
+            out uint revision, out LobbyReason reason)) return;
         settledSettingsRevision = Math.Max(settledSettingsRevision, revision);
         Debug.Log($"[Lobby] Settings rejected revision={revision}: {reason}");
         SettingsRejected?.Invoke(reason);
@@ -270,16 +262,8 @@ public sealed class LobbyClient
     void OnStartRejected(ulong senderId, FastBufferReader reader)
     {
         if (IsServerMode || closing || !inLobby || senderId != NetworkManager.ServerClientId) return;
-        uint request = 0;
-        string reason = null;
-        if (!LobbyMessages.StartRejected.TryRead(reader, r =>
-        {
-            r.ReadValueSafe(out request);
-            r.ReadValueSafe(out reason);
-            if (request > requestedStart)
-                throw new InvalidOperationException(LobbyNetwork.InvalidRequest);
-            return true;
-        }, "[Lobby] Invalid start rejection")) return;
+        if (!TryReadRejection(LobbyMessages.StartRejected, reader, requestedStart, "[Lobby] Invalid start rejection",
+            out uint request, out LobbyReason reason)) return;
         // 이미 승인되었거나 더 새 요청을 기다리는 중이면 늦게 온 거절을 무시한다.
         if (!startPending || request != requestedStart) return;
         startPending = false;
@@ -287,12 +271,35 @@ public sealed class LobbyClient
         StartRejected?.Invoke(reason);
     }
 
-    void StopClient(string reason, bool explicitlyCancelled)
+    static bool TryReadRejection(NamedMessageChannel channel, FastBufferReader reader, uint maxSequence, string context,
+        out uint sequence, out LobbyReason reason)
+    {
+        uint parsedSequence = 0;
+        byte rawReason = 0;
+        if (!channel.TryRead(reader, r =>
+        {
+            r.ReadValueSafe(out parsedSequence);
+            r.ReadValueSafe(out rawReason);
+            if (parsedSequence > maxSequence || !LobbyReasonCodec.IsValidRejectionCode(rawReason))
+                throw new InvalidOperationException(nameof(LobbyReason.InvalidRequest));
+            return true;
+        }, context))
+        {
+            sequence = 0;
+            reason = LobbyReason.None;
+            return false;
+        }
+        sequence = parsedSequence;
+        reason = (LobbyReason)rawReason;
+        return true;
+    }
+
+    void StopClient(LobbyReason reason, bool explicitlyCancelled)
     {
         if (closing) return;
         NetworkManager manager = getManager();
         notifyClosed = inLobby;
-        disconnectReason = explicitlyCancelled ? string.Empty : reason;
+        disconnectReason = explicitlyCancelled ? LobbyReason.None : reason;
         connecting = false;
         inLobby = false;
         startPending = false;

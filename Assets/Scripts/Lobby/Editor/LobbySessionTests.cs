@@ -12,7 +12,7 @@ public class LobbySessionTests
 
     static void CreateAndConfirmHost(LobbySession session, ulong host = 1)
     {
-        Assert.That(session.TryCreate(host, Settings(), out string reason), Is.True, reason);
+        Assert.That(session.TryCreate(host, Settings(), out LobbyReason reason), Is.True, $"{reason}");
         Assert.That(session.Confirm(host), Is.True);
     }
 
@@ -22,28 +22,28 @@ public class LobbySessionTests
         var session = CreateSession();
         CreateAndConfirmHost(session);
 
-        Assert.That(session.TryJoin(2, session.RoomCode, out string joinReason), Is.True, joinReason);
+        Assert.That(session.TryJoin(2, session.RoomCode, out LobbyReason joinReason), Is.True, $"{joinReason}");
         Assert.That(session.HasReservation(2), Is.True);
-        Assert.That(session.TryJoin(3, session.RoomCode, out string thirdReason), Is.False);
-        Assert.That(thirdReason, Is.Not.Empty);
+        Assert.That(session.TryJoin(3, session.RoomCode, out LobbyReason thirdReason), Is.False);
+        Assert.That(thirdReason, Is.EqualTo(LobbyReason.RoomFull));
         Assert.That(session.Confirm(2), Is.True);
         Assert.That(session.Ready, Is.True);
         Assert.That(session.Contains(1), Is.True);
         Assert.That(session.Contains(2), Is.True);
         Assert.That(session.TryJoin(3, session.RoomCode, out _), Is.False);
 
-        Assert.That(session.TryCreate(4, Settings(), out string createReason), Is.False);
-        Assert.That(createReason, Is.EqualTo("A room already exists."));
+        Assert.That(session.TryCreate(4, Settings(), out LobbyReason createReason), Is.False);
+        Assert.That(createReason, Is.EqualTo(LobbyReason.RoomAlreadyExists));
     }
 
     [Test]
     public void Join_RejectsMalformedAndUnknownCodes()
     {
         var session = CreateSession();
-        Assert.That(session.TryJoin(2, "12x456", out string malformed), Is.False);
-        Assert.That(malformed, Is.Not.Empty);
-        Assert.That(session.TryJoin(2, "999999", out string unknown), Is.False);
-        Assert.That(unknown, Is.Not.Empty);
+        Assert.That(session.TryJoin(2, "12x456", out LobbyReason malformed), Is.False);
+        Assert.That(malformed, Is.EqualTo(LobbyReason.InvalidRoomCode));
+        Assert.That(session.TryJoin(2, "999999", out LobbyReason unknown), Is.False);
+        Assert.That(unknown, Is.EqualTo(LobbyReason.RoomNotFound));
         Assert.That(LobbySession.IsValidCode("123456"), Is.True);
         Assert.That(LobbySession.IsValidCode("12345"), Is.False);
         Assert.That(LobbySession.IsValidCode("12345x"), Is.False);
@@ -75,8 +75,8 @@ public class LobbySessionTests
 
         Assert.That(session.CancelReservation(1), Is.True);
         Assert.That(session.Confirm(1), Is.False);
-        Assert.That(session.TryJoin(2, abandonedCode, out string reason), Is.False);
-        Assert.That(reason, Is.Not.Empty);
+        Assert.That(session.TryJoin(2, abandonedCode, out LobbyReason reason), Is.False);
+        Assert.That(reason, Is.EqualTo(LobbyReason.RoomNotFound));
         Assert.That(session.HasRoom, Is.False);
         Assert.That(session.HasReservation(1), Is.False);
         Assert.That(session.HasReservation(2), Is.False);
@@ -144,8 +144,8 @@ public class LobbySessionTests
         var session = CreateSession();
         CreateAndConfirmHost(session);
         Assert.That(session.TryJoin(2, session.RoomCode, out _), Is.True);
-        Assert.That(session.TryJoin(3, session.RoomCode, out string reason), Is.False);
-        Assert.That(reason, Is.Not.Empty);
+        Assert.That(session.TryJoin(3, session.RoomCode, out LobbyReason reason), Is.False);
+        Assert.That(reason, Is.EqualTo(LobbyReason.RoomFull));
         Assert.That(session.HasReservation(2), Is.True);
         Assert.That(session.HasReservation(3), Is.False);
     }
@@ -158,8 +158,8 @@ public class LobbySessionTests
         DuelSettings beforeUnconfirmedUpdate = new DuelSettings { Map = unconfirmedSession.Snapshot.Settings.ToSettings() };
         foreach (ulong sender in new ulong[] { 9, 10 })
         {
-            Assert.That(unconfirmedSession.TryUpdateSettings(sender, null, out string reason), Is.False);
-            Assert.That(reason, Is.EqualTo("Only the connected host can change room settings."));
+            Assert.That(unconfirmedSession.TryUpdateSettings(sender, null, out LobbyReason reason), Is.False);
+            Assert.That(reason, Is.EqualTo(LobbyReason.NotHost));
             AssertSettingsEqual(beforeUnconfirmedUpdate, new DuelSettings { Map = unconfirmedSession.Snapshot.Settings.ToSettings() });
         }
 
@@ -169,8 +169,8 @@ public class LobbySessionTests
         Assert.That(session.Confirm(2), Is.True);
         DuelSettings beforeGuestUpdate = new DuelSettings { Map = session.Snapshot.Settings.ToSettings() };
 
-        Assert.That(session.TryUpdateSettings(2, new DuelSettings { Map = null }, out string guestReason), Is.False);
-        Assert.That(guestReason, Is.EqualTo("Only the connected host can change room settings."));
+        Assert.That(session.TryUpdateSettings(2, new DuelSettings { Map = null }, out LobbyReason guestReason), Is.False);
+        Assert.That(guestReason, Is.EqualTo(LobbyReason.NotHost));
         AssertSettingsEqual(beforeGuestUpdate, new DuelSettings { Map = session.Snapshot.Settings.ToSettings() });
 
         DuelSettings beforeInvalidUpdates = new DuelSettings { Map = session.Snapshot.Settings.ToSettings() };
@@ -182,8 +182,8 @@ public class LobbySessionTests
         };
         foreach (DuelSettings invalid in invalidSettings)
         {
-            Assert.That(session.TryUpdateSettings(1, invalid, out string reason), Is.False);
-            Assert.That(reason, Is.EqualTo("Room settings are invalid."));
+            Assert.That(session.TryUpdateSettings(1, invalid, out LobbyReason reason), Is.False);
+            Assert.That(reason, Is.EqualTo(LobbyReason.InvalidSettings));
             AssertSettingsEqual(beforeInvalidUpdates, new DuelSettings { Map = session.Snapshot.Settings.ToSettings() });
         }
     }
@@ -194,8 +194,8 @@ public class LobbySessionTests
         var session = CreateFullRoom();
         foreach (ulong sender in new ulong[] { 2, 99 })
         {
-            Assert.That(session.TryStart(sender, out string reason), Is.False);
-            Assert.That(reason, Is.EqualTo("Only the connected host can start the duel."));
+            Assert.That(session.TryStart(sender, out LobbyReason reason), Is.False);
+            Assert.That(reason, Is.EqualTo(LobbyReason.NotHost));
             Assert.That(session.Phase, Is.EqualTo(LobbyPhase.Lobby));
             Assert.That(session.Snapshot.Phase, Is.EqualTo(LobbyPhase.Lobby));
         }
@@ -206,22 +206,22 @@ public class LobbySessionTests
     {
         var session = CreateSession();
         Assert.That(session.TryCreate(1, Settings(), out _), Is.True);
-        Assert.That(session.TryStart(1, out string unconfirmed), Is.False);
-        Assert.That(unconfirmed, Is.EqualTo("Only the connected host can start the duel."));
+        Assert.That(session.TryStart(1, out LobbyReason unconfirmed), Is.False);
+        Assert.That(unconfirmed, Is.EqualTo(LobbyReason.NotHost));
 
         Assert.That(session.Confirm(1), Is.True);
-        Assert.That(session.TryStart(1, out string alone), Is.False);
-        Assert.That(alone, Is.EqualTo("Two players must join before the duel starts."));
+        Assert.That(session.TryStart(1, out LobbyReason alone), Is.False);
+        Assert.That(alone, Is.EqualTo(LobbyReason.OpponentMissing));
 
         // 참가 예약만 하고 접속을 끝내지 않은 상대도 아직 방에 없는 것으로 본다.
         Assert.That(session.TryJoin(2, session.RoomCode, out _), Is.True);
-        Assert.That(session.TryStart(1, out string reserved), Is.False);
-        Assert.That(reserved, Is.EqualTo("Two players must join before the duel starts."));
+        Assert.That(session.TryStart(1, out LobbyReason reserved), Is.False);
+        Assert.That(reserved, Is.EqualTo(LobbyReason.OpponentMissing));
         Assert.That(session.Phase, Is.EqualTo(LobbyPhase.Lobby));
 
         Assert.That(session.Confirm(2), Is.True);
-        Assert.That(session.TryStart(1, out string reason), Is.True, reason);
-        Assert.That(reason, Is.Empty);
+        Assert.That(session.TryStart(1, out LobbyReason reason), Is.True, $"{reason}");
+        Assert.That(reason, Is.EqualTo(LobbyReason.None));
         Assert.That(session.Phase, Is.EqualTo(LobbyPhase.Preparing));
         Assert.That(session.Snapshot.Phase, Is.EqualTo(LobbyPhase.Preparing));
     }
@@ -232,13 +232,13 @@ public class LobbySessionTests
         var session = CreateFullRoom();
         Assert.That(session.BeginBattle(), Is.False);
         Assert.That(session.TryStart(1, out _), Is.True);
-        Assert.That(session.TryStart(1, out string preparing), Is.False);
-        Assert.That(preparing, Is.EqualTo("The duel has already started."));
+        Assert.That(session.TryStart(1, out LobbyReason preparing), Is.False);
+        Assert.That(preparing, Is.EqualTo(LobbyReason.AlreadyStarted));
         Assert.That(session.Phase, Is.EqualTo(LobbyPhase.Preparing));
 
         Assert.That(session.BeginBattle(), Is.True);
-        Assert.That(session.TryStart(1, out string battle), Is.False);
-        Assert.That(battle, Is.EqualTo("The duel has already started."));
+        Assert.That(session.TryStart(1, out LobbyReason battle), Is.False);
+        Assert.That(battle, Is.EqualTo(LobbyReason.AlreadyStarted));
         Assert.That(session.BeginBattle(), Is.False);
         Assert.That(session.CancelStart(), Is.False);
         Assert.That(session.Phase, Is.EqualTo(LobbyPhase.Battle));
@@ -253,10 +253,10 @@ public class LobbySessionTests
         if (inBattle) Assert.That(session.BeginBattle(), Is.True);
         DuelSettings before = new DuelSettings { Map = session.Snapshot.Settings.ToSettings() };
 
-        Assert.That(session.TryUpdateSettings(1, Settings(4242), out string hostReason), Is.False);
-        Assert.That(hostReason, Is.EqualTo("Room settings cannot change once the duel starts."));
-        Assert.That(session.TryUpdateSettings(2, Settings(4242), out string guestReason), Is.False);
-        Assert.That(guestReason, Is.EqualTo("Only the connected host can change room settings."));
+        Assert.That(session.TryUpdateSettings(1, Settings(4242), out LobbyReason hostReason), Is.False);
+        Assert.That(hostReason, Is.EqualTo(LobbyReason.BattleAlreadyStarted));
+        Assert.That(session.TryUpdateSettings(2, Settings(4242), out LobbyReason guestReason), Is.False);
+        Assert.That(guestReason, Is.EqualTo(LobbyReason.NotHost));
         AssertSettingsEqual(before, new DuelSettings { Map = session.Snapshot.Settings.ToSettings() });
     }
 
@@ -268,7 +268,7 @@ public class LobbySessionTests
         Assert.That(session.CancelStart(), Is.True);
         Assert.That(session.Phase, Is.EqualTo(LobbyPhase.Lobby));
         Assert.That(session.CancelStart(), Is.False);
-        Assert.That(session.TryUpdateSettings(1, Settings(5), out string reason), Is.True, reason);
+        Assert.That(session.TryUpdateSettings(1, Settings(5), out LobbyReason reason), Is.True, $"{reason}");
 
         Assert.That(session.TryStart(1, out _), Is.True);
         Assert.That(session.BeginBattle(), Is.True);
@@ -278,8 +278,8 @@ public class LobbySessionTests
 
         CreateAndConfirmHost(session, 3);
         Assert.That(session.Snapshot.Phase, Is.EqualTo(LobbyPhase.Lobby));
-        Assert.That(session.TryStart(3, out string alone), Is.False);
-        Assert.That(alone, Is.EqualTo("Two players must join before the duel starts."));
+        Assert.That(session.TryStart(3, out LobbyReason alone), Is.False);
+        Assert.That(alone, Is.EqualTo(LobbyReason.OpponentMissing));
     }
 
     [TestCase(0, 1)]
@@ -312,10 +312,10 @@ public class LobbySessionTests
     {
         var session = CreateFullRoom();
         PlayUntilResult(session, 0);
-        Assert.That(session.TryUpdateSettings(1, Settings(5), out string settingsReason), Is.False);
-        Assert.That(settingsReason, Is.EqualTo("Room settings cannot change once the duel starts."));
-        Assert.That(session.TryStart(1, out string startReason), Is.False);
-        Assert.That(startReason, Is.EqualTo("The duel has already started."));
+        Assert.That(session.TryUpdateSettings(1, Settings(5), out LobbyReason settingsReason), Is.False);
+        Assert.That(settingsReason, Is.EqualTo(LobbyReason.BattleAlreadyStarted));
+        Assert.That(session.TryStart(1, out LobbyReason startReason), Is.False);
+        Assert.That(startReason, Is.EqualTo(LobbyReason.AlreadyStarted));
         Assert.That(session.BeginBattle(), Is.False);
         Assert.That(session.CancelStart(), Is.False);
         Assert.That(session.Phase, Is.EqualTo(LobbyPhase.Result));
@@ -325,7 +325,7 @@ public class LobbySessionTests
     public void ReturnToLobbyKeepsRoomRolesAndSettings_AndAllowsRematch()
     {
         var session = CreateFullRoom();
-        Assert.That(session.TryUpdateSettings(1, Settings(4242), out string reason), Is.True, reason);
+        Assert.That(session.TryUpdateSettings(1, Settings(4242), out LobbyReason reason), Is.True, $"{reason}");
         NetworkLobbySnapshot before = session.Snapshot;
         Assert.That(session.ReturnToLobby(), Is.False);
 
@@ -372,7 +372,7 @@ public class LobbySessionTests
 
     static void PlayUntilResult(LobbySession session, int defeatedSlot)
     {
-        Assert.That(session.TryStart(session.HostClientId, out string reason), Is.True, reason);
+        Assert.That(session.TryStart(session.HostClientId, out LobbyReason reason), Is.True, $"{reason}");
         Assert.That(session.BeginBattle(), Is.True);
         Assert.That(session.TryFinishBattle(defeatedSlot), Is.True);
     }
@@ -381,7 +381,7 @@ public class LobbySessionTests
     {
         var session = CreateSession();
         CreateAndConfirmHost(session);
-        Assert.That(session.TryJoin(2, session.RoomCode, out string reason), Is.True, reason);
+        Assert.That(session.TryJoin(2, session.RoomCode, out LobbyReason reason), Is.True, $"{reason}");
         Assert.That(session.Confirm(2), Is.True);
         return session;
     }

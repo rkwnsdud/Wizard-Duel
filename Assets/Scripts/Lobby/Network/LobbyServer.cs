@@ -106,7 +106,7 @@ public sealed class LobbyServer
         response.CreatePlayerObject = false;
         response.Pending = false;
         response.Approved = false;
-        response.Reason = LobbyNetwork.InvalidRequest;
+        response.Reason = LobbyReasonCodec.ToWireReason(LobbyReason.InvalidRequest);
         if (closing || request.Payload == null || request.Payload.Length > LobbyMessages.BufferSize) return;
         ExpireReservations(Time.realtimeSinceStartup);
         try
@@ -114,17 +114,17 @@ public sealed class LobbyServer
             using var reader = new FastBufferReader(request.Payload, Allocator.Temp);
             reader.ReadNetworkSerializable(out LobbyJoinRequest payload);
             if (reader.Position != reader.Length || payload.Version != LobbyJoinRequest.CurrentVersion) return;
-            string reason;
+            LobbyReason reason;
             LobbyRoom room;
             bool approved = payload.CreateRoom
                 ? Directory.TryCreate(request.ClientNetworkId, new DuelSettings { Map = payload.Settings.ToSettings() }, out room, out reason)
                 : Directory.TryJoin(request.ClientNetworkId, payload.Code, out room, out reason);
             response.Approved = approved;
-            response.Reason = approved ? string.Empty : reason;
+            response.Reason = approved ? string.Empty : LobbyReasonCodec.ToWireReason(reason);
             if (approved)
                 reservations[request.ClientNetworkId] = Time.realtimeSinceStartup + manager.NetworkConfig.ClientConnectionBufferTimeout + 1;
             Debug.Log($"[Lobby] Approval client={request.ClientNetworkId} create={payload.CreateRoom} approved={approved} " +
-                $"code={(approved ? room.Code : "none")} rooms={Directory.Count} reason={response.Reason}");
+                $"code={(approved ? room.Code : "none")} rooms={Directory.Count} reason={(approved ? LobbyReason.None : reason)}");
         }
         catch (Exception exception)
         {
@@ -140,7 +140,7 @@ public sealed class LobbyServer
         // 접속을 끝내기 전에 방장이 나가 방이 닫혔다면 예약도 함께 사라졌다.
         if (!Directory.Confirm(clientId, out LobbyRoom room))
         {
-            manager.DisconnectClient(clientId, LobbyNetwork.InvalidRequest);
+            manager.DisconnectClient(clientId, LobbyReasonCodec.ToWireReason(LobbyReason.InvalidRequest));
             return;
         }
         BroadcastSnapshot(room);
@@ -193,7 +193,7 @@ public sealed class LobbyServer
         if (room == null) return;
         uint revision = 0;
         NetworkMapSettings mapSettings = default;
-        string reason = LobbyNetwork.InvalidRequest;
+        LobbyReason reason = LobbyReason.InvalidRequest;
         if (LobbyMessages.Settings.TryRead(reader, r =>
         {
             r.ReadValueSafe(out revision);
@@ -202,7 +202,7 @@ public sealed class LobbyServer
         }, $"[Lobby] Invalid settings client={senderId}"))
         {
             if (revision == 0 || revision <= room.SettingsRevision)
-                reason = "The settings update is out of date.";
+                reason = LobbyReason.SettingsOutOfDate;
             else if (room.Session.TryUpdateSettings(senderId, new DuelSettings { Map = mapSettings.ToSettings() }, out reason))
             {
                 room.SettingsRevision = revision;
@@ -213,7 +213,7 @@ public sealed class LobbyServer
         LobbyMessages.Error.Send(getManager(), senderId, writer =>
         {
             writer.WriteValueSafe(revision);
-            writer.WriteValueSafe(reason);
+            writer.WriteValueSafe((byte)reason);
         });
     }
 
@@ -223,7 +223,7 @@ public sealed class LobbyServer
         LobbyRoom room = RoomOf(senderId);
         if (room == null) return;
         uint request = 0;
-        string reason = LobbyNetwork.InvalidRequest;
+        LobbyReason reason = LobbyReason.InvalidRequest;
         if (LobbyMessages.Start.TryRead(reader, r =>
         {
             r.ReadValueSafe(out request);
@@ -238,14 +238,14 @@ public sealed class LobbyServer
                     return;
                 }
                 room.Session.CancelStart();
-                reason = LobbyNetwork.MapFailed;
+                reason = LobbyReason.MapGenerationFailed;
             }
         }
         Debug.Log($"[Lobby] Start rejected code={room.Code} client={senderId} request={request} phase={room.Session.Phase}: {reason}");
         LobbyMessages.StartRejected.Send(getManager(), senderId, writer =>
         {
             writer.WriteValueSafe(request);
-            writer.WriteValueSafe(reason);
+            writer.WriteValueSafe((byte)reason);
         });
     }
 
@@ -290,14 +290,14 @@ public sealed class LobbyServer
             return true;
         }, $"[Lobby] Invalid map ready client={senderId}"))
         {
-            manager.DisconnectClient(senderId, LobbyNetwork.InvalidRequest);
+            manager.DisconnectClient(senderId, LobbyReasonCodec.ToWireReason(LobbyReason.InvalidRequest));
             return;
         }
         if (revision != room.SettingsRevision || fingerprint != room.Match.Fingerprint)
         {
             Debug.LogError($"[Lobby] Client {senderId} map does not match the server code={room.Code} " +
                 $"revision={revision}/{room.SettingsRevision} fingerprint={fingerprint}");
-            manager.DisconnectClient(senderId, LobbyNetwork.MapMismatch);
+            manager.DisconnectClient(senderId, LobbyReasonCodec.ToWireReason(LobbyReason.MapMismatch));
             return;
         }
         if (!room.ReadyClients.Add(senderId)) return;
@@ -355,8 +355,8 @@ public sealed class LobbyServer
         // 방을 먼저 뺀다. 남은 한 명의 끊김 콜백이 이 방을 다시 찾지 못해 한 번만 닫힌다.
         Directory.Remove(room);
         if (remaining.HasValue && manager.ConnectedClients.ContainsKey(remaining.Value))
-            manager.DisconnectClient(remaining.Value, LobbyNetwork.RoomClosed);
-        Debug.Log($"[Lobby] Closed code={room.Code} departing={departingClient} reason={LobbyNetwork.RoomClosed} " +
+            manager.DisconnectClient(remaining.Value, LobbyReasonCodec.ToWireReason(LobbyReason.RoomClosed));
+        Debug.Log($"[Lobby] Closed code={room.Code} departing={departingClient} reason={LobbyReason.RoomClosed} " +
             $"rooms={Directory.Count} playerobjects={manager.SpawnManager.PlayerObjects.Count}");
     }
 
@@ -389,7 +389,8 @@ public sealed class LobbyServer
             reservations.Remove(clientId);
             Directory.CancelReservation(clientId);
             Debug.Log($"[Lobby] Reservation expired client={clientId} rooms={Directory.Count}");
-            if (manager.ConnectedClients.ContainsKey(clientId)) manager.DisconnectClient(clientId, "The connection timed out.");
+            if (manager.ConnectedClients.ContainsKey(clientId))
+                manager.DisconnectClient(clientId, LobbyReasonCodec.ToWireReason(LobbyReason.ConnectionTimedOut));
         }
     }
 }

@@ -72,7 +72,7 @@ public class LobbyNetworkSettingsTests
         CreateNetwork(2);
         using var writer = new FastBufferWriter(64, Allocator.Temp);
         writer.WriteValueSafe(1u);
-        writer.WriteValueSafe("Earlier update was rejected.");
+        writer.WriteValueSafe((byte)LobbyReason.SettingsOutOfDate);
         using var reader = new FastBufferReader(writer, Allocator.Temp);
         Invoke("OnError", NetworkManager.ServerClientId, reader);
 
@@ -87,7 +87,7 @@ public class LobbyNetworkSettingsTests
         SetField("inLobby", false);
         SetField("connecting", true);
         var received = new List<NetworkLobbySnapshot>();
-        var closed = new List<string>();
+        var closed = new List<LobbyReason>();
         int failed = 0;
         network.SnapshotChanged += received.Add;
         network.Closed += closed.Add;
@@ -108,7 +108,7 @@ public class LobbyNetworkSettingsTests
         Invoke("Update");
         Assert.That(network.IsBusy, Is.False);
         Assert.That(closed.Count, Is.EqualTo(acceptedSnapshot ? 1 : 0));
-        if (acceptedSnapshot) Assert.That(closed[0], Is.Empty);
+        if (acceptedSnapshot) Assert.That(closed[0], Is.EqualTo(LobbyReason.None));
         Assert.That(failed, Is.Zero);
 
         network.Cancel();
@@ -148,17 +148,17 @@ public class LobbyNetworkSettingsTests
         SetField("currentSnapshot", Snapshot(0, 100, MapShape.Random, LobbyPhase.Lobby));
         SetField("requestedStart", 2u);
         SetField("startPending", true);
-        var rejected = new List<string>();
+        var rejected = new List<LobbyReason>();
         network.StartRejected += rejected.Add;
 
-        SendStartRejection(1, "Older request.");
-        SendStartRejection(3, "Request that was never sent.");
+        SendStartRejection(1, LobbyReason.SettingsOutOfDate);
+        SendStartRejection(3, LobbyReason.AlreadyStarted);
         Assert.That(rejected, Is.Empty);
         Assert.That(network.IsStarting, Is.True);
 
-        SendStartRejection(2, "The duel has already started.");
-        SendStartRejection(2, "The duel has already started.");
-        Assert.That(rejected, Is.EqualTo(new[] { "The duel has already started." }));
+        SendStartRejection(2, LobbyReason.AlreadyStarted);
+        SendStartRejection(2, LobbyReason.AlreadyStarted);
+        Assert.That(rejected, Is.EqualTo(new[] { LobbyReason.AlreadyStarted }));
         Assert.That(network.IsStarting, Is.False);
         Assert.That(network.IsInLobby, Is.True);
     }
@@ -171,20 +171,20 @@ public class LobbyNetworkSettingsTests
         SetField("requestedStart", 1u);
         SetField("startPending", true);
         var received = new List<NetworkLobbySnapshot>();
-        var rejected = new List<string>();
-        var closed = new List<string>();
+        var rejected = new List<LobbyReason>();
+        var closed = new List<LobbyReason>();
         network.SnapshotChanged += received.Add;
         network.StartRejected += rejected.Add;
         network.Closed += closed.Add;
 
         SendSnapshot(Snapshot(0, 100, MapShape.Random, LobbyPhase.Preparing));
-        SendStartRejection(1, "Late rejection.");
+        SendStartRejection(1, LobbyReason.AlreadyStarted);
         Assert.That(received, Is.Empty);
         Assert.That(network.IsInLobby, Is.False);
         Assert.That(network.IsStarting, Is.False);
 
         Invoke("Update");
-        Assert.That(closed, Is.EqualTo(new[] { "The battle map could not be generated." }));
+        Assert.That(closed, Is.EqualTo(new[] { LobbyReason.MapGenerationFailed }));
         Assert.That(rejected, Is.Empty);
     }
 
@@ -290,11 +290,11 @@ public class LobbyNetworkSettingsTests
         return snapshot;
     }
 
-    void SendStartRejection(uint request, string reason)
+    void SendStartRejection(uint request, LobbyReason reason)
     {
         using var writer = new FastBufferWriter(128, Allocator.Temp);
         writer.WriteValueSafe(request);
-        writer.WriteValueSafe(reason);
+        writer.WriteValueSafe((byte)reason);
         using var reader = new FastBufferReader(writer, Allocator.Temp);
         Invoke("OnStartRejected", NetworkManager.ServerClientId, reader);
     }

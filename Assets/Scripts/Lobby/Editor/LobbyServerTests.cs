@@ -35,7 +35,7 @@ public class LobbyServerTests
         NetworkManager.ConnectionApprovalResponse second = Approve(server, 2,
             new LobbyJoinRequest(true, string.Empty, new DuelSettings { Map = new MapGenerationSettings { Seed = 200 } }));
         Assert.That(second.Approved, Is.False);
-        Assert.That(second.Reason, Is.EqualTo(LobbyDirectory.ServerFull));
+        Assert.That(second.Reason, Is.EqualTo(LobbyReasonCodec.ToWireReason(LobbyReason.ServerFull)));
     }
 
     [Test]
@@ -50,12 +50,12 @@ public class LobbyServerTests
             Payload = new byte[] { 1, 2, 3 }
         }, badResponse);
         Assert.That(badResponse.Approved, Is.False);
-        Assert.That(badResponse.Reason, Is.EqualTo("The lobby request is invalid."));
+        Assert.That(badResponse.Reason, Is.EqualTo(LobbyReasonCodec.ToWireReason(LobbyReason.InvalidRequest)));
 
         NetworkManager.ConnectionApprovalResponse missingRoom = Approve(server, 2,
             new LobbyJoinRequest(false, "999999", null));
         Assert.That(missingRoom.Approved, Is.False);
-        Assert.That(missingRoom.Reason, Is.EqualTo("The room code is invalid."));
+        Assert.That(missingRoom.Reason, Is.EqualTo(LobbyReasonCodec.ToWireReason(LobbyReason.RoomNotFound)));
     }
 
     [Test]
@@ -82,7 +82,7 @@ public class LobbyServerTests
             remoteResponse
         });
         Assert.That(remoteResponse.Approved, Is.False);
-        Assert.That(remoteResponse.Reason, Is.EqualTo("The lobby request is invalid."));
+        Assert.That(remoteResponse.Reason, Is.EqualTo(LobbyReasonCodec.ToWireReason(LobbyReason.InvalidRequest)));
     }
 
     LobbyServer CreateServer(int maxRooms)

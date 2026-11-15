@@ -27,9 +27,9 @@ public sealed class DuelSettings
         NoiseScale = Map.NoiseScale
     };
 
-    public static bool ValidateSettings(DuelSettings requested, out string reason)
+    public static bool ValidateSettings(DuelSettings requested, out LobbyReason reason)
     {
-        reason = "Room settings are invalid.";
+        reason = LobbyReason.InvalidSettings;
         if (requested == null || requested.Map == null) return false;
         MapGenerationSettings map = requested.Map;
         if (map.Size.HasValue &&
@@ -42,7 +42,7 @@ public sealed class DuelSettings
             !(map.BushDensity >= 0 && map.BushDensity <= DuelSettings.MaxBushDensity) ||
             !(map.NoiseStrength >= 0 && map.NoiseStrength <= 1) ||
             !(map.NoiseScale >= 0.25f && map.NoiseScale <= 2)) return false;
-        reason = string.Empty;
+        reason = LobbyReason.None;
         return true;
     }
 }

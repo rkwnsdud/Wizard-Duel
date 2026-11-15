@@ -50,9 +50,9 @@ public sealed class LobbySession
     public bool HasReservation(ulong clientId) =>
         (!hostConfirmed && hostOwner == clientId) || (!guestConfirmed && guestOwner == clientId);
 
-    public bool TryCreate(ulong clientId, DuelSettings requested, out string reason)
+    public bool TryCreate(ulong clientId, DuelSettings requested, out LobbyReason reason)
     {
-        reason = "A room already exists.";
+        reason = LobbyReason.RoomAlreadyExists;
         if (HasRoom) return false;
         if (!DuelSettings.ValidateSettings(requested, out reason)) return false;
 
@@ -63,23 +63,23 @@ public sealed class LobbySession
             code = (code + 1) % 1000000;
         RoomCode = FormatCode(code);
         hostOwner = clientId;
-        reason = string.Empty;
+        reason = LobbyReason.None;
         return true;
     }
 
-    public bool TryJoin(ulong clientId, string code, out string reason)
+    public bool TryJoin(ulong clientId, string code, out LobbyReason reason)
     {
-        reason = "Enter a six-digit room code.";
+        reason = LobbyReason.InvalidRoomCode;
         if (!IsValidCode(code)) return false;
-        reason = "The room code is invalid.";
+        reason = LobbyReason.RoomNotFound;
         if (!hostConfirmed || code != RoomCode) return false;
-        reason = "This client already belongs to the room.";
+        reason = LobbyReason.AlreadyInRoom;
         if (hostOwner == clientId || guestOwner == clientId) return false;
-        reason = "This room already has two players.";
+        reason = LobbyReason.RoomFull;
         if (guestOwner.HasValue) return false;
 
         guestOwner = clientId;
-        reason = string.Empty;
+        reason = LobbyReason.None;
         return true;
     }
 
@@ -120,31 +120,31 @@ public sealed class LobbySession
         return true;
     }
 
-    public bool TryUpdateSettings(ulong sender, DuelSettings requested, out string reason)
+    public bool TryUpdateSettings(ulong sender, DuelSettings requested, out LobbyReason reason)
     {
-        reason = "Only the connected host can change room settings.";
+        reason = LobbyReason.NotHost;
         if (!hostConfirmed || hostOwner != sender) return false;
-        reason = "Room settings cannot change once the duel starts.";
+        reason = LobbyReason.BattleAlreadyStarted;
         if (Phase != LobbyPhase.Lobby) return false;
         if (!DuelSettings.ValidateSettings(requested, out reason)) return false;
 
         settings = new NetworkMapSettings(requested.Map);
-        reason = string.Empty;
+        reason = LobbyReason.None;
         return true;
     }
 
     // 확정된 방장이 상대와 함께 있을 때만 전투 준비로 넘긴다. 저장한 시드와 설정은 그대로 쓴다.
-    public bool TryStart(ulong sender, out string reason)
+    public bool TryStart(ulong sender, out LobbyReason reason)
     {
-        reason = "Only the connected host can start the duel.";
+        reason = LobbyReason.NotHost;
         if (!hostConfirmed || hostOwner != sender) return false;
-        reason = "Two players must join before the duel starts.";
+        reason = LobbyReason.OpponentMissing;
         if (!guestConfirmed) return false;
-        reason = "The duel has already started.";
+        reason = LobbyReason.AlreadyStarted;
         if (Phase != LobbyPhase.Lobby) return false;
 
         Phase = LobbyPhase.Preparing;
-        reason = string.Empty;
+        reason = LobbyReason.None;
         return true;
     }
 

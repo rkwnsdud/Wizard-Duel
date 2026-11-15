@@ -18,21 +18,15 @@ public sealed class LobbyNetwork : MonoBehaviour
     [Tooltip("서버가 동시에 열어 둘 수 있는 방 수. 가득 차면 새 방 생성을 거절한다.")]
     [SerializeField, Min(1)] int maxRooms = 50;
 
-    internal const string RoomClosed = "A player left, so the room was closed.";
-    internal const string InvalidRequest = "The lobby request is invalid.";
-    internal const string ConnectionFailed = "Disconnected from the server.";
-    internal const string MapFailed = "The battle map could not be generated.";
-    internal const string MapMismatch = "Generated map does not match the server.";
-
     LobbyServer server;
     LobbyClient client;
     bool serverMode;
 
     public event Action<NetworkLobbySnapshot> SnapshotChanged;
-    public event Action<string> Failed;
-    public event Action<string> Closed;
-    public event Action<string> SettingsRejected;
-    public event Action<string> StartRejected;
+    public event Action<LobbyReason> Failed;
+    public event Action<LobbyReason> Closed;
+    public event Action<LobbyReason> SettingsRejected;
+    public event Action<LobbyReason> StartRejected;
 
     // 이 클라이언트의 전투 맵. 카메라가 내 스폰 지점으로 내려갈 때 쓴다.
     public DuelArena Arena => arena;
@@ -127,7 +121,7 @@ public sealed class LobbyNetwork : MonoBehaviour
             response.Pending = false;
             // 전용 서버가 아닌데 승인 요청이 오는 것은 AI 대전(AiDuel)의 로컬 호스트뿐이다. 호스트 자신만 받고 밖에서 온 접속은 거절한다.
             response.Approved = request.ClientNetworkId == NetworkManager.ServerClientId;
-            response.Reason = response.Approved ? string.Empty : InvalidRequest;
+            response.Reason = response.Approved ? string.Empty : LobbyReasonCodec.ToWireReason(LobbyReason.InvalidRequest);
             return;
         }
         Server.ApproveConnection(request, response);

@@ -311,7 +311,7 @@ public class LobbyInputTests : PlayModeTestFixture
         InvokeFlow("OnSnapshot", snapshot);
         Assert.That(Field<Coroutine>(flow, "transition"), Is.Not.Null);
         Assert.That(start.gameObject.activeSelf, Is.True, "The entry hide has not finished yet.");
-        InvokeFlow("OnClosed", "A player left, so the room was closed.");
+        InvokeFlow("OnClosed", LobbyReason.RoomClosed);
         yield return new WaitForSecondsRealtime(1f);
 
         Assert.That(start.gameObject.activeSelf, Is.True);
@@ -399,7 +399,7 @@ public class LobbyInputTests : PlayModeTestFixture
         foreach (var feature in occlusion) Assert.That(feature.isActive, Is.False, "SSAO pauses while the projections blend.");
 
         SetField(client, "inLobby", false);
-        InvokeFlow("OnClosed", "A player left, so the room was closed.");
+        InvokeFlow("OnClosed", LobbyReason.RoomClosed);
         yield return new WaitForSecondsRealtime(1.5f);
         Assert.That(start.gameObject.activeSelf, Is.True);
         Assert.That(lobby.gameObject.activeSelf, Is.False);
@@ -624,7 +624,7 @@ public class LobbyInputTests : PlayModeTestFixture
         if (failed)
         {
             network.Cancel();
-            InvokeFlow("OnConnectionFailed", "Disconnected from the server.");
+            InvokeFlow("OnConnectionFailed", LobbyReason.Disconnected);
         }
         else InvokeFlow("Cancel");
         yield return WaitForRuntime(0.3f);

@@ -281,24 +281,23 @@ public class MainFlow : MonoBehaviour
             transition = StartCoroutine(ReconcileScreens());
     }
 
-    void OnConnectionFailed(string reason)
+    void OnConnectionFailed(LobbyReason reason)
     {
         // 그만둔 접속의 실패가 뒤늦게 왔다. 이미 다른 메뉴로 넘어가는 중이니 알리지 않는다.
         if (queued != null) return;
-        reason = ConnectionNotice(reason);
+        string notice = LobbyReasonMessages.ConnectionNotice(reason);
         if (creating)
         {
             backdrop.ShowTitle(settings, true);
-            startScreen.ShowCreateError(reason);
+            startScreen.ShowCreateError(notice);
         }
-        else startScreen.ShowJoinError(reason);
+        else startScreen.ShowJoinError(notice);
     }
 
-    void OnClosed(string reason)
+    void OnClosed(LobbyReason reason)
     {
         wantsLobby = false;
-        exitNotice = string.IsNullOrEmpty(reason) ? reason : ConnectionNotice(reason);
-        if (battleVisible && reason == RoomClosed) exitNotice = "상대가 나가서 전투가 끝났어요.";
+        exitNotice = LobbyReasonMessages.ClosedNotice(reason, battleVisible);
         resultBanner.Hide();
         startScreen.FinishConnection();
         Reconcile();
@@ -407,46 +406,19 @@ public class MainFlow : MonoBehaviour
         network.UpdateSettings(changed);
     }
 
-    void OnSettingsRejected(string reason)
+    void OnSettingsRejected(LobbyReason reason)
     {
         if (!network.IsInLobby) return;
         if (lobbyVisible && transition == null) ApplySnapshot();
-        toast.Show(reason switch
-        {
-            "Only the connected host can change room settings." => "방장만 대기실 설정을 바꿀 수 있어요.",
-            "Room settings are invalid." => "맵 설정이 올바르지 않아 변경하지 않았어요.",
-            "Room settings cannot change once the duel starts." => "전투 준비가 시작되어 맵 설정을 바꿀 수 없어요.",
-            _ => "맵 설정을 적용할 수 없어요. 다시 시도해 주세요."
-        });
+        toast.Show(LobbyReasonMessages.SettingsRejected(reason));
     }
 
-    void OnStartRejected(string reason)
+    void OnStartRejected(LobbyReason reason)
     {
         if (!network.IsInLobby) return;
         lobby.SetStarting(network.IsStarting);
-        toast.Show(reason switch
-        {
-            "Only the connected host can start the duel." => "방장만 게임을 시작할 수 있어요.",
-            "Two players must join before the duel starts." => "상대가 들어와야 시작할 수 있어요",
-            "The duel has already started." => "이미 전투를 준비하고 있어요.",
-            "The battle map could not be generated." => "이 설정으로는 전투 맵을 만들 수 없어요.",
-            _ => "게임을 시작할 수 없어요. 다시 시도해 주세요."
-        });
+        toast.Show(LobbyReasonMessages.StartRejected(reason));
     }
 
     void OnPreviewFailed() => toast.Show("이 설정으로는 맵을 만들 수 없어요");
-
-    const string RoomClosed = "A player left, so the room was closed.";
-
-    static string ConnectionNotice(string reason) => reason switch
-    {
-        "The room code is invalid." => "유효하지 않은 맵 코드예요. 코드를 다시 확인해 주세요.",
-        "This room already has two players." => "이미 두 명이 참가한 대기실이에요.",
-        LobbyDirectory.ServerFull => "서버에 방이 가득 찼어요. 잠시 후 다시 시도해 주세요.",
-        "Enter a six-digit room code." => "숫자 6자리 맵 코드를 입력해 주세요.",
-        RoomClosed => "상대가 나가서 대기실이 닫혔어요.",
-        "The battle map could not be generated." => "전투 맵을 만들지 못해 대기실에서 나왔어요.",
-        "Generated map does not match the server." => "맵이 서버와 달라서 연결이 끊겼어요.",
-        _ => "서버 연결이 끊겼거나 접속할 수 없어요. 잠시 후 다시 시도해 주세요."
-    };
 }

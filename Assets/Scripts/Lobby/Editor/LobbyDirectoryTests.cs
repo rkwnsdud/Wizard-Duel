@@ -13,10 +13,10 @@ public class LobbyDirectoryTests
 
     static LobbyRoom CreateFullRoom(LobbyDirectory directory, ulong host, ulong guest)
     {
-        Assert.That(directory.TryCreate(host, Settings(), out LobbyRoom room, out string createReason), Is.True, createReason);
+        Assert.That(directory.TryCreate(host, Settings(), out LobbyRoom room, out LobbyReason createReason), Is.True, $"{createReason}");
         Assert.That(directory.Confirm(host, out LobbyRoom confirmedHostRoom), Is.True);
         Assert.That(confirmedHostRoom, Is.SameAs(room));
-        Assert.That(directory.TryJoin(guest, room.Code, out LobbyRoom joined, out string joinReason), Is.True, joinReason);
+        Assert.That(directory.TryJoin(guest, room.Code, out LobbyRoom joined, out LobbyReason joinReason), Is.True, $"{joinReason}");
         Assert.That(joined, Is.SameAs(room));
         Assert.That(directory.Confirm(guest, out _), Is.True);
         return room;
@@ -54,8 +54,8 @@ public class LobbyDirectoryTests
         // 다른 방의 방장은 이 방의 설정과 시작을 건드리지 못한다.
         Assert.That(first.Session.TryUpdateSettings(3, Settings(4242), out _), Is.False);
         Assert.That(first.Session.TryStart(3, out _), Is.False);
-        Assert.That(first.Session.TryUpdateSettings(1, Settings(4242), out string reason), Is.True, reason);
-        Assert.That(first.Session.TryStart(1, out reason), Is.True, reason);
+        Assert.That(first.Session.TryUpdateSettings(1, Settings(4242), out LobbyReason reason), Is.True, $"{reason}");
+        Assert.That(first.Session.TryStart(1, out reason), Is.True, $"{reason}");
 
         Assert.That(first.Session.Phase, Is.EqualTo(LobbyPhase.Preparing));
         Assert.That(first.Session.Snapshot.Settings.Seed, Is.EqualTo(4242));
@@ -71,17 +71,17 @@ public class LobbyDirectoryTests
         var directory = CreateDirectory();
         LobbyRoom room = CreateFullRoom(directory, 1, 2);
 
-        Assert.That(directory.TryJoin(5, "12x456", out LobbyRoom malformedRoom, out string malformed), Is.False);
-        Assert.That(malformed, Is.EqualTo("Enter a six-digit room code."));
+        Assert.That(directory.TryJoin(5, "12x456", out LobbyRoom malformedRoom, out LobbyReason malformed), Is.False);
+        Assert.That(malformed, Is.EqualTo(LobbyReason.InvalidRoomCode));
         Assert.That(malformedRoom, Is.Null);
-        Assert.That(directory.TryJoin(5, "999999", out _, out string unknown), Is.False);
-        Assert.That(unknown, Is.EqualTo("The room code is invalid."));
-        Assert.That(directory.TryJoin(5, room.Code, out _, out string full), Is.False);
-        Assert.That(full, Is.EqualTo("This room already has two players."));
+        Assert.That(directory.TryJoin(5, "999999", out _, out LobbyReason unknown), Is.False);
+        Assert.That(unknown, Is.EqualTo(LobbyReason.RoomNotFound));
+        Assert.That(directory.TryJoin(5, room.Code, out _, out LobbyReason full), Is.False);
+        Assert.That(full, Is.EqualTo(LobbyReason.RoomFull));
         Assert.That(directory.RoomOf(5), Is.Null);
 
         // 거절된 클라이언트는 방에 묶이지 않아서 다른 방을 만들 수 있다.
-        Assert.That(directory.TryCreate(5, Settings(), out _, out string reason), Is.True, reason);
+        Assert.That(directory.TryCreate(5, Settings(), out _, out LobbyReason reason), Is.True, $"{reason}");
     }
 
     [Test]
@@ -92,10 +92,10 @@ public class LobbyDirectoryTests
         Assert.That(directory.TryCreate(3, Settings(), out LobbyRoom second, out _), Is.True);
         Assert.That(directory.Confirm(3, out _), Is.True);
 
-        Assert.That(directory.TryCreate(1, Settings(), out _, out string createReason), Is.False);
-        Assert.That(createReason, Is.Not.Empty);
-        Assert.That(directory.TryJoin(2, second.Code, out _, out string joinReason), Is.False);
-        Assert.That(joinReason, Is.Not.Empty);
+        Assert.That(directory.TryCreate(1, Settings(), out _, out LobbyReason createReason), Is.False);
+        Assert.That(createReason, Is.EqualTo(LobbyReason.AlreadyInRoom));
+        Assert.That(directory.TryJoin(2, second.Code, out _, out LobbyReason joinReason), Is.False);
+        Assert.That(joinReason, Is.EqualTo(LobbyReason.AlreadyInRoom));
         Assert.That(directory.Count, Is.EqualTo(2));
         Assert.That(directory.RoomOf(2), Is.SameAs(first));
         Assert.That(second.Session.OpponentPresent, Is.False);
@@ -114,8 +114,8 @@ public class LobbyDirectoryTests
         Assert.That(directory.Remove(first), Is.False);
         Assert.That(directory.RoomOf(1), Is.Null);
         Assert.That(directory.RoomOf(2), Is.Null);
-        Assert.That(directory.TryJoin(5, first.Code, out _, out string reason), Is.False);
-        Assert.That(reason, Is.EqualTo("The room code is invalid."));
+        Assert.That(directory.TryJoin(5, first.Code, out _, out LobbyReason reason), Is.False);
+        Assert.That(reason, Is.EqualTo(LobbyReason.RoomNotFound));
 
         Assert.That(directory.Count, Is.EqualTo(1));
         Assert.That(directory.RoomOf(3), Is.SameAs(second));
@@ -124,7 +124,7 @@ public class LobbyDirectoryTests
         Assert.That(second.Session.Ready, Is.True);
 
         // 나간 사람은 새 방을 만들 수 있다.
-        Assert.That(directory.TryCreate(1, Settings(), out _, out reason), Is.True, reason);
+        Assert.That(directory.TryCreate(1, Settings(), out _, out reason), Is.True, $"{reason}");
     }
 
     [Test]
@@ -149,16 +149,16 @@ public class LobbyDirectoryTests
         LobbyRoom first = CreateFullRoom(directory, 1, 2);
         CreateFullRoom(directory, 3, 4);
 
-        Assert.That(directory.TryCreate(5, Settings(), out LobbyRoom rejected, out string reason), Is.False);
-        Assert.That(reason, Is.EqualTo(LobbyDirectory.ServerFull));
+        Assert.That(directory.TryCreate(5, Settings(), out LobbyRoom rejected, out LobbyReason reason), Is.False);
+        Assert.That(reason, Is.EqualTo(LobbyReason.ServerFull));
         Assert.That(rejected, Is.Null);
         Assert.That(directory.Count, Is.EqualTo(2));
         // 가득 찬 서버에서도 열린 방에는 코드로 들어갈 수 있어야 하므로 참가는 방 수를 세지 않는다.
         Assert.That(directory.TryJoin(5, "999999", out _, out reason), Is.False);
-        Assert.That(reason, Is.EqualTo("The room code is invalid."));
+        Assert.That(reason, Is.EqualTo(LobbyReason.RoomNotFound));
 
         Assert.That(directory.Remove(first), Is.True);
-        Assert.That(directory.TryCreate(5, Settings(), out _, out reason), Is.True, reason);
+        Assert.That(directory.TryCreate(5, Settings(), out _, out reason), Is.True, $"{reason}");
         Assert.That(directory.Count, Is.EqualTo(2));
     }
 
@@ -168,11 +168,11 @@ public class LobbyDirectoryTests
         var directory = CreateDirectory();
         var invalid = new DuelSettings { Map = new MapGenerationSettings { ObstacleDensity = 0.26f } };
 
-        Assert.That(directory.TryCreate(1, invalid, out LobbyRoom room, out string reason), Is.False);
-        Assert.That(reason, Is.EqualTo("Room settings are invalid."));
+        Assert.That(directory.TryCreate(1, invalid, out LobbyRoom room, out LobbyReason reason), Is.False);
+        Assert.That(reason, Is.EqualTo(LobbyReason.InvalidSettings));
         Assert.That(room, Is.Null);
         Assert.That(directory.Count, Is.Zero);
-        Assert.That(directory.TryCreate(1, Settings(), out _, out reason), Is.True, reason);
+        Assert.That(directory.TryCreate(1, Settings(), out _, out reason), Is.True, $"{reason}");
     }
 
     [Test]
@@ -190,7 +190,7 @@ public class LobbyDirectoryTests
         Assert.That(directory.Confirm(99, out _), Is.False);
         Assert.That(directory.RoomOf(1), Is.SameAs(room));
 
-        Assert.That(directory.TryJoin(2, room.Code, out _, out string reason), Is.True, reason);
+        Assert.That(directory.TryJoin(2, room.Code, out _, out LobbyReason reason), Is.True, $"{reason}");
         Assert.That(directory.RoomOf(2), Is.Null);
         Assert.That(room.Session.OpponentPresent, Is.False);
     }
@@ -215,7 +215,7 @@ public class LobbyDirectoryTests
         Assert.That(directory.TryJoin(6, waiting.Code, out _, out _), Is.True);
         Assert.That(directory.CancelReservation(6), Is.True);
         Assert.That(directory.RoomOf(5), Is.SameAs(waiting));
-        Assert.That(directory.TryJoin(7, waiting.Code, out _, out string reason), Is.True, reason);
+        Assert.That(directory.TryJoin(7, waiting.Code, out _, out LobbyReason reason), Is.True, $"{reason}");
 
         // 접속을 끝낸 구성원과 모르는 클라이언트는 예약 취소로 방을 닫지 못한다.
         Assert.That(directory.CancelReservation(1), Is.False);
@@ -238,7 +238,7 @@ public class LobbyDirectoryTests
         Assert.That(directory.Confirm(2, out _), Is.False);
         Assert.That(directory.RoomOf(2), Is.Null);
         Assert.That(directory.CancelReservation(2), Is.False);
-        Assert.That(directory.TryCreate(2, Settings(), out _, out string reason), Is.True, reason);
+        Assert.That(directory.TryCreate(2, Settings(), out _, out LobbyReason reason), Is.True, $"{reason}");
     }
 
     [Test]
@@ -254,7 +254,7 @@ public class LobbyDirectoryTests
         Assert.That(directory.RoomOf(1), Is.Null);
         Assert.That(directory.RoomOf(4), Is.Null);
         Assert.That(directory.TryJoin(5, first.Code, out _, out _), Is.False);
-        Assert.That(directory.TryCreate(1, Settings(), out _, out string reason), Is.True, reason);
+        Assert.That(directory.TryCreate(1, Settings(), out _, out LobbyReason reason), Is.True, $"{reason}");
     }
 }
 #endif
