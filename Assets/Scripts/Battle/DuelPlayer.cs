@@ -35,6 +35,7 @@ public sealed class DuelPlayer : NetworkBehaviour, IAttackAuthority, IShotSink
     PlayerAttack attack;
     PlayerHealth playerHealth;
     PlayerBushVisibility bushVisibility;
+    DuelMoveSync moveSync;
     CameraFollow cameraFollow;
     Vector3 previousPosition;
     // 서버에만 있다.
@@ -50,6 +51,7 @@ public sealed class DuelPlayer : NetworkBehaviour, IAttackAuthority, IShotSink
         attack = GetComponent<PlayerAttack>();
         playerHealth = GetComponent<PlayerHealth>();
         bushVisibility = GetComponent<PlayerBushVisibility>();
+        moveSync = GetComponent<DuelMoveSync>();
     }
 
     // DuelArena가 봇을 소환하기 전에 부른다.
@@ -273,9 +275,13 @@ public sealed class DuelPlayer : NetworkBehaviour, IAttackAuthority, IShotSink
     void LateUpdate()
     {
         // 쓰러지면 PlayerHealth가 애니메이터를 끈다.
-        // 내 캐릭터는 PlayerMovement가 걷기 값을 넣는다. 상대와 봇은 움직인 거리로 넣는다.
+        // 내 캐릭터는 PlayerMovement가 걷기 값을 넣는다. 상대와 봇은 한 프레임에 걸은 거리로 넣는다.
         if (!IsClient || !IsSpawned || (IsOwner && !IsBot) || !animator.enabled) return;
-        Vector3 displacement = transform.position - previousPosition;
+        // 상대의 거리는 소유자가 보낸 속도로 구한다. 화면의 자리는 늦은 패킷을 따라잡느라 조금 더 나가거나
+        // 되돌아오는데, 그 움직임까지 걸음으로 치면 멈춘 뒤에도 발을 구른다. 봇은 실제로 움직인 거리를 쓴다.
+        Vector3 displacement = moveSync != null && moveSync.TryGetRemoteVelocity(out Vector3 remoteVelocity)
+            ? remoteVelocity * Time.deltaTime
+            : transform.position - previousPosition;
         displacement.y = 0f;
         // 시전 중에는 소유자의 PlayerMovement처럼 걷기 값을 0으로 둔다.
         bool isMoving = !attack.IsAttacking && displacement.sqrMagnitude > 0.00001f;
