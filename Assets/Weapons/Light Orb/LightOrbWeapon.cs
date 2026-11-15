@@ -174,7 +174,7 @@ public class LightOrbWeapon : WeaponBase, IWeapon, IWeaponReach, IWeaponPose
     public float ReachAt(float charge) => lightAttackPrefab != null ? lightAttackPrefab.MaxDistance : 0f;
     public float ShotSpeed => lightAttackPrefab != null ? lightAttackPrefab.BeamSpeed : 0f;
 
-    void IWeapon.Fire(uint attackId, Vector3 direction, float charge, IShotSink sink)
+    void IWeapon.Fire(AttackInfo attack, Vector3 direction, float charge, IShotSink sink)
     {
         if (sink == null || lightAttackPrefab == null || firePoint == null) return;
         direction.y = 0f;
@@ -182,9 +182,9 @@ public class LightOrbWeapon : WeaponBase, IWeapon, IWeaponReach, IWeaponPose
         direction.Normalize();
         Vector3 start = firePoint.position;
         LightOrbProjectile beam = Instantiate(lightAttackPrefab, start, Quaternion.identity);
-        beam.Initialize(direction, GetComponentInParent<PlayerHealth>(), sink, attackId);
+        beam.Initialize(direction, GetComponentInParent<PlayerHealth>(), sink, attack);
         presentingOwnShot = true;
-        try { sink.Broadcast(new ShotEvent(attackId, 0, start, start + direction, charge)); }
+        try { sink.Broadcast(new ShotEvent(attack, 0, start, start + direction, charge)); }
         finally { presentingOwnShot = false; }
     }
 

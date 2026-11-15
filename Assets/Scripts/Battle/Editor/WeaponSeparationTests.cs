@@ -12,8 +12,8 @@ public class WeaponSeparationTests
     sealed class Authority : IAttackAuthority
     {
         public int Fires;
-        public void StartAttack(float chargeRatio) { }
-        public void FireMagic(float chargeRatio) { Fires++; }
+        public void StartAttack(AttackInfo attack, float chargeRatio) { }
+        public void FireMagic(AttackInfo attack, float chargeRatio) { Fires++; }
     }
 
     [Test]

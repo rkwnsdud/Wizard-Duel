@@ -27,6 +27,12 @@ public class PlayerAttack : MonoBehaviour
     private RuntimeAnimatorController sourceController;
     private WeaponBase attackingWeapon;
     public WeaponBase AttackingWeapon => attackingWeapon;
+    // 진행 중인 공격의 번호와 무기 id. 공격을 시작할 때 정하고 발사·연출·명중 보고에 그대로 싣는다.
+    // 공격 중이 아니면 기본값(Id 0)이다.
+    private AttackInfo currentAttack;
+    public AttackInfo CurrentAttack => currentAttack;
+    // 이 플레이어가 마지막으로 시작한 공격 번호. 소유자 화면에서만 는다(상대 화면은 받은 번호를 쓴다).
+    private uint lastAttackId;
     private float attackAnimSpeed = 1f;
 
     // Pose components can apply/release their controller synchronously on equip,
@@ -195,6 +201,7 @@ public class PlayerAttack : MonoBehaviour
         hasFired = false;
         pendingChargeRatio = 0f;
         attackingWeapon = null;
+        currentAttack = default;
         RestoreWeaponController();
 
         if (animator != null)
@@ -253,31 +260,37 @@ public class PlayerAttack : MonoBehaviour
     private void CommitAttack(float chargeRatio)
     {
         PlayAttack(chargeRatio);
-        if (IsAttacking) Authority?.StartAttack(chargeRatio);
+        if (IsAttacking) Authority?.StartAttack(currentAttack, chargeRatio);
     }
 
     // 소유자는 즉시 재생하고 상대는 전달받은 충전값으로 재생한다.
+    // 소유자의 공격은 여기서 새 공격 번호를 받고, 지금 든 무기가 그 공격의 무기가 된다.
     public void PlayAttack(float chargeRatio)
     {
-        TryPlayAttack(chargeRatio, respectCooldown: true);
+        if (!CanPlayAttack(respectCooldown: true)) return;
+        lastAttackId = AttackInfo.NextId(lastAttackId);
+        BeginAttack(new AttackInfo(lastAttackId, currentWeapon.Id), currentWeapon, chargeRatio);
     }
 
     // Remote attack RPCs must be replayed even if network delay makes local
     // cooldown clocks differ by a few milliseconds.
-    public void PlayReplicatedAttack(float chargeRatio)
+    // attack은 공격한 쪽이 공격을 시작할 때 정한 번호와 무기 id다.
+    public void PlayReplicatedAttack(AttackInfo attack, float chargeRatio)
     {
-        TryPlayAttack(chargeRatio, respectCooldown: false);
+        if (!CanPlayAttack(respectCooldown: false)) return;
+        BeginAttack(attack, currentWeapon, chargeRatio);
     }
 
-    private void TryPlayAttack(float chargeRatio, bool respectCooldown)
-    {
-        if (currentWeapon == null || IsAttacking || (respectCooldown && IsOnCooldown) ||
-            (playerHealth != null && playerHealth.IsDead))
-            return;
+    private bool CanPlayAttack(bool respectCooldown) =>
+        currentWeapon != null && !IsAttacking && !(respectCooldown && IsOnCooldown) &&
+        (playerHealth == null || !playerHealth.IsDead);
 
+    private void BeginAttack(AttackInfo attack, WeaponBase weapon, float chargeRatio)
+    {
         pendingChargeRatio = chargeRatio;
         // Animation events and online authority use this same attack-start weapon.
-        attackingWeapon = currentWeapon;
+        attackingWeapon = weapon;
+        currentAttack = attack;
         ApplyWeaponAnimation();
         attackAnimSpeed = attackingWeapon != null ? attackingWeapon.AttackAnimSpeed : 1f;
         if (animator != null) animator.speed = attackAnimSpeed;
@@ -308,7 +321,7 @@ public class PlayerAttack : MonoBehaviour
         }
 
         hasFired = true;
-        Authority?.FireMagic(pendingChargeRatio);
+        Authority?.FireMagic(currentAttack, pendingChargeRatio);
     }
 
     // 공격 애니메이션 마지막 Animation Event에서 호출
@@ -319,6 +332,7 @@ public class PlayerAttack : MonoBehaviour
         attackAnimSpeed = 1f;
         IsAttacking = false;
         attackingWeapon = null;
+        currentAttack = default;
         pendingChargeRatio = 0f;
         // Release the cast override so idle/visual pose owners can take over.
         RestoreWeaponController();

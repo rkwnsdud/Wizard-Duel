@@ -36,15 +36,15 @@ public class LightningBolt : MonoBehaviour
         return LightningHitTrace.Trace(start, direction, GetRange(chargeRatio), GetHitWidth(chargeRatio),
             hitHeight, blockerMask, owner != null ? owner : GetComponentInParent<PlayerHealth>(), out _);
     }
-    public void Fire(uint attackId, Vector3 start, Vector3 direction, float charge, PlayerHealth owner, IShotSink sink)
+    public void Fire(AttackInfo attack, Vector3 start, Vector3 direction, float charge, PlayerHealth owner, IShotSink sink)
     {
         charge = Mathf.Clamp01(charge);
         Vector3 end = LightningHitTrace.Trace(start, direction, GetRange(charge), GetHitWidth(charge),
             hitHeight, blockerMask, owner, out PlayerHealth target);
-        sink.Broadcast(new ShotEvent(attackId, 0, start, end, charge));
+        sink.Broadcast(new ShotEvent(attack, 0, start, end, charge));
         if (target == null) return;
-        sink.Broadcast(new ShotEvent(attackId, 1, start, end, charge));
-        sink.Hit(attackId, 0, target, Mathf.Lerp(minDamage, maxDamage, charge));
+        sink.Broadcast(new ShotEvent(attack, 1, start, end, charge));
+        sink.Hit(attack, 0, target, Mathf.Lerp(minDamage, maxDamage, charge));
     }
 
     public void PresentHit(Vector3 point) => WeaponHitEffect.Spawn(hitEffectPrefab, point);

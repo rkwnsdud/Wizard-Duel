@@ -43,11 +43,11 @@ public sealed class LightningWeapon : WeaponBase, IChargeableWeapon, IWeapon, IW
     public float ReachAt(float charge) => boltPrefab != null ? boltPrefab.GetRange(charge) : 0f;
     public float ShotSpeed => 0f;
 
-    void IWeapon.Fire(uint attackId, Vector3 direction, float charge, IShotSink sink)
+    void IWeapon.Fire(AttackInfo attack, Vector3 direction, float charge, IShotSink sink)
     {
         HideChargePreview();
         if (boltPrefab == null || firePoint == null || sink == null) return;
-        boltPrefab.Fire(attackId, firePoint.position, direction, charge, GetComponentInParent<PlayerHealth>(), sink);
+        boltPrefab.Fire(attack, firePoint.position, direction, charge, GetComponentInParent<PlayerHealth>(), sink);
     }
 
     public void Present(ShotEvent shot)

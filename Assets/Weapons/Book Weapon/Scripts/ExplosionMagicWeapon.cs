@@ -56,13 +56,13 @@ public sealed class ExplosionMagicWeapon : WeaponBase, IWeapon, IWeaponReach
         }
     }
 
-    void IWeapon.Fire(uint attackId, Vector3 direction, float charge, IShotSink sink)
+    void IWeapon.Fire(AttackInfo attack, Vector3 direction, float charge, IShotSink sink)
     {
         if (sink == null) return;
-        Launch(attackId, direction, sink);
+        Launch(attack, direction, sink);
     }
 
-    private void Launch(uint attackId, Vector3 direction, IShotSink sink)
+    private void Launch(AttackInfo attack, Vector3 direction, IShotSink sink)
     {
         direction.y = 0f;
         if (direction.sqrMagnitude < 0.0001f) direction = Flat(transform.forward);
@@ -72,10 +72,11 @@ public sealed class ExplosionMagicWeapon : WeaponBase, IWeapon, IWeaponReach
         Vector3 start = SafeStart(owner, FireOrigin);
         Vector3 end = PlannedEnd(start, direction);
         // 다른 클라이언트는 이 끝점까지만 날린다. 벽은 움직이지 않으므로 공격자의 판정과 같은 자리에서 멈춘다.
-        sink.Broadcast(new ShotEvent(attackId, LaunchKind, start, end, 0f));
+        sink.Broadcast(new ShotEvent(attack, LaunchKind, start, end, 0f));
+        // 판정용 화염 공은 이 공격 정보를 들고 날아가 폭발과 피해를 같은 공격으로 보고한다.
         ExplosionFireball.Spawn(new ExplosionFireball.Settings
         {
-            AttackId = attackId,
+            Attack = attack,
             Start = start,
             Direction = direction,
             Speed = speed,
@@ -89,7 +90,7 @@ public sealed class ExplosionMagicWeapon : WeaponBase, IWeapon, IWeaponReach
             Owner = owner,
             Sink = sink,
         });
-        Debug.Log($"[ExplosionMagic] Launch id={attackId} start={start} end={end}.");
+        Debug.Log($"[ExplosionMagic] Launch {attack} start={start} end={end}.");
     }
 
     public void Present(ShotEvent shot)

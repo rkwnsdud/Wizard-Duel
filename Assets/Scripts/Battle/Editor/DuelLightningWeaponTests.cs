@@ -28,10 +28,10 @@ public class DuelLightningWeaponTests : PlayModeTestFixture
         public uint AttackId;
         public int HitIndex;
         public void Broadcast(ShotEvent shot) { Shots.Add(shot); Order.Add("present"); }
-        public void Hit(uint id, int index, PlayerHealth target, float damage)
+        public void Hit(AttackInfo attack, int index, PlayerHealth target, float damage)
         {
             Hits++;
-            AttackId = id;
+            AttackId = attack.Id;
             HitIndex = index;
             Target = target;
             Damage = damage;
@@ -43,8 +43,8 @@ public class DuelLightningWeaponTests : PlayModeTestFixture
     {
         public int Starts, Fires;
         public float Charge;
-        public void StartAttack(float chargeRatio) { Starts++; }
-        public void FireMagic(float chargeRatio) { Fires++; Charge = chargeRatio; }
+        public void StartAttack(AttackInfo attack, float chargeRatio) { Starts++; }
+        public void FireMagic(AttackInfo attack, float chargeRatio) { Fires++; Charge = chargeRatio; }
     }
 
     protected override IEnumerator SetUpInPlayMode()
@@ -99,7 +99,7 @@ public class DuelLightningWeaponTests : PlayModeTestFixture
         target.gameObject.AddComponent<BoxCollider>();
         Physics.SyncTransforms();
         var sink = new ShotSink();
-        ((IWeapon)weapon).Fire(1, Vector3.right, 1f, sink);
+        ((IWeapon)weapon).Fire(new AttackInfo(1, weapon.Id), Vector3.right, 1f, sink);
 
         Assert.That(sink.Order, Is.EqualTo(new[] { "present", "present", "hit" }));
         Assert.That(sink.Shots[1].Kind, Is.EqualTo(1));
@@ -122,7 +122,7 @@ public class DuelLightningWeaponTests : PlayModeTestFixture
         Target(Vector3.right * 1.25f);
         Physics.SyncTransforms();
         var sink = new ShotSink();
-        ((IWeapon)weapon).Fire(9, Vector3.right, charge, sink);
+        ((IWeapon)weapon).Fire(new AttackInfo(9, weapon.Id), Vector3.right, charge, sink);
         Assert.That(sink.Shots.Count, Is.EqualTo(2));
         Assert.That(sink.Shots[0].AttackId, Is.EqualTo(9));
         Assert.That(sink.Shots[0].Start, Is.EqualTo(Origin));
@@ -138,7 +138,7 @@ public class DuelLightningWeaponTests : PlayModeTestFixture
     {
         Physics.SyncTransforms();
         var sink = new ShotSink();
-        ((IWeapon)weapon).Fire(10, Vector3.right, charge, sink);
+        ((IWeapon)weapon).Fire(new AttackInfo(10, weapon.Id), Vector3.right, charge, sink);
         Assert.That(sink.Shots[0].Point, Is.EqualTo(Origin + Vector3.right * range));
         Assert.That(sink.Hits, Is.Zero);
     }
@@ -153,7 +153,7 @@ public class DuelLightningWeaponTests : PlayModeTestFixture
         dead.TakeDamage(100f);
         Physics.SyncTransforms();
         var sink = new ShotSink();
-        ((IWeapon)weapon).Fire(11, Vector3.right, 1f, sink);
+        ((IWeapon)weapon).Fire(new AttackInfo(11, weapon.Id), Vector3.right, 1f, sink);
         Assert.That(sink.Target, Is.SameAs(nearest));
         Assert.That(sink.Hits, Is.EqualTo(1));
         Assert.That(Vector3.Distance(sink.Shots[0].Point, Origin + Vector3.right * 2.5f), Is.LessThan(0.01f));
@@ -165,7 +165,7 @@ public class DuelLightningWeaponTests : PlayModeTestFixture
         var target = Target(Vector3.right * 4f + Vector3.forward * 0.7f);
         Physics.SyncTransforms();
         var sink = new ShotSink();
-        ((IWeapon)weapon).Fire(12, Vector3.right, 1f, sink);
+        ((IWeapon)weapon).Fire(new AttackInfo(12, weapon.Id), Vector3.right, 1f, sink);
         Assert.That(sink.Target, Is.SameAs(target));
         Assert.That(Vector3.Distance(sink.Shots[0].Point, Origin + Vector3.right * 3.5f), Is.LessThan(0.01f));
     }
@@ -180,7 +180,7 @@ public class DuelLightningWeaponTests : PlayModeTestFixture
         wall.AddComponent<BoxCollider>();
         Physics.SyncTransforms();
         var sink = new ShotSink();
-        ((IWeapon)weapon).Fire(2, Vector3.right, 1f, sink);
+        ((IWeapon)weapon).Fire(new AttackInfo(2, weapon.Id), Vector3.right, 1f, sink);
         Assert.That(sink.Shots.Count, Is.EqualTo(1));
         Assert.That(Vector3.Distance(sink.Shots[0].Point, Origin + Vector3.right * 1.5f), Is.LessThan(0.01f));
         Assert.That(sink.Hits, Is.Zero);
@@ -196,7 +196,7 @@ public class DuelLightningWeaponTests : PlayModeTestFixture
         wall.AddComponent<BoxCollider>();
         Physics.SyncTransforms();
         Vector3 end = Origin + Vector3.right * 6f;
-        ((IWeapon)weapon).Present(new ShotEvent(3, 0, Origin, end, 1f));
+        ((IWeapon)weapon).Present(new ShotEvent(new AttackInfo(3, weapon.Id), 0, Origin, end, 1f));
         var effect = Object.FindObjectsByType<LightningEffect>(FindObjectsSortMode.None).Single();
         owner.transform.position += Vector3.forward;
         yield return null;

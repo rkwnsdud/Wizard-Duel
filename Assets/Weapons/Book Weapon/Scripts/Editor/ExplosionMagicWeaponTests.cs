@@ -30,9 +30,9 @@ public class ExplosionMagicWeaponTests : PlayModeTestFixture
             Shots.Add(shot);
             Order.Add(shot.Kind == ExplosionMagicWeapon.LaunchKind ? "launch" : "explode");
         }
-        public void Hit(uint id, int index, PlayerHealth target, float damage)
+        public void Hit(AttackInfo attack, int index, PlayerHealth target, float damage)
         {
-            Hits.Add((id, index, target, damage));
+            Hits.Add((attack.Id, index, target, damage));
             Order.Add("hit");
         }
     }
@@ -90,7 +90,7 @@ public class ExplosionMagicWeaponTests : PlayModeTestFixture
         Physics.SyncTransforms();
 
         var sink = new ShotSink();
-        ((IWeapon)weapon).Fire(3u, Vector3.forward, 0f, sink);
+        ((IWeapon)weapon).Fire(new AttackInfo(3, weapon.Id), Vector3.forward, 0f, sink);
 
         Assert.That(sink.Order, Is.EqualTo(new[] { "launch" }));
         ShotEvent launch = sink.Shots[0];
@@ -106,7 +106,7 @@ public class ExplosionMagicWeaponTests : PlayModeTestFixture
     {
         yield return null;
         var sink = new ShotSink();
-        ((IWeapon)weapon).Fire(4u, Vector3.forward, 0f, sink);
+        ((IWeapon)weapon).Fire(new AttackInfo(4, weapon.Id), Vector3.forward, 0f, sink);
 
         Assert.That(sink.Shots.Count, Is.EqualTo(1));
         Vector3 expected = firePoint.position + Vector3.forward * weapon.Range;
@@ -123,7 +123,7 @@ public class ExplosionMagicWeaponTests : PlayModeTestFixture
         Physics.SyncTransforms();
 
         var sink = new ShotSink();
-        ((IWeapon)weapon).Fire(7u, Vector3.forward, 0f, sink);
+        ((IWeapon)weapon).Fire(new AttackInfo(7, weapon.Id), Vector3.forward, 0f, sink);
         FlyToEnd();
 
         Assert.That(sink.Order, Is.EqualTo(new[] { "launch", "explode", "hit", "hit" }));
@@ -146,7 +146,7 @@ public class ExplosionMagicWeaponTests : PlayModeTestFixture
     {
         yield return null;
         var sink = new ShotSink();
-        ((IWeapon)weapon).Fire(8u, Vector3.forward, 0f, sink);
+        ((IWeapon)weapon).Fire(new AttackInfo(8, weapon.Id), Vector3.forward, 0f, sink);
         FlyToEnd();
 
         Assert.That(sink.Order, Is.EqualTo(new[] { "launch", "explode" }));
@@ -162,7 +162,7 @@ public class ExplosionMagicWeaponTests : PlayModeTestFixture
         yield return null;
         Physics.SyncTransforms();
 
-        ((IWeapon)weapon).Fire(9, Vector3.forward, 0f, new LocalShotSink(weapon));
+        ((IWeapon)weapon).Fire(new AttackInfo(9, weapon.Id), Vector3.forward, 0f, new LocalShotSink(weapon));
         FlyToEnd();
 
         Assert.That(front.CurrentHealth, Is.EqualTo(front.MaxHealth - weapon.ExplosionDamage));

@@ -20,10 +20,10 @@ public class LightOrbProjectileTests : PlayModeTestFixture
         public float Damage;
         public uint AttackId;
         public void Broadcast(ShotEvent shot) { }
-        public void Hit(uint id, int index, PlayerHealth target, float damage)
+        public void Hit(AttackInfo attack, int index, PlayerHealth target, float damage)
         {
             Hits++;
-            AttackId = id;
+            AttackId = attack.Id;
             Target = target;
             Damage = damage;
         }
@@ -58,7 +58,7 @@ public class LightOrbProjectileTests : PlayModeTestFixture
         trigger.AddComponent<BoxCollider>().isTrigger = true;
         var sink = new Sink();
         var beam = Beam();
-        beam.Initialize(Vector3.right, owner, sink, 42);
+        beam.Initialize(Vector3.right, owner, sink, new AttackInfo(42, 3));
         Physics.SyncTransforms();
         Advance.Invoke(beam, new object[] { 0.1f });
         Assert.That(sink.Hits, Is.EqualTo(1));
@@ -93,7 +93,7 @@ public class LightOrbProjectileTests : PlayModeTestFixture
         wall.AddComponent<BoxCollider>().size = new Vector3(1f, 3f, 3f);
         var sink = new Sink();
         var beam = Beam();
-        beam.Initialize(Vector3.right, owner, sink, 43);
+        beam.Initialize(Vector3.right, owner, sink, new AttackInfo(43, 3));
         Physics.SyncTransforms();
         Advance.Invoke(beam, new object[] { 0.1f });
         Assert.That(sink.Hits, Is.Zero, "The wall must block the outward shot.");
@@ -108,7 +108,7 @@ public class LightOrbProjectileTests : PlayModeTestFixture
     {
         var target = Player(2f, LayerMask.NameToLayer("Player"));
         var beam = Beam();
-        beam.Initialize(Vector3.right, null, new LocalShotSink(), 44);
+        beam.Initialize(Vector3.right, null, new LocalShotSink(), new AttackInfo(44, 3));
         Physics.SyncTransforms();
         Advance.Invoke(beam, new object[] { 0.1f });
         Assert.That(target.CurrentHealth, Is.EqualTo(90f));

@@ -15,7 +15,7 @@ public class BasicWandWeaponTests : PlayModeTestFixture
         public int Hits;
         public PlayerHealth Target;
         public void Broadcast(ShotEvent shot) => Weapon.Present(shot);
-        public void Hit(uint id, int index, PlayerHealth target, float damage)
+        public void Hit(AttackInfo attack, int index, PlayerHealth target, float damage)
         {
             Hits++;
             Target = target;
@@ -37,7 +37,7 @@ public class BasicWandWeaponTests : PlayModeTestFixture
     {
         var wand = CreateWand(out _);
         wand.transform.localRotation = Quaternion.Euler(70f, 25f, 40f);
-        ((IWeapon)wand).Fire(1, Vector3.right, 0f, new LocalShotSink(wand));
+        ((IWeapon)wand).Fire(new AttackInfo(1, wand.Id), Vector3.right, 0f, new LocalShotSink(wand));
         var bolts = Object.FindObjectsByType<ArcaneBoltProjectile>(FindObjectsSortMode.None);
         Assert.That(bolts.Length, Is.EqualTo(1));
         Assert.That(Vector3.Dot(bolts[0].transform.forward, Vector3.right), Is.GreaterThan(0.999f));
@@ -55,7 +55,7 @@ public class BasicWandWeaponTests : PlayModeTestFixture
         var health = target.AddComponent<PlayerHealth>();
         Physics.SyncTransforms();
         var sink = new Sink { Weapon = wand };
-        ((IWeapon)wand).Fire(1, Vector3.right, 0f, sink);
+        ((IWeapon)wand).Fire(new AttackInfo(1, wand.Id), Vector3.right, 0f, sink);
         Assert.That(Object.FindObjectsByType<ArcaneBoltProjectile>(FindObjectsSortMode.None).Length, Is.EqualTo(1));
         for (int frame = 0; frame < 120 && sink.Hits == 0; frame++) yield return null;
         Assert.That(sink.Hits, Is.EqualTo(1));

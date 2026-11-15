@@ -36,7 +36,7 @@ public sealed class FireCenserWeapon : WeaponBase, IWeapon, IWeaponReach
         }
     }
 
-    void IWeapon.Fire(uint attackId, Vector3 direction, float charge, IShotSink sink)
+    void IWeapon.Fire(AttackInfo attack, Vector3 direction, float charge, IShotSink sink)
     {
         if (sink == null) return;
         if (direction.sqrMagnitude < 0.0001f) direction = AimDirection;
@@ -47,9 +47,9 @@ public sealed class FireCenserWeapon : WeaponBase, IWeapon, IWeaponReach
         List<PlayerHealth> victims = Trace(direction);
         Vector3 start = OwnerGroundPosition();
         // A lethal hit may despawn players, so send the visual first.
-        sink.Broadcast(new ShotEvent(attackId, 0, start, start + direction * attackRange, charge));
+        sink.Broadcast(new ShotEvent(attack, 0, start, start + direction * attackRange, charge));
         for (int i = 0; i < victims.Count; i++)
-            sink.Hit(attackId, i, victims[i], attackDamage);
+            sink.Hit(attack, i, victims[i], attackDamage);
     }
 
     public void Present(ShotEvent shot)
@@ -78,7 +78,7 @@ public sealed class FireCenserWeapon : WeaponBase, IWeapon, IWeaponReach
         FireCenserAttackEffect.Spawn(
             attackEffectPrefab, visualOrigin, direction, range - visualStartOffset, attackAngle);
         HideTelegraph();
-        Debug.Log($"[Censer] Present attackId={shot.AttackId} origin={shot.Start} range={attackRange} angle={attackAngle}.");
+        Debug.Log($"[Censer] Present {shot.Attack} origin={shot.Start} range={attackRange} angle={attackAngle}.");
     }
 
     List<PlayerHealth> Trace(Vector3 direction)

@@ -67,7 +67,7 @@ public class BasicWandWeapon : WeaponBase, IWeapon, IWeaponReach
     public float ReachAt(float charge) => projectilePrefab != null ? projectilePrefab.MaxRange : 0f;
     public float ShotSpeed => projectilePrefab != null ? projectilePrefab.Speed : 0f;
 
-    void IWeapon.Fire(uint attackId, Vector3 direction, float charge, IShotSink sink)
+    void IWeapon.Fire(AttackInfo attack, Vector3 direction, float charge, IShotSink sink)
     {
         if (sink == null || projectilePrefab == null || firePoint == null) return;
         direction.y = 0f;
@@ -75,9 +75,9 @@ public class BasicWandWeapon : WeaponBase, IWeapon, IWeaponReach
         direction.Normalize();
         Vector3 start = firePoint.position;
         ArcaneBoltProjectile bolt = Instantiate(projectilePrefab, start, Quaternion.LookRotation(direction));
-        bolt.Initialize(GetComponentInParent<PlayerHealth>(), sink, attackId);
+        bolt.Initialize(GetComponentInParent<PlayerHealth>(), sink, attack);
         presentingOwnShot = true;
-        try { sink.Broadcast(new ShotEvent(attackId, 0, start, start + direction, charge)); }
+        try { sink.Broadcast(new ShotEvent(attack, 0, start, start + direction, charge)); }
         finally { presentingOwnShot = false; }
     }
 

@@ -25,15 +25,16 @@ public class LightOrbProjectile : MonoBehaviour
     private LineRenderer currentBeamCore;
     private LineRenderer currentBeamGlow;
     private IShotSink sink;
-    private uint attackId;
+    private AttackInfo attack;
 
-    public void Initialize(Vector3 fireDirection, PlayerHealth owner, IShotSink shotSink, uint id)
+    // 명중은 쏠 때 받은 공격 정보로 보고한다. 반사하며 날아가는 동안 무기를 바꿔도 이 공격의 명중이다.
+    public void Initialize(Vector3 fireDirection, PlayerHealth owner, IShotSink shotSink, AttackInfo attackInfo)
     {
         direction = fireDirection;
         currentPoint = transform.position;
         ownerHealth = owner;
         sink = shotSink;
-        attackId = id;
+        attack = attackInfo;
 
         currentBeamCore = beamCore;
         currentBeamGlow = beamGlow;
@@ -49,7 +50,7 @@ public class LightOrbProjectile : MonoBehaviour
     }
 
     public void InitializeVisualOnly(Vector3 fireDirection, PlayerHealth owner) =>
-        Initialize(fireDirection, owner, null, 0);
+        Initialize(fireDirection, owner, null, default);
 
     private LineRenderer CreateBeamSegment(LineRenderer template, Vector3 startPoint)
     {
@@ -111,7 +112,7 @@ public class LightOrbProjectile : MonoBehaviour
             {
                 float finalDamage = damage * (1f + damageIncreaseRate * reflectionCount);
                 WeaponHitEffect.Spawn(hitEffectPrefab, hit.point);
-                sink?.Hit(attackId, 0, targetHealth, finalDamage);
+                sink?.Hit(attack, 0, targetHealth, finalDamage);
                 Destroy(gameObject);
                 return;
             }

@@ -37,16 +37,16 @@ public sealed class DuelLightningWeapon : WeaponBase, IChargeableWeapon, IWeapon
 
     private void OnDisable() => HideChargePreview();
 
-    void IWeapon.Fire(uint attackId, Vector3 direction, float charge, IShotSink sink)
+    void IWeapon.Fire(AttackInfo attack, Vector3 direction, float charge, IShotSink sink)
     {
         HideChargePreview();
-        ShotEvent shot = Trace(attackId, direction, charge, out PlayerHealth target);
+        ShotEvent shot = Trace(attack, direction, charge, out PlayerHealth target);
         // A lethal hit may despawn players, so send the visual first.
         sink.Broadcast(shot);
         if (target != null)
         {
-            sink.Broadcast(new ShotEvent(attackId, 1, shot.Start, GetHitPoint(target, shot), charge));
-            sink.Hit(attackId, 0, target, Mathf.Lerp(minDamage, maxDamage, charge));
+            sink.Broadcast(new ShotEvent(attack, 1, shot.Start, GetHitPoint(target, shot), charge));
+            sink.Hit(attack, 0, target, Mathf.Lerp(minDamage, maxDamage, charge));
         }
     }
 
@@ -75,16 +75,16 @@ public sealed class DuelLightningWeapon : WeaponBase, IChargeableWeapon, IWeapon
 
     private Vector3 GetEndPosition(Vector3 direction, float charge)
     {
-        return Trace(0, direction, charge, out _).Point;
+        return Trace(default, direction, charge, out _).Point;
     }
 
-    private ShotEvent Trace(uint id, Vector3 direction, float charge, out PlayerHealth target)
+    private ShotEvent Trace(AttackInfo attack, Vector3 direction, float charge, out PlayerHealth target)
     {
         Vector3 start = firePoint.position;
         charge = Mathf.Clamp01(charge);
         Vector3 end = LightningHitTrace.Trace(start, direction, Mathf.Lerp(minRange, maxRange, charge),
             Mathf.Lerp(minHitWidth, maxHitWidth, charge), hitHeight, blockerMask,
             GetComponentInParent<PlayerHealth>(), out target);
-        return new ShotEvent(id, 0, start, end, charge);
+        return new ShotEvent(attack, 0, start, end, charge);
     }
 }

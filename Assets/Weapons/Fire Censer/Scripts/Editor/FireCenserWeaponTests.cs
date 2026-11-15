@@ -22,9 +22,9 @@ public class FireCenserWeaponTests : PlayModeTestFixture
         public readonly List<(uint id, int index, PlayerHealth target, float damage)> Hits =
             new List<(uint, int, PlayerHealth, float)>();
         public void Broadcast(ShotEvent shot) => Order.Add("present");
-        public void Hit(uint id, int index, PlayerHealth target, float damage)
+        public void Hit(AttackInfo attack, int index, PlayerHealth target, float damage)
         {
-            Hits.Add((id, index, target, damage));
+            Hits.Add((attack.Id, index, target, damage));
             Order.Add("hit");
         }
     }
@@ -72,7 +72,7 @@ public class FireCenserWeaponTests : PlayModeTestFixture
         yield return null;
 
         var sink = new ShotSink();
-        ((IWeapon)weapon).Fire(7u, Vector3.forward, 0f, sink);
+        ((IWeapon)weapon).Fire(new AttackInfo(7, weapon.Id), Vector3.forward, 0f, sink);
 
         Assert.That(sink.Hits.Count, Is.EqualTo(1));
         Assert.That(sink.Hits[0].target, Is.SameAs(front));
@@ -90,7 +90,7 @@ public class FireCenserWeaponTests : PlayModeTestFixture
         yield return null;
 
         var sink = new ShotSink();
-        ((IWeapon)weapon).Fire(9u, Vector3.forward, 0f, sink);
+        ((IWeapon)weapon).Fire(new AttackInfo(9, weapon.Id), Vector3.forward, 0f, sink);
 
         Assert.That(sink.Hits.Count, Is.EqualTo(2));
         Assert.That(sink.Hits[0].index, Is.EqualTo(0));
@@ -240,7 +240,7 @@ public class FireCenserWeaponTests : PlayModeTestFixture
 
         Vector3 direction = Vector3.forward;
         Vector3 end = Origin + direction * 4f;
-        weapon.Present(new ShotEvent(11u, 0, Origin, end, 0f));
+        weapon.Present(new ShotEvent(new AttackInfo(11, weapon.Id), 0, Origin, end, 0f));
 
         GameObject effect = GameObject.Find("AttackFire(Clone)");
         Assert.That(effect, Is.Not.Null);

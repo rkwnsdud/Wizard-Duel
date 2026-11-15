@@ -5,6 +5,6 @@ public sealed class LocalShotSink : IShotSink
     readonly IWeapon weapon;
     public LocalShotSink(IWeapon weapon = null) => this.weapon = weapon;
     public void Broadcast(ShotEvent shot) => weapon?.Present(shot);
-    public void Hit(uint attackId, int hitIndex, PlayerHealth target, float damage) => target.TakeDamage(damage);
+    public void Hit(AttackInfo attack, int hitIndex, PlayerHealth target, float damage) => target.TakeDamage(damage);
 }
 #endif

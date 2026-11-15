@@ -56,7 +56,7 @@ public class WeaponFiringTests
             serialized.ApplyModifiedPropertiesWithoutUndo();
             Physics.SyncTransforms();
 
-            ((IWeapon)weapon).Fire(1, Vector3.right, charge, new LocalShotSink());
+            ((IWeapon)weapon).Fire(new AttackInfo(1, weapon.Id), Vector3.right, charge, new LocalShotSink());
 
             Assert.That(health.CurrentHealth, Is.EqualTo(health.MaxHealth - damage));
             Assert.That(root.GetComponent<PlayerHealth>().CurrentHealth, Is.EqualTo(100f));

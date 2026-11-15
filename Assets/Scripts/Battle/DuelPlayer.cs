@@ -40,7 +40,8 @@ public sealed class DuelPlayer : NetworkBehaviour, IAttackAuthority, IShotSink
     Vector3 previousPosition;
     // 서버에만 있다.
     DuelCombatState combat;
-    uint attackId;
+    // 오프라인 테스트의 더미가 받은 것처럼 재생하는 공격의 번호.
+    uint simulatedAttackId;
     DuelBot bot;
 
     IWeapon Weapon => attack.Weapon as IWeapon;
@@ -112,31 +113,37 @@ public sealed class DuelPlayer : NetworkBehaviour, IAttackAuthority, IShotSink
         ClearServerStatusEffects();
     }
 
-    void IAttackAuthority.StartAttack(float chargeRatio)
+    // 공격 정보(번호·무기 id)는 PlayerAttack이 공격을 시작할 때 정한다. 이 공격의 RPC는 모두 그 두 값을 싣는다.
+    void IAttackAuthority.StartAttack(AttackInfo attackInfo, float chargeRatio)
     {
         if (!IsSpawned || !IsOwner || !combatEnabled.Value || playerHealth.IsDead) return;
         // 봇의 공격 시작을 받을 상대 클라이언트가 없으므로, 받은 쪽이 세던 부시 노출을 여기서 센다.
         if (IsBot && bushVisibility != null) bushVisibility.Reveal();
-        PlayAttackRpc(chargeRatio);
+        PlayAttackRpc(attackInfo.Id, attackInfo.WeaponId, chargeRatio);
     }
 
     [Rpc(SendTo.NotOwner, InvokePermission = RpcInvokePermission.Owner)]
-    void PlayAttackRpc(float chargeRatio)
+    void PlayAttackRpc(uint attackId, byte weaponId, float chargeRatio)
     {
-        if (IsClient) ReceiveAttack(chargeRatio);
+        if (IsClient) ReceiveAttack(new AttackInfo(attackId, weaponId), chargeRatio);
     }
 
     // 오프라인 테스트 전용. 더미는 호스트 소유라 PlayAttackRpc를 받는 클라이언트가 없으므로, 받은 것처럼 같은 처리를 한다.
-    public void SimulateReceivedAttack(float chargeRatio) => ReceiveAttack(chargeRatio);
+    public void SimulateReceivedAttack(float chargeRatio)
+    {
+        WeaponBase weapon = attack.CurrentWeapon;
+        simulatedAttackId = AttackInfo.NextId(simulatedAttackId);
+        ReceiveAttack(new AttackInfo(simulatedAttackId, weapon != null ? weapon.Id : (byte)0), chargeRatio);
+    }
 
-    void ReceiveAttack(float chargeRatio)
+    void ReceiveAttack(AttackInfo attackInfo, float chargeRatio)
     {
         // 부시 안에서 공격하면 공격 시작부터 드러난다. 상대가 이미 공격 중이라 모션을 건너뛰어도 노출은 센다.
         if (bushVisibility != null) bushVisibility.Reveal();
-        attack.PlayReplicatedAttack(chargeRatio);
+        attack.PlayReplicatedAttack(attackInfo, chargeRatio);
     }
 
-    void IAttackAuthority.FireMagic(float chargeRatio)
+    void IAttackAuthority.FireMagic(AttackInfo attackInfo, float chargeRatio)
     {
         if (!IsSpawned || !IsOwner || !combatEnabled.Value || playerHealth.IsDead) return;
         // Fire the weapon captured at attack start through the shared sink contract.
@@ -147,36 +154,36 @@ public sealed class DuelPlayer : NetworkBehaviour, IAttackAuthority, IShotSink
             return;
         }
         Physics.SyncTransforms();
-        weapon.Fire(++attackId, Vector3.ProjectOnPlane(transform.forward, Vector3.up).normalized, chargeRatio, this);
+        weapon.Fire(attackInfo, Vector3.ProjectOnPlane(transform.forward, Vector3.up).normalized, chargeRatio, this);
     }
 
     void IShotSink.Broadcast(ShotEvent shot)
     {
         if (!IsSpawned || !IsOwner) return;
         Weapon.Present(shot);
-        ShotRpc(shot.AttackId, shot.Kind, shot.Start, shot.Point, shot.Charge);
+        ShotRpc(shot.AttackId, shot.WeaponId, shot.Kind, shot.Start, shot.Point, shot.Charge);
     }
 
-    void IShotSink.Hit(uint attackId, int hitIndex, PlayerHealth target, float damage)
+    void IShotSink.Hit(AttackInfo attackInfo, int hitIndex, PlayerHealth target, float damage)
     {
         if (IsSpawned && IsOwner && target.TryGetComponent(out DuelPlayer player))
-            ReportHitRpc(player.NetworkObject, attackId, hitIndex, damage);
+            ReportHitRpc(player.NetworkObject, attackInfo.Id, attackInfo.WeaponId, hitIndex, damage);
     }
 
     [Rpc(SendTo.NotOwner, InvokePermission = RpcInvokePermission.Owner)]
-    void ShotRpc(uint attackId, byte kind, Vector3 start, Vector3 point, float charge)
+    void ShotRpc(uint attackId, byte weaponId, byte kind, Vector3 start, Vector3 point, float charge)
     {
-        if (IsClient) Weapon?.Present(new ShotEvent(attackId, kind, start, point, charge));
+        if (IsClient) Weapon?.Present(new ShotEvent(new AttackInfo(attackId, weaponId), kind, start, point, charge));
     }
 
     [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Owner)]
-    void ReportHitRpc(NetworkObjectReference target, uint attackId, int hitIndex, float damage)
+    void ReportHitRpc(NetworkObjectReference target, uint attackId, byte weaponId, int hitIndex, float damage)
     {
         // 서버에는 여러 방의 플레이어가 함께 있다. 같은 판의 플레이어만 맞힐 수 있다.
         if (!combatEnabled.Value || !target.TryGet(out NetworkObject obj, NetworkManager) ||
             !obj.TryGetComponent(out DuelPlayer player) || player.Match != Match ||
             !player.combat.TryTakeHit(slot, attackId, hitIndex, damage, out bool defeatedNow)) return;
-        Debug.Log($"[Combat] Hit slot={player.slot} attacker={slot} id={attackId} hit={hitIndex} health={player.combat.Health:F3}");
+        Debug.Log($"[Combat] Hit slot={player.slot} attacker={slot} id={attackId} weapon={weaponId} hit={hitIndex} health={player.combat.Health:F3}");
         player.health.Value = player.combat.Health;
         PlayerWeaponPassiveController.NotifyServerHit(attack.Weapon, this, player);
         if (defeatedNow)

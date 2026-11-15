@@ -13,7 +13,7 @@ public class ArcaneBoltProjectile : MonoBehaviour
 
     private PlayerHealth ownerHealth;
     private IShotSink sink;
-    private uint attackId;
+    private AttackInfo attack;
     private float distanceTraveled = 0f;
 
     void Update()
@@ -36,7 +36,7 @@ public class ArcaneBoltProjectile : MonoBehaviour
             if (target != null)
             {
                 WeaponHitEffect.Spawn(hitEffectPrefab, hit.point);
-                sink?.Hit(attackId, 0, target, 10f);
+                sink?.Hit(attack, 0, target, 10f);
             }
 
             transform.position += transform.forward * hit.distance;
@@ -53,12 +53,13 @@ public class ArcaneBoltProjectile : MonoBehaviour
         }
     }
 
-    public void Initialize(PlayerHealth owner, IShotSink shotSink, uint id)
+    // 명중은 쏠 때 받은 공격 정보로 보고한다. 날아가는 동안 무기를 바꿔도 이 공격의 명중이다.
+    public void Initialize(PlayerHealth owner, IShotSink shotSink, AttackInfo attackInfo)
     {
         ownerHealth = owner;
         sink = shotSink;
-        attackId = id;
+        attack = attackInfo;
     }
 
-    public void InitializeVisualOnly(PlayerHealth owner) => Initialize(owner, null, 0);
+    public void InitializeVisualOnly(PlayerHealth owner) => Initialize(owner, null, default);
 }

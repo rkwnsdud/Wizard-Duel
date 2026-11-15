@@ -7,7 +7,7 @@ public sealed class ExplosionFireball : MonoBehaviour
 {
     public struct Settings
     {
-        public uint AttackId;
+        public AttackInfo Attack;
         public Vector3 Start;
         public Vector3 Direction;
         public float Speed;
@@ -33,7 +33,7 @@ public sealed class ExplosionFireball : MonoBehaviour
 
     public static ExplosionFireball Spawn(Settings settings)
     {
-        var go = new GameObject($"ExplosionFireball #{settings.AttackId}");
+        var go = new GameObject($"ExplosionFireball #{settings.Attack.Id}");
         go.transform.SetPositionAndRotation(settings.Start,
             Quaternion.LookRotation(settings.Direction, Vector3.up));
         ExplosionFireball fireball = go.AddComponent<ExplosionFireball>();
@@ -93,11 +93,12 @@ public sealed class ExplosionFireball : MonoBehaviour
         // 명중으로 승부가 나면 플레이어가 정리될 수 있으므로 대상은 미리 고르고 연출을 먼저 보낸다.
         List<PlayerHealth> victims = FindVictims(center, settings.ExplosionRadius, settings.Owner,
             settings.TargetMask, settings.BlockerMask);
-        settings.Sink.Broadcast(new ShotEvent(settings.AttackId, ExplosionMagicWeapon.ExplodeKind,
+        settings.Sink.Broadcast(new ShotEvent(settings.Attack, ExplosionMagicWeapon.ExplodeKind,
             settings.Start, center, 0f));
+        // 폭발 한 번은 대상마다 다른 타격 번호로 한 번씩 보고한다.
         for (int i = 0; i < victims.Count; i++)
-            settings.Sink.Hit(settings.AttackId, i, victims[i], settings.Damage);
-        Debug.Log($"[ExplosionMagic] Explode id={settings.AttackId} center={center} victims={victims.Count}.");
+            settings.Sink.Hit(settings.Attack, i, victims[i], settings.Damage);
+        Debug.Log($"[ExplosionMagic] Explode {settings.Attack} center={center} victims={victims.Count}.");
         Destroy(gameObject);
     }
 
