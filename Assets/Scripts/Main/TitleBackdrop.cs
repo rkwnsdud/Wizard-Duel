@@ -395,10 +395,11 @@ public class TitleBackdrop : MonoBehaviour
         }
     }
 
+    // 섞는 동안 설정에서 그래픽 품질을 낮춰 SSAO를 끄기로 했다면 다시 켜지 않는다.
     void ResumeOcclusion()
     {
         foreach (ScriptableRendererFeature feature in pausedOcclusion)
-            if (feature != null) feature.SetActive(true);
+            if (feature != null) feature.SetActive(GraphicsOptions.AmbientOcclusion);
         pausedOcclusion.Clear();
     }
 
