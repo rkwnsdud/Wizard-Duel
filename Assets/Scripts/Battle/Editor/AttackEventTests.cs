@@ -301,5 +301,146 @@ public class AttackEventTests
         Assert.That(remote.CurrentWeapon, Is.SameAs(made), "The late slot snapshot equips the same instance.");
         Assert.That(remote.FindWeapon(0), Is.Null);
     }
+
+    // 투사체는 실행 중에 쓰는 Destroy로 스스로 지운다. 편집 모드에서는 오류만 남고 TearDown이 지운다.
+    static readonly Regex DestroyInEditMode = new Regex("Destroy may not be called from edit mode");
+
+    PlayerHealth Standing(Vector3 position)
+    {
+        var target = new GameObject("Attack target with a body");
+        created.Add(target);
+        target.transform.position = position;
+        target.AddComponent<BoxCollider>();
+        return target.AddComponent<PlayerHealth>();
+    }
+
+    ArcaneBoltProjectile Bolt(Vector3 position)
+    {
+        var go = new GameObject("Arcane bolt");
+        go.SetActive(false);
+        created.Add(go);
+        go.transform.SetPositionAndRotation(position, Quaternion.LookRotation(Vector3.forward));
+        var bolt = go.AddComponent<ArcaneBoltProjectile>();
+        var serialized = new SerializedObject(bolt);
+        serialized.FindProperty("mask").intValue = ~0;
+        serialized.ApplyModifiedPropertiesWithoutUndo();
+        return bolt;
+    }
+
+    LightOrbProjectile Beam(Vector3 position)
+    {
+        var go = new GameObject("Light orb beam");
+        go.SetActive(false);
+        created.Add(go);
+        go.transform.position = position;
+        var beam = go.AddComponent<LightOrbProjectile>();
+        var serialized = new SerializedObject(beam);
+        foreach (string line in new[] { "beamCore", "beamGlow" })
+        {
+            var child = new GameObject(line);
+            child.transform.SetParent(go.transform, false);
+            serialized.FindProperty(line).objectReferenceValue = child.AddComponent<LineRenderer>();
+        }
+        serialized.FindProperty("hitMask").intValue = ~0;
+        serialized.ApplyModifiedPropertiesWithoutUndo();
+        return beam;
+    }
+
+    // 투사체와 화염 공 연출의 이동 한 걸음(private Advance).
+    static void Step(Object flying, float deltaTime) => flying.GetType()
+        .GetMethod("Advance", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(flying, new object[] { deltaTime });
+
+    [Test]
+    public void FlyingProjectilesOfAnAttackerThatIsGone_VanishWithoutReportingAHit()
+    {
+        var origin = new Vector3(10000f, 1f, 10000f);
+        Standing(origin + Vector3.forward);
+        Physics.SyncTransforms();
+        var sink = new DuelSink();
+
+        // 대조군: 공격자가 있으면 바로 앞의 상대를 맞혔다고 보고한다.
+        PlayerHealth owner = Target();
+        ArcaneBoltProjectile bolt = Bolt(origin);
+        bolt.Initialize(owner, sink, new AttackInfo(5, 1));
+        LightOrbProjectile beam = Beam(origin);
+        beam.Initialize(Vector3.forward, owner, sink, new AttackInfo(6, 3));
+        LogAssert.Expect(LogType.Error, DestroyInEditMode);
+        LogAssert.Expect(LogType.Error, DestroyInEditMode);
+        Step(bolt, 0.1f);
+        Step(beam, 0.1f);
+        Assert.That(sink.Reports.Count, Is.EqualTo(2));
+
+        // 공격자가 디스폰되면(오브젝트가 지워지면) 같은 자리에서도 보고 없이 사라진다.
+        PlayerHealth leaving = Target();
+        ArcaneBoltProjectile lateBolt = Bolt(origin);
+        lateBolt.Initialize(leaving, sink, new AttackInfo(7, 1));
+        LightOrbProjectile lateBeam = Beam(origin);
+        lateBeam.Initialize(Vector3.forward, leaving, sink, new AttackInfo(8, 3));
+        Object.DestroyImmediate(leaving.gameObject);
+        LogAssert.Expect(LogType.Error, DestroyInEditMode);
+        LogAssert.Expect(LogType.Error, DestroyInEditMode);
+        Step(lateBolt, 0.1f);
+        Step(lateBeam, 0.1f);
+
+        Assert.That(sink.Reports.Count, Is.EqualTo(2), "No hit is reported for an attacker that is gone.");
+        Assert.That(lateBolt.transform.position, Is.EqualTo(origin), "The bolt vanishes before it moves.");
+    }
+
+    [Test]
+    public void FireballVisualKeepsFlyingForASwappedOutWeapon_AndGoesOutWhenItsWeaponIsGone()
+    {
+        PlayerAttack remote = Player("Explosion remote copy", out Transform socket);
+        var book = AddWeapon<ExplosionMagicWeapon>(socket, ExplosionId);
+        var template = new GameObject("Fireball visual template");
+        template.SetActive(false);
+        created.Add(template);
+        var serialized = new SerializedObject(book);
+        serialized.FindProperty("fireballPrefab").objectReferenceValue = template.AddComponent<ExplosionFireballVisual>();
+        serialized.ApplyModifiedPropertiesWithoutUndo();
+        // 쏜 뒤 다른 무기로 바꿔 꺼진 책도 날아가는 화염 공을 맡는다.
+        book.gameObject.SetActive(false);
+        var start = new Vector3(10000f, 1f, 10000f);
+
+        ((IWeapon)book).Present(new ShotEvent(new AttackInfo(2, ExplosionId), ExplosionMagicWeapon.LaunchKind,
+            start, start + Vector3.forward * 9f, 0f));
+        ExplosionFireballVisual visual = null;
+        foreach (var candidate in Object.FindObjectsByType<ExplosionFireballVisual>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+            if (candidate.gameObject != template)
+            {
+                visual = candidate;
+                created.Add(candidate.gameObject);
+            }
+        Assert.That(visual, Is.Not.Null);
+        Step(visual, 0.1f);
+        Assert.That(visual.Finished, Is.False, "A swapped-out weapon still owns its flying fireball.");
+
+        // 공격자가 디스폰되면 무기도 함께 지워진다. 폭발 신호가 더 오지 않으므로 끝점까지 가지 않고 꺼진다.
+        Object.DestroyImmediate(remote.gameObject);
+        LogAssert.Expect(LogType.Error, DestroyInEditMode);
+        Step(visual, 0.1f);
+
+        Assert.That(visual.Finished, Is.True);
+    }
+
+    [Test]
+    public void CombatEndingTakesDownTheReplayedAttackOnTheOpponentScreen()
+    {
+        PlayerAttack remote = Player("Remote copy at round end", out Transform socket);
+        var censer = AddWeapon<AttackTestWeapon>(socket, CenserId);
+        var player = remote.gameObject.AddComponent<DuelPlayer>();
+        Awake(remote);
+        typeof(DuelPlayer).GetMethod("Awake", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(player, null);
+        Assert.That(remote.TryEquipWeapon(censer), Is.True);
+        remote.PlayReplicatedAttack(new AttackInfo(3, CenserId), 0f);
+        Assert.That(censer.Winding, Is.True);
+        Assert.That(player.IsOwner, Is.False, "This copy belongs to the other client.");
+
+        typeof(DuelPlayer).GetMethod("OnCombatEnabledChanged", BindingFlags.Instance | BindingFlags.NonPublic)
+            .Invoke(player, new object[] { true, false });
+
+        Assert.That(remote.IsAttacking, Is.False);
+        Assert.That(censer.Winding, Is.False, "The wind-up telegraph is taken down on this screen too.");
+        Assert.That(remote.CurrentAttack.IsValid, Is.False);
+    }
 }
 #endif

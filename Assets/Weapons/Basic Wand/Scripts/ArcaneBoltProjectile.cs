@@ -15,10 +15,23 @@ public class ArcaneBoltProjectile : MonoBehaviour
     private IShotSink sink;
     private AttackInfo attack;
     private float distanceTraveled = 0f;
+    private bool hadOwner;
+    // sink가 DuelPlayer처럼 Unity 오브젝트면 파괴 여부를 확인해야 한다.
+    private Object sinkObject;
 
-    void Update()
+    void Update() => Advance(Time.deltaTime);
+
+    // 편집 모드 테스트가 한 걸음씩 움직일 수 있게 이동 한 번을 나눠 둔다.
+    private void Advance(float deltaTime)
     {
-        float moveDistance = Mathf.Min(speed * Time.deltaTime, maxRange - distanceTraveled);
+        if ((hadOwner && ownerHealth == null) || (!ReferenceEquals(sinkObject, null) && sinkObject == null))
+        {
+            // 공격자가 디스폰되면 이 공격은 끝났다. 명중을 보고하거나 명중 연출을 띄우지 않고 사라진다.
+            Destroy(gameObject);
+            return;
+        }
+
+        float moveDistance = Mathf.Min(speed * deltaTime, maxRange - distanceTraveled);
 
         RaycastHit[] hits = Physics.SphereCastAll(transform.position, hitRadius, transform.forward,
                             moveDistance, mask, QueryTriggerInteraction.Ignore);
@@ -59,6 +72,8 @@ public class ArcaneBoltProjectile : MonoBehaviour
         ownerHealth = owner;
         sink = shotSink;
         attack = attackInfo;
+        hadOwner = owner != null;
+        sinkObject = shotSink as Object;
     }
 
     public void InitializeVisualOnly(PlayerHealth owner) => Initialize(owner, null, default);

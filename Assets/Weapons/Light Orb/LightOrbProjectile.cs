@@ -26,6 +26,9 @@ public class LightOrbProjectile : MonoBehaviour
     private LineRenderer currentBeamGlow;
     private IShotSink sink;
     private AttackInfo attack;
+    private bool hadOwner;
+    // sink가 DuelPlayer처럼 Unity 오브젝트면 파괴 여부를 확인해야 한다.
+    private Object sinkObject;
 
     // 명중은 쏠 때 받은 공격 정보로 보고한다. 반사하며 날아가는 동안 무기를 바꿔도 이 공격의 명중이다.
     public void Initialize(Vector3 fireDirection, PlayerHealth owner, IShotSink shotSink, AttackInfo attackInfo)
@@ -35,6 +38,8 @@ public class LightOrbProjectile : MonoBehaviour
         ownerHealth = owner;
         sink = shotSink;
         attack = attackInfo;
+        hadOwner = owner != null;
+        sinkObject = shotSink as Object;
 
         currentBeamCore = beamCore;
         currentBeamGlow = beamGlow;
@@ -70,6 +75,13 @@ public class LightOrbProjectile : MonoBehaviour
     // Keep one movement step deterministic for editor combat verification.
     private void Advance(float deltaTime)
     {
+        if ((hadOwner && ownerHealth == null) || (!ReferenceEquals(sinkObject, null) && sinkObject == null))
+        {
+            // 공격자가 디스폰되면 이 공격은 끝났다. 반사·명중을 보고하거나 띄우지 않고 빛줄기째 사라진다.
+            Destroy(gameObject);
+            return;
+        }
+
         float moveDistance = beamSpeed * deltaTime;
         float spareDistance = maxDistance - currentDistance;
 

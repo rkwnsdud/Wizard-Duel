@@ -101,7 +101,8 @@ public sealed class ExplosionMagicWeapon : WeaponBase, IWeapon, IWeaponReach
             Sfx.Play(SfxId.ExplosionCast);
             if (fireballPrefab == null) return;
             ExplosionFireballVisual visual = Instantiate(fireballPrefab, shot.Start, Quaternion.identity);
-            visual.Launch(shot.Start, shot.Point, speed);
+            // 공격자가 디스폰되어 이 무기가 지워지면 연출도 바로 꺼진다.
+            visual.Launch(shot.Start, shot.Point, speed, this);
             if (flying.TryGetValue(shot.AttackId, out ExplosionFireballVisual previous) && previous != null)
                 previous.Finish();
             flying[shot.AttackId] = visual;

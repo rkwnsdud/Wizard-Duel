@@ -257,11 +257,16 @@ public sealed class DuelPlayer : NetworkBehaviour, IAttackAuthority, IShotSink
     void OnCombatEnabledChanged(bool previous, bool current)
     {
         Debug.Log($"[Player] Combat {(current ? "enabled" : "disabled")} slot={slot} owner={OwnerClientId} local={IsOwner} position={transform.position}.");
+        // 승부가 나서 꺼지면 모든 화면(공격한 쪽, 상대 화면, 호스트)에서 진행 중인 공격 모션과 예고·차징 미리보기를 거둔다.
+        // 상대 화면도 거둬야 소유자가 취소한 공격의 예고 부채꼴이 결과 화면에 남지 않는다.
+        // 이미 날아가는 투사체는 그대로 두고, 그 명중 보고는 ReportHitRpc가 받지 않는다(AttackInfo의 규칙).
+        if (!current && attack.IsAttacking)
+            Debug.Log($"[Attack] {name} cancels {attack.CurrentAttack} because combat ended.", this);
+        if (!current) attack.CancelAttack();
         if (!IsOwner) return;
         ApplyCombatState(current);
         if (current) return;
-        // 승부가 나서 꺼지면 차징 중이던 공격과 미리보기를 거두고, 걷던 자리에서 제자리 걸음을 하지 않게 멈춰 세운다.
-        attack.CancelAttack();
+        // 걷던 자리에서 제자리 걸음을 하지 않게 멈춰 세운다.
         if (!animator.enabled) return;
         animator.SetFloat("MoveSpeed", 0f);
         animator.SetFloat("MoveX", 0f);

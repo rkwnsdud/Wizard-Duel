@@ -14,7 +14,12 @@ public sealed class AttackTestWeapon : WeaponBase, IWeapon, IWeaponHitPassive
     // 서버가 이 무기의 적중 효과를 건 횟수.
     public int ServerHits { get; private set; }
     public AttackInfo Fired { get; private set; }
+    // 공격 모션 동안 켜지는 예고(향로의 부채꼴 같은 것)를 흉내 낸다.
+    public bool Winding { get; private set; }
     IShotSink sink;
+
+    public override void OnAttackStarted() => Winding = true;
+    public override void OnAttackFinished() => Winding = false;
 
     public void Fire(AttackInfo attack, Vector3 direction, float charge, IShotSink shotSink)
     {
