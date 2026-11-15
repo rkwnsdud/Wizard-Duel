@@ -46,6 +46,8 @@ public sealed class ArenaWeaponSpawner : MonoBehaviour
     PlayerWeaponInventory pendingInventory;
     WeaponSpawnNotification notification;
     public bool Running => manager != null && (manager.IsServer ? serverRounds.Count > 0 : running);
+    // 무기 정의 id의 프리팹. 인벤토리가 이 화면에 없던 무기를 만들 때 쓴다.
+    public WeaponBase FindPrefab(byte id) => catalog != null ? catalog.Find(id)?.prefab : null;
     public bool RequestPending => pendingRequest != 0;
 
     public void Initialize(NetworkManager network, WeaponSpawnCatalog definitions)

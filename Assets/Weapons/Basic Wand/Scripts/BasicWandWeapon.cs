@@ -89,7 +89,8 @@ public class BasicWandWeapon : WeaponBase, IWeapon, IWeaponReach
         Vector3 direction = shot.Point - shot.Start;
         if (direction.sqrMagnitude < 0.0001f) return;
         ArcaneBoltProjectile bolt = Instantiate(projectilePrefab, shot.Start, Quaternion.LookRotation(direction));
-        bolt.InitializeVisualOnly(GetComponentInParent<PlayerHealth>());
+        // 교체한 뒤에는 꺼진 무기가 연출하므로 꺼진 오브젝트에서도 주인을 찾는다.
+        bolt.InitializeVisualOnly(GetComponentInParent<PlayerHealth>(true));
     }
 
 }

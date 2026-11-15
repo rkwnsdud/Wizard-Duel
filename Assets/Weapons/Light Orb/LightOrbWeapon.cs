@@ -192,11 +192,12 @@ public class LightOrbWeapon : WeaponBase, IWeapon, IWeaponReach, IWeaponPose
     {
         if (shot.Kind != 0) return;
         Sfx.Play(SfxId.LightOrbFire);
-        FlashCore();
+        // 교체해서 꺼진 구슬은 보이지 않으므로 빛나지 않는다. 다시 들었을 때 남은 빛이 번쩍이지 않게 한다.
+        if (isActiveAndEnabled) FlashCore();
         if (presentingOwnShot || lightAttackPrefab == null) return;
         Vector3 direction = shot.Point - shot.Start;
         if (direction.sqrMagnitude < 0.0001f) return;
         LightOrbProjectile beam = Instantiate(lightAttackPrefab, shot.Start, Quaternion.identity);
-        beam.InitializeVisualOnly(direction.normalized, GetComponentInParent<PlayerHealth>());
+        beam.InitializeVisualOnly(direction.normalized, GetComponentInParent<PlayerHealth>(true));
     }
 }

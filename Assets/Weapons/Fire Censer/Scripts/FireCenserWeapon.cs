@@ -28,7 +28,7 @@ public sealed class FireCenserWeapon : WeaponBase, IWeapon, IWeaponReach
     {
         get
         {
-            PlayerAim aim = GetComponentInParent<PlayerAim>();
+            PlayerAim aim = GetComponentInParent<PlayerAim>(true);
             if (aim == null) return transform.forward;
             Vector3 forward = aim.transform.forward;
             forward.y = 0f;

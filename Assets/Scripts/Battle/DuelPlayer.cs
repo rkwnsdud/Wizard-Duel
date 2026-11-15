@@ -44,8 +44,6 @@ public sealed class DuelPlayer : NetworkBehaviour, IAttackAuthority, IShotSink
     uint simulatedAttackId;
     DuelBot bot;
 
-    IWeapon Weapon => attack.Weapon as IWeapon;
-
     void Awake()
     {
         animator = transform.Find("Wizard").GetComponent<Animator>();
@@ -147,20 +145,21 @@ public sealed class DuelPlayer : NetworkBehaviour, IAttackAuthority, IShotSink
     {
         if (!IsSpawned || !IsOwner || !combatEnabled.Value || playerHealth.IsDead) return;
         // Fire the weapon captured at attack start through the shared sink contract.
-        IWeapon weapon = attack.AttackingWeapon as IWeapon;
+        IWeapon weapon = attack.FindWeapon(attackInfo.WeaponId) as IWeapon;
         if (weapon == null)
         {
-            Debug.LogWarning("DuelPlayer: attacking weapon does not implement IWeapon; shot skipped.", this);
+            Debug.LogWarning($"DuelPlayer: no IWeapon for {attackInfo}; shot skipped.", this);
             return;
         }
         Physics.SyncTransforms();
         weapon.Fire(attackInfo, Vector3.ProjectOnPlane(transform.forward, Vector3.up).normalized, chargeRatio, this);
     }
 
+    // 연출은 공격한 쪽 화면과 상대 화면 모두 그 공격의 무기(shot.WeaponId)로 재생한다. 지금 든 무기를 보지 않는다.
     void IShotSink.Broadcast(ShotEvent shot)
     {
         if (!IsSpawned || !IsOwner) return;
-        Weapon.Present(shot);
+        attack.PresentShot(shot);
         ShotRpc(shot.AttackId, shot.WeaponId, shot.Kind, shot.Start, shot.Point, shot.Charge);
     }
 
@@ -173,7 +172,7 @@ public sealed class DuelPlayer : NetworkBehaviour, IAttackAuthority, IShotSink
     [Rpc(SendTo.NotOwner, InvokePermission = RpcInvokePermission.Owner)]
     void ShotRpc(uint attackId, byte weaponId, byte kind, Vector3 start, Vector3 point, float charge)
     {
-        if (IsClient) Weapon?.Present(new ShotEvent(new AttackInfo(attackId, weaponId), kind, start, point, charge));
+        if (IsClient) attack.PresentShot(new ShotEvent(new AttackInfo(attackId, weaponId), kind, start, point, charge));
     }
 
     [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Owner)]

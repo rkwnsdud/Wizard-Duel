@@ -54,6 +54,42 @@ public class PlayerAttack : MonoBehaviour
     // Remote players keep their poses even though their input component is disabled.
     public bool IsWeaponPoseActive(WeaponBase weapon) => weapon != null && currentWeapon == weapon;
 
+    // 공격 정보의 무기 id로 이 플레이어의 무기 인스턴스를 찾는다. 공격 이벤트(공격 시작·연출·적중 효과)는
+    // 지금 든 무기가 아니라 이 무기로 처리한다. 교체하거나 내려놓은 무기도 인벤토리가 꺼진 채 들고 있다.
+    // 찾는 순서: 공격 중인 무기 → 든 무기 → 인벤토리가 든 적 있는 무기 → 이 화면에 아직 없으면 인벤토리가
+    // 정의의 프리팹으로 꺼진 채 만든 무기(뒤에 오는 교체 스냅샷도 같은 인스턴스를 쓴다) → 자식 무기(오프라인 테스트).
+    // 0(빈 무기)이거나 끝내 찾지 못하면 null이다.
+    public WeaponBase FindWeapon(byte id)
+    {
+        if (id == 0) return null;
+        if (attackingWeapon != null && attackingWeapon.Id == id) return attackingWeapon;
+        if (currentWeapon != null && currentWeapon.Id == id) return currentWeapon;
+        PlayerWeaponInventory inventory = GetComponent<PlayerWeaponInventory>();
+        WeaponBase weapon = inventory != null ? inventory.FindWeapon(id) : null;
+        if (weapon == null && inventory != null) weapon = inventory.CreateMissingWeapon(id);
+        if (weapon != null) return weapon;
+        foreach (WeaponBase child in GetComponentsInChildren<WeaponBase>(true))
+            if (child.Id == id) return child;
+        return null;
+    }
+
+    // 연출 한 건을 그 공격의 무기로 재생한다. 공격한 쪽 화면과 상대 화면이 같은 규칙을 쓴다.
+    // 무기를 바꾼 뒤 도착한 연출도 쏜 무기(꺼져 있어도)가 재생하고, 지금 든 무기는 끼어들지 않는다.
+    // 무기를 찾지 못한 연출은 다른 무기로 대신 띄우지 않고 버린다.
+    public bool PresentShot(ShotEvent shot)
+    {
+        if (FindWeapon(shot.WeaponId) is IWeapon weapon)
+        {
+            if (currentWeapon == null || currentWeapon.Id != shot.WeaponId)
+                Debug.Log($"[Attack] {name} presents {shot.Attack} kind={shot.Kind} with the fired weapon " +
+                    $"while holding weapon={(currentWeapon != null ? currentWeapon.Id : 0)}.", this);
+            weapon.Present(shot);
+            return true;
+        }
+        Debug.LogWarning($"[Attack] {name} dropped shot {shot.Attack} kind={shot.Kind}: no weapon with that id.", this);
+        return false;
+    }
+
 
     private float pendingChargeRatio;
     private bool hasFired;
@@ -275,10 +311,23 @@ public class PlayerAttack : MonoBehaviour
     // Remote attack RPCs must be replayed even if network delay makes local
     // cooldown clocks differ by a few milliseconds.
     // attack은 공격한 쪽이 공격을 시작할 때 정한 번호와 무기 id다.
+    // 공격 모션도 받은 무기 id의 무기로 재생한다. 교체 스냅샷보다 그 무기의 공격이 먼저 오면 쏜 무기로 먼저 바꿔 든다.
+    // 늦게 온 스냅샷은 같은 무기 인스턴스를 다시 쓰므로 그대로 맞춰진다. 무기를 찾지 못하면 모션을 건너뛴다.
     public void PlayReplicatedAttack(AttackInfo attack, float chargeRatio)
     {
         if (!CanPlayAttack(respectCooldown: false)) return;
-        BeginAttack(attack, currentWeapon, chargeRatio);
+        WeaponBase weapon = FindWeapon(attack.WeaponId);
+        if (weapon == null)
+        {
+            Debug.LogWarning($"[Attack] {name} skipped attack start {attack}: no weapon with that id.", this);
+            return;
+        }
+        if (weapon != currentWeapon)
+        {
+            Debug.Log($"[Attack] {name} equips weapon={weapon.Id} for {attack} before its slot snapshot.", this);
+            if (!TryEquipWeapon(weapon)) return;
+        }
+        BeginAttack(attack, weapon, chargeRatio);
     }
 
     private bool CanPlayAttack(bool respectCooldown) =>

@@ -75,6 +75,27 @@ public class PlayerWeaponInventory : MonoBehaviour
         return true;
     }
 
+    // 이 플레이어가 이번 판에 든 적 있는 무기 인스턴스. 교체·내려놓기 뒤에도 꺼진 채 남아 있어서,
+    // 이미 쏜 공격의 늦은 연출과 적중 효과를 쏜 무기로 처리할 수 있다(PlayerAttack.FindWeapon).
+    public WeaponBase FindWeapon(byte id)
+    {
+        if (id == 0) return null;
+        if (storedWeapon != null && storedWeapon.Id == id) return storedWeapon;
+        return replicatedWeapons.TryGetValue(id, out WeaponBase weapon) && weapon != null ? weapon : null;
+    }
+
+    // 이 화면에서 아직 만든 적 없는 무기를 정의의 프리팹으로 꺼진 채 만든다. 교체 스냅샷보다 그 무기의 공격
+    // 이벤트가 먼저 도착한 경우에 쓴다. 다음 스냅샷은 같은 인스턴스를 다시 쓴다.
+    // 네트워크 인벤토리가 아니거나(오프라인 테스트) 카탈로그에 없는 id면 null이다.
+    public WeaponBase CreateMissingWeapon(byte id)
+    {
+        if (id == 0 || NetworkAuthority == null) return null;
+        if (playerAttack == null) playerAttack = GetComponent<PlayerAttack>();
+        WeaponBase prefab = NetworkAuthority.FindPrefab(id);
+        if (prefab == null || playerAttack == null || playerAttack.CurrentWeapon == null) return null;
+        return ResolveNetworkWeapon(prefab, playerAttack.CurrentWeapon.transform.parent);
+    }
+
     WeaponBase ResolveNetworkWeapon(WeaponBase prefab, Transform socket)
     {
         if (!replicatedWeapons.TryGetValue(prefab.Id, out var weapon) || weapon == null)
