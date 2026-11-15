@@ -5,6 +5,7 @@ using UnityEditor.AssetImporters;
 using UnityEngine;
 using UnityEngine.Rendering;
 
+// LightOrb.glb 임포트 시 메시·머티리얼·광학 큐브맵 하위 에셋을 생성하는 ScriptedImporter(LightOrb.glb.meta 참조).
 // Rebuild cached materials with missing metal texture/environment bindings.
 [ScriptedImporter(18, "glb")]
 public sealed class LightOrbGlbImporter : ScriptedImporter

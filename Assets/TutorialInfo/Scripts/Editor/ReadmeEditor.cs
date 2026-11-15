@@ -6,6 +6,7 @@ using System;
 using System.IO;
 using System.Reflection;
 
+// Unity URP 기본 템플릿의 Assets/Readme.asset용 인스펙터 에디터(템플릿 에셋 전체 제거는 본 커밋 범위 밖).
 [CustomEditor(typeof(Readme))]
 [InitializeOnLoad]
 public class ReadmeEditor : Editor

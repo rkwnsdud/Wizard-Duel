@@ -4,7 +4,7 @@ using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 
-// Explicit one-time migration; never runs when the project opens.
+// EditMode 테스트 WeaponSeparationTests가 Validate()·ValidatePlayerTest()를 호출하므로 유지한다(Apply()는 명시적 1회성 마이그레이션 잔재로 자동 실행되지 않음).
 public static class WeaponSeparationSetup
 {
     const string PlayerPath = "Assets/Player/Player.prefab";

@@ -7,6 +7,7 @@ using Object = UnityEngine.Object;
 // 갈대 부시 에셋(이슈 #93)을 만든다: 색 그라데이션 텍스처, 불투명·반투명 머티리얼, 미리보기 메시, Reeds 프리팹.
 // 칸마다 실제 모양은 실행 중에 ReedPatch가 이웃 칸에 맞춰 만들고, 프리팹의 미리보기 메시는 사방이 부시인 칸 모양이다.
 // 색이나 ReedPatch 기본값을 바꾸면 ReedAssetsBuilder.Rebuild()를 다시 부른다(메뉴는 없다).
+// ReedPatchTests도 이 클래스의 에셋 경로·셰이더 이름 상수를 참조한다.
 public static class ReedAssetsBuilder
 {
     public const string Folder = "Assets/map/Bushes";
