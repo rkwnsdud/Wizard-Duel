@@ -217,9 +217,11 @@ public sealed class DuelPlayer : NetworkBehaviour, IAttackAuthority, IShotSink
 
     void OnHealthChanged(float previous, float current) => ApplyHealth(current);
 
-    // 체력은 줄기만 하므로 서버 체력과의 차이만큼 깎는다. 0이 되면 PlayerHealth가 이동·조준·공격과 애니메이터를 멈춘다.
+    // 체력은 줄기만 하므로 서버 체력과의 차이만큼 깎는다. 0이 되면 PlayerHealth가 이동·조준·공격·자세 스크립트를 멈추고
+    // 사망 모션(Dying.fbx의 mixamo.com 클립)을 재생한다.
     void ApplyHealth(float value)
     {
+        if (playerHealth.IsDead) return;
         playerHealth.TakeDamage(playerHealth.CurrentHealth - value);
         if (playerHealth.IsDead) attack.CancelAttack();
     }
@@ -272,9 +274,11 @@ public sealed class DuelPlayer : NetworkBehaviour, IAttackAuthority, IShotSink
 
     void LateUpdate()
     {
-        // 쓰러지면 PlayerHealth가 애니메이터를 끈다.
+        // 쓰러지면 PlayerHealth가 사망 모션을 재생한다. 애니메이터는 켜 두므로 죽은 뒤에는
+        // 원격 걷기 갱신이 사망 자세를 덮지 않게 여기서 멈춘다.
         // 내 캐릭터는 PlayerMovement가 걷기 값을 넣는다. 상대와 봇은 움직인 거리로 넣는다.
-        if (!IsClient || !IsSpawned || (IsOwner && !IsBot) || !animator.enabled) return;
+        if (!IsClient || !IsSpawned || (IsOwner && !IsBot) || !animator.enabled ||
+            (playerHealth != null && playerHealth.IsDead)) return;
         Vector3 displacement = transform.position - previousPosition;
         displacement.y = 0f;
         // 시전 중에는 소유자의 PlayerMovement처럼 걷기 값을 0으로 둔다.

@@ -16,8 +16,8 @@ public sealed class LobbyNetwork : MonoBehaviour
     [SerializeField] string serverAddress = "127.0.0.1";
     [SerializeField] ushort port = 7777;
     [SerializeField] GameObject[] clientPresentation;
-    [Tooltip("승부가 난 뒤 두 화면에 승자를 보여 주는 시간. 서버가 이 시간이 지나면 플레이어와 맵을 정리하고 로비로 돌려보낸다.")]
-    [SerializeField, Min(0f)] float resultDuration = 3f;
+    [Tooltip("승부가 난 뒤 두 화면에 승자를 보여 주는 시간. 서버가 이 시간이 지나면 플레이어와 맵을 정리하고 로비로 돌려보낸다. 사망 모션(4.38초)을 끝까지 보려면 5 이상으로 둔다.")]
+    [SerializeField, Min(0f)] float resultDuration = 5f;
     [Tooltip("서버가 동시에 열어 둘 수 있는 방 수. 가득 차면 새 방 생성을 거절한다.")]
     [SerializeField, Min(1)] int maxRooms = 50;
 
