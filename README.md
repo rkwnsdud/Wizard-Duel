@@ -266,27 +266,38 @@ sequenceDiagram
 
 ## 프로젝트 구조
 
+직접 만든 에셋과 스크립트는 기능별 PascalCase(띄어쓰기 없음) 폴더 아래에 모으고, 외부 에셋 팩은 `Assets/ThirdParty/`에 분리합니다.
+- 독립 기반 모듈(`Audio`, `Effects`, `Input`, `Map`)과 핵심 게임플레이(`Game/<기능>/`) 아래에 각 기능의 `Scripts/`, `Prefabs/`, `Art/`, `Audio/`, `Editor/`를 모아 한 기능을 수정할 때 볼 곳을 한 군데로 모읍니다. (여러 기능에 걸친 게임플레이 공통 코드는 `Assets/Game/Common/`, 공통 에디터 도구는 `Assets/Editor/`에 둡니다.)
+- 외부 에셋 팩은 `Assets/ThirdParty/<팩이름>/` 아래에 원본 내부 구조 그대로 분리합니다.
+- 단, `Assets/TextMesh Pro/`는 UGUI 패키지가 `Assets/TextMesh Pro/Resources/TMP Settings.asset` 경로를 고정으로 검사하므로 루트에 유지하고, UI에서 직접 생성해 쓰는 TMP SDF 폰트와 글꼴 원본은 `Assets/Game/UI/Fonts/`에 둡니다.
+- `Assets/DefaultNetworkPrefabs.asset`(NGO 기본 생성 경로), `Assets/Scenes/`(빌드·서버 배포 경로), `Assets/Settings/`(URP·카메라 설정)는 루트 아래 현 위치를 유지합니다.
+- 모든 테스트(`*Tests.cs`), 테스트 실행기(`TestSuites`), 픽스처는 `Assets/Tests/Editor/<기능>/`와 `Assets/Tests/Runtime/`에 모아 런타임 코드와 분리합니다.
+
 ```text
 Wizard-Duel/
 ├─ Assets/
-│  ├─ Scenes/              Main(게임 본편)과 기능별 테스트 씬
-│  ├─ Scripts/
-│  │  ├─ Main/             시작 화면, 로비 화면, 화면 전환, 결과 배너
-│  │  ├─ Lobby/            방 목록과 세션, 로비 네트워크(LobbyNetwork)
-│  │  ├─ Battle/           전투 진행(DuelArena, DuelPlayer), 무기 스폰, 부시 시야 규칙
-│  │  │  └─ Bot/           AI 대전과 봇
-│  │  ├─ Map/              맵 조립, 블록, 배경, 맵 지문
-│  │  │  └─ Generation/    맵 생성기(WizardDuel.MapGeneration)
-│  │  └─ Demos/Multiplayer/  Netcode 연결 데모와 Network Test 창
-│  ├─ Player/              마법사 프리팹, 이동·조준·공격·체력·상태이상
-│  ├─ Weapons/             무기 5종과 공통 계약(WeaponBase, IWeapon, 패시브)
-│  ├─ UI/                  전투 HUD, 글꼴, 무기 아이콘
-│  ├─ map/                 바닥·벽·부시·스폰 지점 프리팹
-│  ├─ Audio/ · Effect/     효과음과 이펙트
-│  └─ Editor/              테스트 실행기와 에디터 도구
-├─ Deploy/Server/          리눅스 전용 서버 Docker 배포
-├─ Docs/                   기능별 설계·검증 문서
-└─ Tools/                  모델·애니메이션 보조 스크립트
+│  ├─ Audio/                  효과음 라이브러리(Resources/SfxLibrary), 클립, 재생 스크립트, SfxPanel
+│  ├─ Effects/                재사용 가능한 독립 이펙트(Lightning)
+│  ├─ Game/                   서로 참조하는 핵심 게임플레이(단일 게임 어셈블리 경계)
+│  │  ├─ Common/              카메라 추적 등 기능 공통 코드
+│  │  ├─ Battle/              전투 진행(DuelArena, DuelPlayer), 봇(AI), 무기 스폰
+│  │  ├─ Lobby/               방 목록과 세션, 로비 네트워크(LobbyNetwork)
+│  │  ├─ Main/                시작·로비 화면, 설정 패널, 전용 서버 빌드(Editor)
+│  │  ├─ Player/              마법사 프리팹, 이동·조준·공격·체력·상태이상, 캐릭터 아트·셰이더
+│  │  ├─ UI/                  전투 HUD, UI 아트·아이콘, UI 글꼴(Fonts)
+│  │  └─ Weapons/             무기 5종(BasicWand, ExplosionMagicBook, FireCenser, LightningStaff, LightOrb), 공통 계약(Common), 정의(Definitions)
+│  ├─ Input/                  PlayerInputActions 입력 액션과 생성 래퍼
+│  ├─ Map/                    맵 조립, 블록, 배경, 맵 지문, 바닥·벽·부시·스폰 프리팹·아트
+│  │  └─ Generation/          맵 생성기(WizardDuel.MapGeneration)
+│  ├─ Scenes/                 게임 본편(Main)과 오프라인 테스트 씬(DuelOfflineTest)
+│  ├─ Settings/               URP 파이프라인·렌더러·볼륨 프로필·카메라 설정
+│  ├─ TextMesh Pro/           TMP 기본 리소스(패키지 경로 고정 제약으로 루트 유지)
+│  ├─ ThirdParty/             외부 에셋 팩(BasicMan, DanielMistage, EricVFXStudio, MagicEffectsPack, MapParts)
+│  ├─ Editor/                 여러 기능에 걸친 에디터 도구(NetworkTestWindow, WeaponHudIconBaker, NetworkPrefabHashRepair)
+│  └─ Tests/                  테스트 실행기(TestSuites)와 기능별 EditMode·런타임 테스트
+├─ Deploy/Server/             리눅스 전용 서버 Docker 배포
+├─ Docs/                      기능별 설계·검증 문서
+└─ Tools/                     모델·애니메이션 보조 스크립트
 ```
 
 ## 개발 인원
