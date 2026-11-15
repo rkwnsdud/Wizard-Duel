@@ -2,7 +2,7 @@ using Unity.Netcode;
 using UnityEngine;
 
 // 서버 권위의 지속 피해(Burn)와 둔화(Slow).
-// 피해는 DuelPlayer 경유로만 DuelCombatState에 들어가고, 클라는 TakeDamage를 직접 부르지 않는다.
+// 피해는 DuelPlayer 경유로만 DuelCombatState에 들어가고, 클라는 서버 체력값만 표시한다.
 // 같은 종류를 다시 맞으면 쌓지 않고 갱신한다. 사망하면 남은 효과를 지운다.
 public sealed class PlayerStatusEffects : NetworkBehaviour
 {
@@ -15,7 +15,6 @@ public sealed class PlayerStatusEffects : NetworkBehaviour
     public float SlowMultiplierNet => slowMultiplierNet.Value;
 
     PlayerCombatStats combatStats;
-    PlayerHealth playerHealth;
     DuelPlayer duelPlayer;
 
     // 서버 권위 상태. 클라는 NetworkVariable만 본다.
@@ -28,7 +27,6 @@ public sealed class PlayerStatusEffects : NetworkBehaviour
     void Awake()
     {
         combatStats = GetComponent<PlayerCombatStats>();
-        playerHealth = GetComponent<PlayerHealth>();
         duelPlayer = GetComponent<DuelPlayer>();
     }
 
@@ -47,7 +45,7 @@ public sealed class PlayerStatusEffects : NetworkBehaviour
     void Update()
     {
         if (!IsServer || !IsSpawned) return;
-        if ((playerHealth != null && playerHealth.IsDead) || (duelPlayer != null && duelPlayer.IsServerCombatEnded))
+        if (duelPlayer != null && (duelPlayer.IsServerDefeated || duelPlayer.IsServerCombatEnded))
         {
             if (State.BurnActive || slowActive) ServerClearAll();
             return;
@@ -65,7 +63,7 @@ public sealed class PlayerStatusEffects : NetworkBehaviour
     public void ServerApplyBurn(int attackerSlot, float tickDamage, int tickCount, float duration)
     {
         if (!IsServer || !IsSpawned) return;
-        if ((playerHealth != null && playerHealth.IsDead) || (duelPlayer != null && duelPlayer.IsServerCombatEnded)) return;
+        if (duelPlayer != null && (duelPlayer.IsServerDefeated || duelPlayer.IsServerCombatEnded)) return;
         if (!State.ApplyBurn(attackerSlot, tickDamage, tickCount, duration, Time.time)) return;
         if (IsSpawned) burnVisible.Value = true;
     }
@@ -75,7 +73,7 @@ public sealed class PlayerStatusEffects : NetworkBehaviour
     {
         if (!IsServer || !IsSpawned) return;
         if (multiplier <= 0f || multiplier >= 1f || duration <= 0f) return;
-        if ((playerHealth != null && playerHealth.IsDead) || (duelPlayer != null && duelPlayer.IsServerCombatEnded)) return;
+        if (duelPlayer != null && (duelPlayer.IsServerDefeated || duelPlayer.IsServerCombatEnded)) return;
         slowActive = true;
         slowExpiryTime = Time.time + duration;
         slowMultiplierNet.Value = Mathf.Clamp(multiplier, 0.01f, 1f);

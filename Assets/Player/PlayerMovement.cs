@@ -10,7 +10,11 @@ public class PlayerMovement : MonoBehaviour
     Vector3? externalDirection;
 
     void Awake() => motor = GetComponent<PlayerMotor>();
-    void Start() => cameraTransform = Camera.main.transform;
+    void Start()
+    {
+        motor.ResetVisualRotation();
+        cameraTransform = Camera.main.transform;
+    }
 
     // 월드 방향을 유지한다. 키보드로 돌아가려면 UseKeyboard를 부른다.
     public void SetMoveDirection(Vector3 direction) => externalDirection = Vector3.ProjectOnPlane(direction, Vector3.up).normalized;

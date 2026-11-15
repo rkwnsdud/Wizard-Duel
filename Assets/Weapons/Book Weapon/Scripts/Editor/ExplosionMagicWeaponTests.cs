@@ -180,7 +180,7 @@ public class ExplosionMagicWeaponTests : PlayModeTestFixture
         Wall(new Vector3(1f, 0f, 1f), new Vector3(0.2f, 3f, 3f));
         yield return null;
         Physics.SyncTransforms();
-        dead.TakeDamage(dead.MaxHealth);
+        new LocalShotSink().Hit(new AttackInfo(1, weapon.Id), 0, dead, dead.MaxHealth);
 
         List<PlayerHealth> victims = ExplosionFireball.FindVictims(center, 1.8f, owner, TargetMask, BlockerMask);
 

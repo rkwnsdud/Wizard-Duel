@@ -47,6 +47,7 @@ public sealed class DuelPlayer : NetworkBehaviour, IAttackAuthority, IShotSink
     DuelBot bot;
 
     internal bool IsServerCombatEnded => combatEnded || (Match != null && Match.CombatEnded);
+    internal bool IsServerDefeated => combat != null && combat.IsDefeated;
 
     void Awake()
     {
@@ -83,7 +84,7 @@ public sealed class DuelPlayer : NetworkBehaviour, IAttackAuthority, IShotSink
             health.Value = combat.Health;
         }
         health.OnValueChanged += OnHealthChanged;
-        ApplyHealth(health.Value);
+        playerHealth.ApplyServerHealth(health.Value);
         combatEnabled.OnValueChanged += OnCombatEnabledChanged;
         if (IsClient) PlaySpawnEffect();
         if (IsOwner && !IsBot) FollowWithCamera();
@@ -314,16 +315,7 @@ public sealed class DuelPlayer : NetworkBehaviour, IAttackAuthority, IShotSink
         if (TryGetComponent(out PlayerStatusEffects status)) status.ServerClearAll();
     }
 
-    void OnHealthChanged(float previous, float current) => ApplyHealth(current);
-
-    // 체력은 줄기만 하므로 서버 체력과의 차이만큼 깎는다. 0이 되면 PlayerHealth가 이동·조준·공격·자세 스크립트를 멈추고
-    // 사망 모션(Dying.fbx의 mixamo.com 클립)을 재생한다.
-    void ApplyHealth(float value)
-    {
-        if (playerHealth.IsDead) return;
-        playerHealth.TakeDamage(playerHealth.CurrentHealth - value);
-        if (playerHealth.IsDead) attack.CancelAttack();
-    }
+    void OnHealthChanged(float previous, float current) => playerHealth.ApplyServerHealth(current);
 
     void PlaySpawnEffect()
     {

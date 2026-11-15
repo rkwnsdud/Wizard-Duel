@@ -20,18 +20,19 @@ public class PlayerHealth : MonoBehaviour
         currentHealth = maxHealth;
     }
 
-    public void TakeDamage(float damage)
+    // 서버 스냅샷의 표시값이다. 피해 계산·중복 판정·승패 판정은 ServerHitReport/DuelCombatState가 맡는다.
+    public void ApplyServerHealth(float value)
     {
-        if (damage <= 0f || isDead)
-            return;
-
-        currentHealth = Mathf.Max(0f, currentHealth - damage);
+        float previous = currentHealth;
+        bool wasDead = isDead;
+        currentHealth = value;
+        isDead = value <= 0f;
+        if (currentHealth >= previous || wasDead) return;
 
         Debug.Log("체력: " + currentHealth);
 
         if(currentHealth <= 0f)
         {
-            isDead = true;
             StopPlayerAfterDeath();
             return;
         }

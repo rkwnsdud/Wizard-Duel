@@ -150,7 +150,7 @@ public class DuelLightningWeaponTests : PlayModeTestFixture
         var nearest = Target(Vector3.right * 3f);
         nearest.gameObject.AddComponent<BoxCollider>();
         var dead = Target(Vector3.right * 1.5f);
-        dead.TakeDamage(100f);
+        new LocalShotSink().Hit(new AttackInfo(1, weapon.Id), 0, dead, dead.MaxHealth);
         Physics.SyncTransforms();
         var sink = new ShotSink();
         ((IWeapon)weapon).Fire(new AttackInfo(11, weapon.Id), Vector3.right, 1f, sink);

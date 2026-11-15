@@ -26,7 +26,7 @@ public sealed class PlayerMotor : MonoBehaviour
         animator = character != null ? character.GetComponent<Animator>() : null;
     }
 
-    void Start()
+    public void ResetVisualRotation()
     {
         Transform character = transform.Find("Wizard");
         if (character != null) character.localRotation = Quaternion.identity;

@@ -21,7 +21,7 @@ public class WeaponFiringTests
             orb.transform.SetParent(root.transform);
             var orbPose = orb.AddComponent<LightOrbWeapon>();
 
-            health.TakeDamage(health.MaxHealth);
+            new LocalShotSink().Hit(new AttackInfo(1, 1), 0, health, health.MaxHealth);
 
             Assert.That(health.IsDead, Is.True);
             Assert.That(bookPose.enabled, Is.False);
