@@ -31,6 +31,9 @@ public class NetworkDuelConfigTests
         root.SetActive(false);
         manager = root.AddComponent<NetworkManager>();
         var transport = root.AddComponent<UnityTransport>();
+        // PlayMode 전환 뒤 NGO의 OnNetworkManagerReset 정적 훅이 비면 AddComponent<NetworkManager>()만으로는 NetworkConfig가 null이다.
+        if (manager.NetworkConfig == null) manager.NetworkConfig = new NetworkConfig();
+        if (manager.NetworkConfig.NetworkTransport == null) manager.NetworkConfig.NetworkTransport = transport;
         var lobby = root.AddComponent<LobbyNetwork>();
         var aiDuel = root.AddComponent<AiDuel>();
         var arena = root.AddComponent<DuelArena>();

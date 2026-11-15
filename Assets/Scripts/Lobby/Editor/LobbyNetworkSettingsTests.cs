@@ -241,6 +241,8 @@ public class LobbyNetworkSettingsTests
         root = new GameObject("LobbyNetworkSettingsTests");
         root.SetActive(false);
         manager = root.AddComponent<NetworkManager>();
+        // PlayMode 전환 뒤 NGO의 OnNetworkManagerReset 정적 훅이 비면 AddComponent<NetworkManager>()만으로는 NetworkConfig가 null이다.
+        if (manager.NetworkConfig == null) manager.NetworkConfig = new NetworkConfig();
         network = root.AddComponent<LobbyNetwork>();
         typeof(LobbyNetwork).GetField("manager", PrivateInstance).SetValue(network, manager);
         client = typeof(LobbyNetwork).GetProperty("Client", PrivateInstance).GetValue(network);
