@@ -184,7 +184,8 @@ public sealed class DuelPlayer : NetworkBehaviour, IAttackAuthority, IShotSink
             !player.combat.TryTakeHit(slot, attackId, hitIndex, damage, out bool defeatedNow)) return;
         Debug.Log($"[Combat] Hit slot={player.slot} attacker={slot} id={attackId} weapon={weaponId} hit={hitIndex} health={player.combat.Health:F3}");
         player.health.Value = player.combat.Health;
-        PlayerWeaponPassiveController.NotifyServerHit(attack.Weapon, this, player);
+        // 피해량은 쏜 쪽 보고대로, 적중 효과는 보고에 실린 쏜 무기로 정한다. 서버도 지금 든 무기를 보지 않는다.
+        PlayerWeaponPassiveController.NotifyServerHit(attack, new AttackInfo(attackId, weaponId), this, player);
         if (defeatedNow)
         {
             player.ClearServerStatusEffects();

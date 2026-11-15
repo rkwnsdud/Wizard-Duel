@@ -214,6 +214,34 @@ public class AttackEventTests
     }
 
     [Test]
+    public void ServerHitPassiveFollowsTheReportedWeapon_NotTheWeaponHeldNow()
+    {
+        Duel(out PlayerAttack owner, out _, out AttackTestWeapon[] mine, out _, out DuelSink sink);
+        // 서버의 공격자 사본. 서버는 공격 모션을 재생하지 않고 교체 스냅샷만 받는다.
+        PlayerAttack server = Player("Attacker on the server", out Transform socket);
+        var serverWeapons = new[] { AddWeapon<AttackTestWeapon>(socket, ExplosionId), AddWeapon<AttackTestWeapon>(socket, CenserId) };
+        Awake(server);
+        Assert.That(server.TryEquipWeapon(serverWeapons[0]), Is.True);
+        PlayerHealth target = Target();
+
+        Assert.That(owner.TryStartAttack(0f), Is.True);
+        owner.FireMagic();
+        owner.EndAttack();
+        Assert.That(owner.TryEquipWeapon(mine[1]), Is.True);
+        Assert.That(server.TryEquipWeapon(serverWeapons[1]), Is.True);
+        mine[0].Land(target);
+
+        var report = sink.Reports[0];
+        Assert.That(PlayerWeaponPassiveController.NotifyServerHit(server, report.attack, null, null), Is.True);
+        Assert.That(serverWeapons[0].ServerHits, Is.EqualTo(1), "The fired weapon's hit passive applies.");
+        Assert.That(serverWeapons[1].ServerHits, Is.Zero, "The weapon held now must not add its passive.");
+
+        LogAssert.Expect(LogType.Warning, new Regex("Hit passive skipped for attack=9 weapon=200"));
+        Assert.That(PlayerWeaponPassiveController.NotifyServerHit(server, new AttackInfo(9, 200), null, null), Is.False);
+        Assert.That(serverWeapons[0].ServerHits + serverWeapons[1].ServerHits, Is.EqualTo(1));
+    }
+
+    [Test]
     public void AttackThatArrivesBeforeTheSlotSnapshot_EquipsTheAttackWeaponOnTheOpponentScreen()
     {
         Duel(out _, out PlayerAttack remote, out _, out AttackTestWeapon[] theirs, out _);

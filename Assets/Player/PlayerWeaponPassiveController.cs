@@ -58,10 +58,24 @@ public sealed class PlayerWeaponPassiveController : MonoBehaviour
         equippedWeapon = null;
     }
 
-    /// <summary>Dispatches hit passives for a server-approved hit.</summary>
-    public static void NotifyServerHit(WeaponBase weapon, DuelPlayer attacker, DuelPlayer target)
+    /// <summary>서버가 받아들인 명중 한 번의 적중 효과(화상·둔화 등)를 건다.</summary>
+    /// <remarks>효과는 그 공격을 시작한 무기(attack.WeaponId)로 고른다. 지금 든 무기는 보지 않으므로
+    /// 쏜 뒤 무기를 바꿔도 쏜 무기의 효과만 걸린다. 공격자에게서 그 무기를 찾지 못하면 효과 없이 넘어간다
+    /// (피해는 쏜 쪽 판정대로 이미 반영됐다).</remarks>
+    public static bool NotifyServerHit(PlayerAttack weapons, AttackInfo attack, DuelPlayer attacker, DuelPlayer target)
     {
-        if (weapon == null) return;
+        WeaponBase weapon = weapons != null ? weapons.FindWeapon(attack.WeaponId) : null;
+        if (weapon == null)
+        {
+            Debug.LogWarning($"[Combat] Hit passive skipped for {attack}: the attacker has no weapon with that id.", weapons);
+            return false;
+        }
+        Dispatch(weapon, attacker, target);
+        return true;
+    }
+
+    static void Dispatch(WeaponBase weapon, DuelPlayer attacker, DuelPlayer target)
+    {
         IWeaponHitPassive hitPassive = null;
         foreach (MonoBehaviour component in weapon.GetComponentsInChildren<MonoBehaviour>(true))
             if (component is IWeaponHitPassive passive)
