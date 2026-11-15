@@ -1,7 +1,6 @@
 using System;
 using TMPro;
 using UnityEngine;
-using UnityEngine.UI;
 
 // AI 대전 로비 화면의 "게임 설정" 탭. 내 무기, 상대 무기, AI 난이도를 고른다.
 // 고를 수 있는 무기와 순서는 전투 중 스폰되는 무기와 같은 카탈로그(WeaponSpawnCatalog)를 따르고,
@@ -12,12 +11,8 @@ public class GameSettingsPanel : MonoBehaviour
 
     [SerializeField] WeaponSpawnCatalog weapons;
     [SerializeField] SegmentedControl myWeapon;
-    [Tooltip("내 무기 버튼의 아이콘. 버튼과 같은 순서다.")]
-    [SerializeField] Image[] myWeaponIcons;
     [SerializeField] TMP_Text myWeaponName;
     [SerializeField] SegmentedControl opponentWeapon;
-    [Tooltip("상대 무기 버튼의 아이콘. 버튼과 같은 순서다.")]
-    [SerializeField] Image[] opponentWeaponIcons;
     [SerializeField] TMP_Text opponentWeaponName;
     [SerializeField] SegmentedControl difficulty;
     [Tooltip("전투 준비가 시작되면 잠그는 컨트롤 묶음.")]
@@ -27,7 +22,7 @@ public class GameSettingsPanel : MonoBehaviour
     bool ready;
 
     public WeaponSpawnCatalog Weapons => weapons;
-    // 무기 줄에 놓인 버튼 수. 카탈로그의 무기 수와 같아야 모두 고를 수 있다.
+    // 카탈로그의 정의 수에 맞춰 무기 선택 버튼을 만든다.
     public int WeaponButtonCount => Mathf.Min(myWeapon.Count, opponentWeapon.Count);
 
     // 화면에 보여 주는 무기 이름.
@@ -61,21 +56,12 @@ public class GameSettingsPanel : MonoBehaviour
     {
         if (ready) return;
         ready = true;
-        FillIcons(myWeaponIcons);
-        FillIcons(opponentWeaponIcons);
+        var icons = Array.ConvertAll(weapons.Entries, definition => definition.icon);
+        myWeapon.SetIcons(icons);
+        opponentWeapon.SetIcons(icons);
         myWeapon.Changed += _ => Edit();
         opponentWeapon.Changed += _ => Edit();
         difficulty.Changed += _ => Edit();
-    }
-
-    void FillIcons(Image[] icons)
-    {
-        for (int i = 0; i < icons.Length; i++)
-        {
-            WeaponDefinition entry = i < weapons.Entries.Length ? weapons.Entries[i] : null;
-            icons[i].sprite = entry != null ? entry.icon : null;
-            icons[i].enabled = icons[i].sprite != null;
-        }
     }
 
     void Edit()

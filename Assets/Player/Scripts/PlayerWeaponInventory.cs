@@ -13,7 +13,7 @@ public class PlayerWeaponInventory : MonoBehaviour
     public WeaponBase StoredWeapon => storedWeapon;
     public event Action<WeaponBase> StoredWeaponChanged;
     public ArenaWeaponSpawner NetworkAuthority { get; set; }
-    readonly Dictionary<Type, WeaponBase> replicatedWeapons = new Dictionary<Type, WeaponBase>();
+    readonly Dictionary<byte, WeaponBase> replicatedWeapons = new Dictionary<byte, WeaponBase>();
 
     private void Awake()
     {
@@ -82,7 +82,7 @@ public class PlayerWeaponInventory : MonoBehaviour
         if (weaponPrefab == null)
             return;
 
-        if (HasSameWeaponType(weaponPrefab))
+        if (HasSameWeapon(weaponPrefab))
         {
             Debug.Log("이미 보유중인 무기입니다.");
             return;
@@ -150,9 +150,9 @@ public class PlayerWeaponInventory : MonoBehaviour
         if (playerAttack == null) playerAttack = GetComponent<PlayerAttack>();
         if (equippedPrefab == null || playerAttack == null || playerAttack.CurrentWeapon == null) return false;
         WeaponBase current = playerAttack.CurrentWeapon;
-        if (current.GetType() != equippedPrefab.GetType() && !playerAttack.CanChangeWeapon) return false;
-        replicatedWeapons[current.GetType()] = current;
-        if (storedWeapon != null) replicatedWeapons[storedWeapon.GetType()] = storedWeapon;
+        if (current.Id != equippedPrefab.Id && !playerAttack.CanChangeWeapon) return false;
+        replicatedWeapons[current.Id] = current;
+        if (storedWeapon != null) replicatedWeapons[storedWeapon.Id] = storedWeapon;
         Transform socket = current.transform.parent;
         WeaponBase equipped = ResolveNetworkWeapon(equippedPrefab, socket);
         WeaponBase stored = storedPrefab != null ? ResolveNetworkWeapon(storedPrefab, socket) : null;
@@ -168,10 +168,10 @@ public class PlayerWeaponInventory : MonoBehaviour
 
     WeaponBase ResolveNetworkWeapon(WeaponBase prefab, Transform socket)
     {
-        if (!replicatedWeapons.TryGetValue(prefab.GetType(), out var weapon) || weapon == null)
+        if (!replicatedWeapons.TryGetValue(prefab.Id, out var weapon) || weapon == null)
         {
             weapon = CreateWeapon(prefab, socket);
-            replicatedWeapons[prefab.GetType()] = weapon;
+            replicatedWeapons[prefab.Id] = weapon;
         }
         return weapon;
     }
@@ -215,14 +215,14 @@ public class PlayerWeaponInventory : MonoBehaviour
     }
 
     // 중복 무기 확인
-    private bool HasSameWeaponType(WeaponBase prefab)
+    private bool HasSameWeapon(WeaponBase prefab)
     {
         WeaponBase currentWeapon = playerAttack.CurrentWeapon;
 
-        if (currentWeapon != null && currentWeapon.GetType() == prefab.GetType())
+        if (currentWeapon != null && currentWeapon.Id == prefab.Id)
             return true;
 
-        if(storedWeapon != null && storedWeapon.GetType() == prefab.GetType())
+        if(storedWeapon != null && storedWeapon.Id == prefab.Id)
             return true;
 
         return false;

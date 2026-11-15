@@ -74,13 +74,13 @@ public class DuelLightningWeaponTests : PlayModeTestFixture
         foreach (string name in new[] { "Player", "Player-1", "Player-2" })
         {
             var prefab = AssetDatabase.LoadAssetAtPath<GameObject>($"Assets/Player/{name}.prefab");
-            Assert.That(prefab.GetComponent<PlayerAttack>().Weapon, Is.TypeOf<LightningWeapon>(), name);
+            Assert.That(prefab.GetComponent<PlayerAttack>().Weapon.Id, Is.EqualTo(2), name);
             Assert.That(prefab.GetComponentInChildren<DuelLightningWeapon>(true), Is.Null, name);
         }
         foreach (string name in new[] { "DuelWizard-1", "DuelWizard-2" })
         {
             var prefab = AssetDatabase.LoadAssetAtPath<GameObject>($"Assets/Player/{name}.prefab");
-            Assert.That(prefab.GetComponent<PlayerAttack>().Weapon, Is.TypeOf<DuelLightningWeapon>(), name);
+            Assert.That(prefab.GetComponent<PlayerAttack>().Weapon.Id, Is.EqualTo(2), name);
             Assert.That(prefab.GetComponentInChildren<LightningWeapon>(true), Is.Null, name);
         }
     }
@@ -215,7 +215,7 @@ public class DuelLightningWeaponTests : PlayModeTestFixture
         var authority = new AttackAuthority();
         attack.Authority = authority;
         yield return null;
-        Assert.That(attack.Weapon, Is.TypeOf<DuelLightningWeapon>());
+        Assert.That(attack.Weapon.Id, Is.EqualTo(2));
         typeof(PlayerAttack).GetMethod("CommitAttack", BindingFlags.Instance | BindingFlags.NonPublic)
             .Invoke(attack, new object[] { 0.75f });
         Assert.That(attack.IsAttacking, Is.True);

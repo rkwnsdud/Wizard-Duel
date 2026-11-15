@@ -12,13 +12,8 @@ public sealed class WeaponSpawnCatalog : ScriptableObject
     public TMP_FontAsset notificationFont;
 
     public WeaponDefinition Find(byte id) => Array.Find(definitions, definition => definition.id == id);
-    public byte Identify(WeaponBase weapon)
-    {
-        if (weapon == null) return 0;
-        WeaponDefinition definition = Array.Find(definitions, item => item.prefab != null && item.prefab.GetType() == weapon.GetType());
-        return definition != null ? definition.id : (byte)0;
-    }
+    public byte Identify(WeaponBase weapon) => weapon != null ? weapon.Id : (byte)0;
 
     public bool IsSpawnable(WeaponDefinition definition) => definition != null && definition.canSpawn &&
-        definition.prefab != null && !(definition.prefab is BasicWandWeapon) && definition.prefab is IWeapon;
+        definition.prefab != null && definition.prefab is IWeapon;
 }

@@ -9171,20 +9171,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::GameSettingsPanel
   weapons: {fileID: 11400000, guid: c9a5214f81cc43d89da7e25b81884f20, type: 2}
   myWeapon: {fileID: 903273439}
-  myWeaponIcons:
-  - {fileID: 1790598584}
-  - {fileID: 315989876}
-  - {fileID: 2140033434}
-  - {fileID: 859369566}
-  - {fileID: 2076451144}
   myWeaponName: {fileID: 169361817}
   opponentWeapon: {fileID: 1547891684}
-  opponentWeaponIcons:
-  - {fileID: 329549200}
-  - {fileID: 2036977745}
-  - {fileID: 1246733391}
-  - {fileID: 1993103240}
-  - {fileID: 1320240764}
   opponentWeaponName: {fileID: 164068446}
   difficulty: {fileID: 291913392}
   controls:

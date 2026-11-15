@@ -22,13 +22,51 @@ public class SegmentedControl : MonoBehaviour
     public int Value { get; private set; }
     public int Count => buttons.Length;
 
-    void Awake()
+    bool ready;
+
+    void Awake() => Setup();
+
+    void Setup()
     {
+        if (ready) return;
+        ready = true;
         for (int i = 0; i < buttons.Length; i++)
         {
             int index = i;
             buttons[i].onClick.AddListener(() => Select(index));
         }
+        Refresh();
+    }
+
+    // 무기 정의를 추가하면 로비 버튼도 같은 목록에서 늘어난다.
+    public void SetIcons(Sprite[] sprites)
+    {
+        int previousCount = buttons.Length;
+        Button template = buttons[0];
+        for (int i = sprites.Length; i < previousCount; i++)
+        {
+            buttons[i].gameObject.SetActive(false);
+            Destroy(buttons[i].gameObject);
+        }
+        Array.Resize(ref buttons, sprites.Length);
+        icons = new Graphic[sprites.Length];
+        for (int i = 0; i < sprites.Length; i++)
+        {
+            if (i >= previousCount)
+            {
+                buttons[i] = Instantiate(template, template.transform.parent);
+                if (ready)
+                {
+                    int index = i;
+                    buttons[i].onClick.AddListener(() => Select(index));
+                }
+            }
+            var icon = buttons[i].transform.GetChild(0).GetComponent<Image>();
+            icon.sprite = sprites[i];
+            icon.enabled = sprites[i] != null;
+            icons[i] = icon;
+        }
+        Setup();
         Refresh();
     }
 

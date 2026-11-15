@@ -39,9 +39,9 @@ public sealed class DuelOfflineTest : MonoBehaviour
     const float WeaponRowHeight = 36f;
     PlayerAttack playerAttack;
     WeaponBase[] weapons = System.Array.Empty<WeaponBase>();
-    // 고른 무기의 오브젝트 이름. R로 다시 세워도 같은 무기를 들고, 공격 중에 고르면 공격이 끝난 뒤 바꾼다.
-    // null이면 프리팹의 기본 무기를 그대로 든다.
-    string selectedWeapon;
+    // 고른 무기의 id. R로 다시 세워도 같은 무기를 들고, 공격 중에 고르면 공격이 끝난 뒤 바꾼다.
+    // 0이면 프리팹의 기본 무기를 그대로 든다.
+    byte selectedWeapon;
     GUIStyle weaponButtonStyle;
     // 도움말 상자(y 16, 높이 92) 바로 아래에 둔다.
     Rect WeaponPanelRect => new Rect(16f, 116f, 440f, 46f + weapons.Length * (WeaponRowHeight + 4f));
@@ -82,7 +82,7 @@ public sealed class DuelOfflineTest : MonoBehaviour
         Keyboard keyboard = Keyboard.current;
         if (keyboard != null)
             for (int i = 0; i < weapons.Length && i < 9; i++)
-                if (keyboard[Key.Digit1 + i].wasPressedThisFrame) selectedWeapon = weapons[i].name;
+                if (keyboard[Key.Digit1 + i].wasPressedThisFrame) selectedWeapon = weapons[i].Id;
 
         // 패널 버튼을 누르는 왼쪽 클릭이 공격으로 나가면 공격 중이라 장착이 거절되므로, 패널 위에서는 공격 입력을 막는다.
         // 입력 이벤트는 다음 프레임 Update 전에 처리되므로 이번 프레임의 마우스 위치로 미리 정해 둔다.
@@ -99,11 +99,11 @@ public sealed class DuelOfflineTest : MonoBehaviour
 
     void EquipSelectedWeapon()
     {
-        if (selectedWeapon == null || (playerAttack.CurrentWeapon != null && playerAttack.CurrentWeapon.name == selectedWeapon)) return;
-        WeaponBase target = System.Array.Find(weapons, weapon => weapon != null && weapon.name == selectedWeapon);
+        if (selectedWeapon == 0 || (playerAttack.CurrentWeapon != null && playerAttack.CurrentWeapon.Id == selectedWeapon)) return;
+        WeaponBase target = System.Array.Find(weapons, weapon => weapon != null && weapon.Id == selectedWeapon);
         if (target == null)
         {
-            selectedWeapon = null;
+            selectedWeapon = 0;
             return;
         }
         // 공격·차징 중이거나 쓰러져 있으면 거절되므로 다음 프레임에 다시 시도한다.
@@ -264,11 +264,11 @@ public sealed class DuelOfflineTest : MonoBehaviour
             if (weapon == null) continue;
             bool equipped = playerAttack.CurrentWeapon == weapon;
             // 공격 중에 고르면 끝난 뒤 바뀌므로 그동안 대기로 보여 준다.
-            string state = equipped ? "    장착 중" : weapon.name == selectedWeapon ? "    대기" : "";
+            string state = equipped ? "    장착 중" : weapon.Id == selectedWeapon ? "    대기" : "";
             Rect row = new Rect(panel.x + 8f, panel.y + 40f + i * (WeaponRowHeight + 4f), panel.width - 16f, WeaponRowHeight);
             Color previous = GUI.backgroundColor;
             if (equipped) GUI.backgroundColor = new Color(1f, 0.7f, 0.3f);
-            if (GUI.Button(row, $"{i + 1}. {WeaponLabel(weapon)}{state}", weaponButtonStyle)) selectedWeapon = weapon.name;
+            if (GUI.Button(row, $"{i + 1}. {WeaponLabel(weapon)}{state}", weaponButtonStyle)) selectedWeapon = weapon.Id;
             GUI.backgroundColor = previous;
         }
     }
