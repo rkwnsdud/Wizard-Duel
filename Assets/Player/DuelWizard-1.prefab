@@ -291,6 +291,8 @@ MonoBehaviour:
     faded: {fileID: 2100000, guid: 074aff79ae680754a879547e742edfa3, type: 2}
   - source: {fileID: 2100000, guid: a055e317dfa691e4c8b18a3577d5b3ac, type: 2}
     faded: {fileID: 2100000, guid: 1384bfc74f172774da63d8a734a39de8, type: 2}
+  - source: {fileID: 2100000, guid: edc50482c79ce464caa6656f6b67e183, type: 2}
+    faded: {fileID: 2100000, guid: 45cb6eb4138faea40960c26a9b85d18c, type: 2}
 --- !u!114 &8540113351749205174
 MonoBehaviour:
   m_ObjectHideFlags: 0
