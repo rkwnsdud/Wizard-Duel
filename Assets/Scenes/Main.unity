@@ -17064,7 +17064,7 @@ MonoBehaviour:
   manager: {fileID: 2056890471}
   transport: {fileID: 2056890472}
   arena: {fileID: 1787997946}
-  resultDuration: 3
+  resultDuration: 5
   difficulties:
   - reactionTime: 0.6
     turnSpeed: 300
@@ -25720,7 +25720,7 @@ MonoBehaviour:
   - {fileID: 662905210}
   - {fileID: 1175320675}
   - {fileID: 964096982}
-  resultDuration: 3
+  resultDuration: 5
   maxRooms: 50
 --- !u!114 &2056890471
 MonoBehaviour:
