@@ -1,17 +1,26 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 
+[RequireComponent(typeof(PlayerMotor))]
 public class PlayerAim : MonoBehaviour
 {
     private PlayerInputActions inputActions;
     private Vector2 mousePosition;
-    private PlayerAttack playerAttack;
+    private PlayerMotor motor;
+    private Vector3? lookTarget;
+
+    // 외부 입력이 있는 동안 마우스가 조준을 덮지 않는다. 컴포넌트를 끌 필요가 없다.
+    public void SetLookTarget(Vector3 point) => lookTarget = point;
+    public void UseMouse() => lookTarget = null;
+
     private void Update()
     {
-        if (playerAttack.IsAttacking)
+        if (lookTarget.HasValue)
         {
+            motor.Look(lookTarget.Value - transform.position, Time.deltaTime);
             return;
         }
+        if (motor.IsAttacking) return;
         Ray ray = Camera.main.ScreenPointToRay(mousePosition);
 
         Plane groundPlane = new Plane(Vector3.up, transform.position);
@@ -19,19 +28,13 @@ public class PlayerAim : MonoBehaviour
         if (groundPlane.Raycast(ray, out float enter))
         {
             Vector3 mouseWorldPosition = ray.GetPoint(enter);
-            Vector3 direction = mouseWorldPosition - transform.position;
-            direction.y = 0f;
-
-            if (direction.sqrMagnitude > 0.001f)
-            {
-                transform.rotation = Quaternion.LookRotation(direction);
-            }
+            motor.Look(mouseWorldPosition - transform.position, Time.deltaTime);
         }
     }
     private void Awake()
     {
         inputActions = new PlayerInputActions();
-        playerAttack = GetComponent<PlayerAttack>();
+        motor = GetComponent<PlayerMotor>();
     }
 
     private void OnEnable()
@@ -50,4 +53,5 @@ public class PlayerAim : MonoBehaviour
     {
         mousePosition = context.ReadValue<Vector2>();
     }
+
 }

@@ -1,53 +1,37 @@
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.InputSystem;
 
 [DefaultExecutionOrder(10)]
+[RequireComponent(typeof(PlayerMotor))]
 public class PlayerMovement : MonoBehaviour
 {
-    // 무기 패시브·상태이상을 곱하기 전의 걷는 빠르기. AI 대전의 봇(DuelBot)도 같은 값으로 걷는다.
-    public const float BaseSpeed = 5f;
-    public const float Gravity = -20f;
+    public const float BaseSpeed = PlayerMotor.BaseSpeed;
+    public const float Gravity = PlayerMotor.Gravity;
 
-    float moveSpeed = BaseSpeed;
-    float gravity = Gravity;
-
-    CharacterController controller;
-    Animator animator;
-    Vector3 velocity;
+    PlayerMotor motor;
     Transform cameraTransform;
-    PlayerAttack playerAttack;
-    PlayerCombatStats combatStats;
+    Vector3? externalDirection;
 
-    void Start()
-    {
-        controller = GetComponent<CharacterController>();
-        playerAttack = GetComponent<PlayerAttack>();
-        combatStats = GetComponent<PlayerCombatStats>();
+    void Awake() => motor = GetComponent<PlayerMotor>();
+    void Start() => cameraTransform = Camera.main.transform;
 
-        Transform character = transform.Find("Wizard");
-        character.localRotation = Quaternion.identity;
-        animator = character.GetComponent<Animator>();
-
-        cameraTransform = Camera.main.transform;
-    }
+    // 월드 방향을 유지한다. 키보드로 돌아가려면 UseKeyboard를 부른다.
+    public void SetMoveDirection(Vector3 direction) => externalDirection = Vector3.ProjectOnPlane(direction, Vector3.up).normalized;
+    public void UseKeyboard() => externalDirection = null;
 
     void Update()
     {
-        if (playerAttack.IsAttacking)
-        {
-            animator.SetFloat("MoveSpeed", 0f);
-            animator.SetFloat("MoveX", 0f);
-            animator.SetFloat("MoveZ", 0f);
-            return;
-        }
+        if (motor.IsAttacking) { motor.StopAnimation(); return; }
+        Vector3 direction = externalDirection ?? ReadKeyboard();
+        motor.Animate(direction, Time.deltaTime);
+        motor.Move(direction, Time.deltaTime);
+    }
 
-        
-        bool isGrounded = controller.isGrounded;
-
+    Vector3 ReadKeyboard()
+    {
         float horizontal = 0f;
         float vertical = 0f;
         Keyboard keyboard = Keyboard.current;
-
         if (keyboard != null)
         {
             if (keyboard.wKey.isPressed) vertical += 1f;
@@ -55,34 +39,8 @@ public class PlayerMovement : MonoBehaviour
             if (keyboard.dKey.isPressed) horizontal += 1f;
             if (keyboard.aKey.isPressed) horizontal -= 1f;
         }
-
-        Vector3 cameraForward = cameraTransform.forward;
-        Vector3 cameraRight = cameraTransform.right;
-        cameraForward.y = 0f;
-        cameraRight.y = 0f;
-        cameraForward.Normalize();
-        cameraRight.Normalize();
-
-        Vector3 moveDirection = cameraForward * vertical + cameraRight * horizontal;
-        if (moveDirection != Vector3.zero)
-        {
-            moveDirection.Normalize();
-        }
-
-        float effectiveSpeed = combatStats != null ? combatStats.GetMoveSpeed(moveSpeed) : moveSpeed;
-        float directionDampTime = animator.GetFloat("MoveSpeed") > 0f ? 0.1f : 0f;
-        animator.SetFloat("MoveSpeed", moveDirection.sqrMagnitude > 0f ? effectiveSpeed : 0f);
-        Vector3 localDirection = transform.InverseTransformDirection(moveDirection);
-        animator.SetFloat("MoveX", localDirection.x, directionDampTime, Time.deltaTime);
-        animator.SetFloat("MoveZ", localDirection.z, directionDampTime, Time.deltaTime);
-        controller.Move(moveDirection * effectiveSpeed * Time.deltaTime);
-
-        if (isGrounded && velocity.y < 0f)
-        {
-            velocity.y = -2f;
-        }
-
-        velocity.y += gravity * Time.deltaTime;
-        controller.Move(velocity * Time.deltaTime);
+        Vector3 forward = Vector3.ProjectOnPlane(cameraTransform.forward, Vector3.up).normalized;
+        Vector3 right = Vector3.ProjectOnPlane(cameraTransform.right, Vector3.up).normalized;
+        return (forward * vertical + right * horizontal).normalized;
     }
 }
