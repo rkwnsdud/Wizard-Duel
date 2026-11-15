@@ -66,7 +66,7 @@ public class PlayerHealth : MonoBehaviour
         // (컴포넌트만 꺼서 책·구슬 메시는 손에 들린 채로 함께 쓰러진다.)
         foreach (MonoBehaviour pose in GetComponentsInChildren<MonoBehaviour>(true))
         {
-            if (pose is BookHoldPose || pose is LightOrbWeapon)
+            if (pose is IWeaponPose)
                 pose.enabled = false;
         }
 

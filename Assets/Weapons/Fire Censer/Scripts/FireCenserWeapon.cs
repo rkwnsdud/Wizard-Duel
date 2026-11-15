@@ -122,6 +122,9 @@ public sealed class FireCenserWeapon : WeaponBase, IWeapon, IWeaponReach
     }
 
     /// <summary>Shows the ground fan while the swing is winding up.</summary>
+    public override void OnAttackStarted() => ShowTelegraph();
+    public override void OnAttackFinished() => HideTelegraph();
+
     public void ShowTelegraph()
     {
         CenserTelegraph telegraph = GetComponentInChildren<CenserTelegraph>(true);

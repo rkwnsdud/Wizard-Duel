@@ -18,4 +18,6 @@ public abstract class WeaponBase : MonoBehaviour
     private float attackCooldown = 0.65f;
     public float AttackCooldown => Mathf.Max(0f, attackCooldown);
 
+    public virtual void OnAttackStarted() { }
+    public virtual void OnAttackFinished() { }
 }

@@ -203,7 +203,7 @@ public class PlayerAttack : MonoBehaviour
     // already disabled for input, so OnDisable cannot be relied on there.
     public void CancelAttack()
     {
-        if (attackingWeapon is FireCenserWeapon censerOnCancel) censerOnCancel.HideTelegraph();
+        attackingWeapon?.OnAttackFinished();
         if (animator != null) animator.speed = 1f;
         attackAnimSpeed = 1f;
         HideChargePreview(currentWeapon);
@@ -300,7 +300,7 @@ public class PlayerAttack : MonoBehaviour
         ApplyWeaponAnimation();
         attackAnimSpeed = attackingWeapon != null ? attackingWeapon.AttackAnimSpeed : 1f;
         if (animator != null) animator.speed = attackAnimSpeed;
-        if (attackingWeapon is FireCenserWeapon censer) censer.ShowTelegraph();
+        attackingWeapon?.OnAttackStarted();
         hasFired = false;
         IsAttacking = true;
         StartAttackCooldown(attackingWeapon);
@@ -333,7 +333,7 @@ public class PlayerAttack : MonoBehaviour
     // 공격 애니메이션 마지막 Animation Event에서 호출
     public void EndAttack()
     {
-        if (attackingWeapon is FireCenserWeapon censer) censer.HideTelegraph();
+        attackingWeapon?.OnAttackFinished();
         if (animator != null) animator.speed = 1f;
         attackAnimSpeed = 1f;
         IsAttacking = false;

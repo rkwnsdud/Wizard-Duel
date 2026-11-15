@@ -4,7 +4,7 @@ using UnityEngine;
 // Animator가 자세를 쓴 뒤(LateUpdate) 책을 가슴 앞에 두고, 왼팔을 2본 IK로 책 아래 손잡이 지점에 맞춘다.
 // Animator가 매 프레임 팔을 다시 쓰므로 해제하면 자세는 저절로 원래대로 돌아간다.
 [DisallowMultipleComponent]
-public sealed class BookHoldPose : MonoBehaviour
+public sealed class BookHoldPose : MonoBehaviour, IWeaponPose
 {
     [SerializeField, Tooltip("Book visual moved in front of the chest every frame.")]
     private Transform book;

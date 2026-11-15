@@ -23,7 +23,7 @@ public sealed class FloatingWeaponPickup : MonoBehaviour
         var model = Instantiate(entry.prefab.gameObject, transform, false);
         model.transform.SetLocalPositionAndRotation(Vector3.zero, Quaternion.identity);
         foreach (var component in model.GetComponentsInChildren<MonoBehaviour>(true))
-            if (!(component is LightOrbSpin)) component.enabled = false;
+            if (!(component is IWeaponDisplayAnimation)) component.enabled = false;
         foreach (var collider in model.GetComponentsInChildren<Collider>(true)) collider.enabled = false;
         foreach (var body in model.GetComponentsInChildren<Rigidbody>(true))
         { body.isKinematic = true; body.detectCollisions = false; }

@@ -124,7 +124,7 @@ public static class WeaponHudIconBaker
                 child.gameObject.layer = 30;
 
             foreach (var behaviour in instance.GetComponentsInChildren<MonoBehaviour>(true))
-                if (!(behaviour is LightOrbSpin)) behaviour.enabled = false;
+                if (!(behaviour is IWeaponDisplayAnimation)) behaviour.enabled = false;
             foreach (var particle in instance.GetComponentsInChildren<ParticleSystem>(true))
                 particle.gameObject.SetActive(false);
             foreach (var renderer in instance.GetComponentsInChildren<Renderer>(true))

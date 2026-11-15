@@ -1,6 +1,6 @@
 using UnityEngine;
 
-public class LightOrbWeapon : WeaponBase, IWeapon, IWeaponReach
+public class LightOrbWeapon : WeaponBase, IWeapon, IWeaponReach, IWeaponPose
 {
     [SerializeField, Min(.01f)] private float coreFlashDuration = .18f;
     private Renderer coreRenderer;

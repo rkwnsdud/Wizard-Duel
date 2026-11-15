@@ -5,6 +5,32 @@ using UnityEngine;
 
 public class WeaponFiringTests
 {
+    [Test]
+    public void DeathStopsWeaponPosesBeforeTheDeathAnimation()
+    {
+        var root = new GameObject("Pose death test");
+        try
+        {
+            var health = root.AddComponent<PlayerHealth>();
+            typeof(PlayerHealth).GetMethod("Awake",
+                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic).Invoke(health, null);
+            var book = new GameObject("Book");
+            book.transform.SetParent(root.transform);
+            var bookPose = book.AddComponent<BookHoldPose>();
+            var orb = new GameObject("Orb");
+            orb.transform.SetParent(root.transform);
+            var orbPose = orb.AddComponent<LightOrbWeapon>();
+
+            health.TakeDamage(health.MaxHealth);
+
+            Assert.That(health.IsDead, Is.True);
+            Assert.That(bookPose.enabled, Is.False);
+            Assert.That(orbPose.enabled, Is.False);
+            Assert.That(book.activeSelf && orb.activeSelf, Is.True);
+        }
+        finally { Object.DestroyImmediate(root); }
+    }
+
     [TestCase(0f, 5f)]
     [TestCase(1f, 15f)]
     public void LocalSinkAppliesDamageThroughTheSharedWeaponFire(float charge, float damage)

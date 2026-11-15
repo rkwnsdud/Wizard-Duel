@@ -1,7 +1,7 @@
 using UnityEngine;
 
 [ExecuteAlways]
-public sealed class LightOrbSpin : MonoBehaviour
+public sealed class LightOrbSpin : MonoBehaviour, IWeaponDisplayAnimation
 {
     static readonly System.Collections.Generic.HashSet<LightOrbSpin> active = new System.Collections.Generic.HashSet<LightOrbSpin>();
     public static int ActiveCount => active.Count;
