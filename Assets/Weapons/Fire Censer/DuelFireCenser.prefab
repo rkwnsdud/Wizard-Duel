@@ -32,10 +32,11 @@ Transform:
   m_GameObject: {fileID: 5477503564891530331}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -27.05498, y: -0, z: -36.99578}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
+  - {fileID: 6822134907496132365}
   - {fileID: 3978768551552385554}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -58,7 +59,7 @@ MonoBehaviour:
   attackRange: 4
   attackAngle: 100
   firePoint: {fileID: 7979936518236214338}
-  attackEffectPrefab: {fileID: 0}
+  attackEffectPrefab: {fileID: 8378648546881499446, guid: ae907029176e5ac49996c6daaeb14833, type: 3}
   audioSource: {fileID: 488458924257838300}
   fireSound: {fileID: 8300000, guid: eb4fabfad2d165b459066d0252c88a81, type: 3}
 --- !u!114 &298630033621753391
@@ -260,6 +261,68 @@ MonoBehaviour:
   height: 0.05
   telegraphMaterial: {fileID: 2100000, guid: 743e3e3a9b17a674499c1f9b3bece8fc, type: 2}
   segments: 24
+--- !u!1001 &6424295743135418598
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 4127106370274946209}
+    m_Modifications:
+    - target: {fileID: -8679921383154817045, guid: 7cc7fcc8e2e84a348814303e7dcdcbcb, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0.109
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 7cc7fcc8e2e84a348814303e7dcdcbcb, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0.697
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 7cc7fcc8e2e84a348814303e7dcdcbcb, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0.82
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 7cc7fcc8e2e84a348814303e7dcdcbcb, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: -0.022288611
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 7cc7fcc8e2e84a348814303e7dcdcbcb, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0.61671257
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 7cc7fcc8e2e84a348814303e7dcdcbcb, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0.76734513
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 7cc7fcc8e2e84a348814303e7dcdcbcb, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: -0.17421342
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 7cc7fcc8e2e84a348814303e7dcdcbcb, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 166.121
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 7cc7fcc8e2e84a348814303e7dcdcbcb, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 14.867
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 7cc7fcc8e2e84a348814303e7dcdcbcb, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: -100.603
+      objectReference: {fileID: 0}
+    - target: {fileID: 919132149155446097, guid: 7cc7fcc8e2e84a348814303e7dcdcbcb, type: 3}
+      propertyPath: m_Name
+      value: FlamingMace
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 7cc7fcc8e2e84a348814303e7dcdcbcb, type: 3}
+--- !u!4 &6822134907496132365 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 7cc7fcc8e2e84a348814303e7dcdcbcb, type: 3}
+  m_PrefabInstance: {fileID: 6424295743135418598}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1001 &8588777247216955214
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -315,6 +378,10 @@ PrefabInstance:
     - target: {fileID: 5426216468631271398, guid: 7c4a4af6b434f7e4181de4d9264292d9, type: 3}
       propertyPath: m_Name
       value: Fire Censer
+      objectReference: {fileID: 0}
+    - target: {fileID: 5426216468631271398, guid: 7c4a4af6b434f7e4181de4d9264292d9, type: 3}
+      propertyPath: m_IsActive
+      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents:
     - {fileID: 0}
