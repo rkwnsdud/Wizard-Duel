@@ -156,13 +156,13 @@ public class ExplosionMagicWeaponTests : PlayModeTestFixture
     }
 
     [UnityTest]
-    public IEnumerator OfflineFire_DamagesTargetOnce()
+    public IEnumerator LocalSink_DamagesTargetOnceThroughTheSharedFirePath()
     {
         var front = Target(new Vector3(0f, 0f, 3f));
         yield return null;
         Physics.SyncTransforms();
 
-        weapon.Fire();
+        ((IWeapon)weapon).Fire(9, Vector3.forward, 0f, new LocalShotSink(weapon));
         FlyToEnd();
 
         Assert.That(front.CurrentHealth, Is.EqualTo(front.MaxHealth - weapon.ExplosionDamage));

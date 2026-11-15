@@ -12,9 +12,8 @@ public class ArcaneBoltProjectile : MonoBehaviour
     public float MaxRange => maxRange;
 
     private PlayerHealth ownerHealth;
-    private IShotSink onlineSink;
-    private uint onlineAttackId;
-    private bool visualOnly;
+    private IShotSink sink;
+    private uint attackId;
     private float distanceTraveled = 0f;
 
     void Update()
@@ -22,7 +21,7 @@ public class ArcaneBoltProjectile : MonoBehaviour
         float moveDistance = Mathf.Min(speed * Time.deltaTime, maxRange - distanceTraveled);
 
         // DuelWizard uses Default; legacy PlayerTest characters use Player.
-        int collisionMask = onlineSink != null || visualOnly ? mask.value | (1 << 0) : mask.value;
+        int collisionMask = mask.value | (1 << 0);
         RaycastHit[] hits = Physics.SphereCastAll(transform.position, hitRadius, transform.forward,
                             moveDistance, collisionMask, QueryTriggerInteraction.Ignore);
 
@@ -39,8 +38,7 @@ public class ArcaneBoltProjectile : MonoBehaviour
             if (target != null)
             {
                 WeaponHitEffect.Spawn(hitEffectPrefab, hit.point);
-                if (onlineSink != null) onlineSink.Hit(onlineAttackId, 0, target, 10f);
-                else if (!visualOnly) target.TakeDamage(10f);
+                sink?.Hit(attackId, 0, target, 10f);
             }
 
             transform.position += transform.forward * hit.distance;
@@ -57,21 +55,12 @@ public class ArcaneBoltProjectile : MonoBehaviour
         }
     }
 
-    public void Initialize(PlayerHealth owner)
+    public void Initialize(PlayerHealth owner, IShotSink shotSink, uint id)
     {
         ownerHealth = owner;
+        sink = shotSink;
+        attackId = id;
     }
 
-    public void InitializeOnline(PlayerHealth owner, IShotSink sink, uint attackId)
-    {
-        ownerHealth = owner;
-        onlineSink = sink;
-        onlineAttackId = attackId;
-    }
-
-    public void InitializeVisualOnly(PlayerHealth owner)
-    {
-        ownerHealth = owner;
-        visualOnly = true;
-    }
+    public void InitializeVisualOnly(PlayerHealth owner) => Initialize(owner, null, 0);
 }

@@ -1,6 +1,4 @@
-// 온라인 공격의 연출 전달과 로컬 발사를 연결한다. 없으면 오프라인으로 공격한다.
-// Presence of an authority selects the online path exclusively, even if the
-// equipped weapon does not implement IWeapon yet. Non-charging attacks pass 0.
+// 공격 시작과 발사를 권한 담당자에게 전달한다.
 public interface IAttackAuthority
 {
     void StartAttack(float chargeRatio);

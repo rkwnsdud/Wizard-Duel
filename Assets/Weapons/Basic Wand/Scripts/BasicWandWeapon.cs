@@ -75,7 +75,7 @@ public class BasicWandWeapon : WeaponBase, IWeapon, IWeaponReach
         direction.Normalize();
         Vector3 start = firePoint.position;
         ArcaneBoltProjectile bolt = Instantiate(projectilePrefab, start, Quaternion.LookRotation(direction));
-        bolt.InitializeOnline(GetComponentInParent<PlayerHealth>(), sink, attackId);
+        bolt.Initialize(GetComponentInParent<PlayerHealth>(), sink, attackId);
         presentingOwnShot = true;
         try { sink.Broadcast(new ShotEvent(attackId, 0, start, start + direction, charge)); }
         finally { presentingOwnShot = false; }
@@ -92,14 +92,4 @@ public class BasicWandWeapon : WeaponBase, IWeapon, IWeaponReach
         bolt.InitializeVisualOnly(GetComponentInParent<PlayerHealth>());
     }
 
-    public override void Fire()
-    {
-        PlayerHealth owner = GetComponentInParent<PlayerHealth>();
-        PlayerAim aim = GetComponentInParent<PlayerAim>();
-        Vector3 direction = Vector3.ProjectOnPlane(aim != null ? aim.transform.forward : transform.root.forward, Vector3.up);
-        if (direction.sqrMagnitude < 0.0001f) direction = Vector3.forward;
-        ArcaneBoltProjectile bolt = Instantiate(projectilePrefab, firePoint.position, Quaternion.LookRotation(direction));
-        bolt.Initialize(owner);
-        Sfx.Play(SfxId.WandFire);
-    }
 }

@@ -33,11 +33,11 @@ public class BasicWandWeaponTests : PlayModeTestFixture
     }
 
     [Test]
-    public void Fire_LocalShotFollowsPlayerAimDespiteTiltedFirePoint()
+    public void Fire_UsesSuppliedAimDespiteTiltedFirePoint()
     {
         var wand = CreateWand(out _);
         wand.transform.localRotation = Quaternion.Euler(70f, 25f, 40f);
-        wand.Fire();
+        ((IWeapon)wand).Fire(1, Vector3.right, 0f, new LocalShotSink(wand));
         var bolts = Object.FindObjectsByType<ArcaneBoltProjectile>(FindObjectsSortMode.None);
         Assert.That(bolts.Length, Is.EqualTo(1));
         Assert.That(Vector3.Dot(bolts[0].transform.forward, Vector3.right), Is.GreaterThan(0.999f));

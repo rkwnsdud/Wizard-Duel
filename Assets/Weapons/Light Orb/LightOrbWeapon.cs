@@ -182,7 +182,7 @@ public class LightOrbWeapon : WeaponBase, IWeapon, IWeaponReach
         direction.Normalize();
         Vector3 start = firePoint.position;
         LightOrbProjectile beam = Instantiate(lightAttackPrefab, start, Quaternion.identity);
-        beam.InitializeOnline(direction, GetComponentInParent<PlayerHealth>(), sink, attackId);
+        beam.Initialize(direction, GetComponentInParent<PlayerHealth>(), sink, attackId);
         presentingOwnShot = true;
         try { sink.Broadcast(new ShotEvent(attackId, 0, start, start + direction, charge)); }
         finally { presentingOwnShot = false; }
@@ -199,42 +199,4 @@ public class LightOrbWeapon : WeaponBase, IWeapon, IWeaponReach
         LightOrbProjectile beam = Instantiate(lightAttackPrefab, shot.Start, Quaternion.identity);
         beam.InitializeVisualOnly(direction.normalized, GetComponentInParent<PlayerHealth>());
     }
-    private PlayerAim playerAim;
-
-    private void Awake()
-    {
-        playerAim = GetComponentInParent<PlayerAim>(true);
-    }
-
-    public override void Fire()
-    {
-        // A serialized weapon can be called before its inactive object's Awake.
-        // Resolve the actual owner again instead of dropping the attack.
-        if (playerAim == null)
-            playerAim = GetComponentInParent<PlayerAim>(true);
-        if (playerAim == null)
-            throw new System.InvalidOperationException(
-                $"LightOrbWeapon '{name}' must be parented under a player with PlayerAim.");
-
-        Vector3 direction = playerAim.transform.forward;
-
-        direction.y = 0f;
-        direction.Normalize();
-      
-        Sfx.Play(SfxId.LightOrbFire);
-
-        LightOrbProjectile attack = Instantiate(
-            lightAttackPrefab,
-            firePoint.position,
-            Quaternion.identity
-        );
-
-        // 발사자 정보 가져오기
-        PlayerHealth owner = GetComponentInParent<PlayerHealth>();
-
-        attack.Initialize(direction, owner);
-        FlashCore();
-    }
 }
-
-

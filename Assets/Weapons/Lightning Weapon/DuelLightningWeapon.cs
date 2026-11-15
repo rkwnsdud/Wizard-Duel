@@ -1,7 +1,6 @@
 using UnityEngine;
 
-// Online duel lightning: IWeapon reports hits, while Fire/FireCharged are local.
-// The original LightningWeapon and LightningBolt remain independent.
+// Duel lightning reports hits through the supplied sink.
 public sealed class DuelLightningWeapon : WeaponBase, IChargeableWeapon, IWeapon, IWeaponReach
 {
     [SerializeField] private LightningEffect effectPrefab;
@@ -65,21 +64,6 @@ public sealed class DuelLightningWeapon : WeaponBase, IChargeableWeapon, IWeapon
         effect.SetEndpoints(shot.Start, shot.Point);
         effect.SetMainBoltWidth(Mathf.Lerp(0.28f, 0.5f, shot.Charge));
         effect.SetChargeRatio(shot.Charge);
-    }
-
-    public override void Fire() => FireCharged(0f);
-
-    // Offline only. The online IWeapon implementation above never calls this.
-    public void FireCharged(float chargeRatio)
-    {
-        chargeRatio = Mathf.Clamp01(chargeRatio);
-        ShotEvent shot = Trace(0, AimDirection, chargeRatio, out PlayerHealth target);
-        Present(shot);
-        if (target != null)
-        {
-            WeaponHitEffect.Spawn(hitEffectPrefab, GetHitPoint(target, shot));
-            target.TakeDamage(Mathf.Lerp(minDamage, maxDamage, chargeRatio));
-        }
     }
 
     private static Vector3 GetHitPoint(PlayerHealth target, ShotEvent shot)

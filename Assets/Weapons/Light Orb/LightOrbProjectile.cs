@@ -1,6 +1,4 @@
-using System.Net;
 using UnityEngine;
-using UnityEngine.Rendering;
 
 public class LightOrbProjectile : MonoBehaviour
 {
@@ -26,15 +24,16 @@ public class LightOrbProjectile : MonoBehaviour
     private PlayerHealth ownerHealth;
     private LineRenderer currentBeamCore;
     private LineRenderer currentBeamGlow;
-    private IShotSink onlineSink;
-    private uint onlineAttackId;
-    private bool visualOnly;
+    private IShotSink sink;
+    private uint attackId;
 
-    public void Initialize(Vector3 fireDirection, PlayerHealth owner)
+    public void Initialize(Vector3 fireDirection, PlayerHealth owner, IShotSink shotSink, uint id)
     {
         direction = fireDirection;
         currentPoint = transform.position;
         ownerHealth = owner;
+        sink = shotSink;
+        attackId = id;
 
         currentBeamCore = beamCore;
         currentBeamGlow = beamGlow;
@@ -49,19 +48,8 @@ public class LightOrbProjectile : MonoBehaviour
 
     }
 
-    public void InitializeOnline(Vector3 fireDirection, PlayerHealth owner, IShotSink sink, uint attackId)
-    {
-        Initialize(fireDirection, owner);
-        onlineSink = sink;
-        onlineAttackId = attackId;
-    }
-
-    public void InitializeVisualOnly(Vector3 fireDirection, PlayerHealth owner)
-    {
-        Initialize(fireDirection, owner);
-        visualOnly = true;
-    }
-
+    public void InitializeVisualOnly(Vector3 fireDirection, PlayerHealth owner) =>
+        Initialize(fireDirection, owner, null, 0);
 
     private LineRenderer CreateBeamSegment(LineRenderer template, Vector3 startPoint)
     {
@@ -93,7 +81,7 @@ public class LightOrbProjectile : MonoBehaviour
 
         // DuelWizard characters use Default; legacy PlayerTest characters use Player.
         // Apply the same collision mask to the authoritative and visual-only beams.
-        int collisionMask = onlineSink != null || visualOnly ? hitMask.value | (1 << 0) : hitMask.value;
+        int collisionMask = hitMask.value | (1 << 0);
         RaycastHit[] hits = Physics.RaycastAll(currentPoint, direction, moveDistance, collisionMask,
             QueryTriggerInteraction.Ignore);
         
@@ -126,8 +114,7 @@ public class LightOrbProjectile : MonoBehaviour
             {
                 float finalDamage = damage * (1f + damageIncreaseRate * reflectionCount);
                 WeaponHitEffect.Spawn(hitEffectPrefab, hit.point);
-                if (onlineSink != null) onlineSink.Hit(onlineAttackId, 0, targetHealth, finalDamage);
-                else if (!visualOnly) targetHealth.TakeDamage(finalDamage);
+                sink?.Hit(attackId, 0, targetHealth, finalDamage);
                 Destroy(gameObject);
                 return;
             }

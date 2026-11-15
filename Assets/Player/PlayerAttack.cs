@@ -85,7 +85,7 @@ public class PlayerAttack : MonoBehaviour
     public float CooldownProgress => activeCooldownDuration <= 0f || !IsOnCooldown
         ? 1f
         : Mathf.Clamp01(1f - CooldownRemaining / activeCooldownDuration);
-    // 온라인 전투에서 DuelPlayer가 넣는다. 없으면 오프라인으로 바로 공격한다.
+    // DuelPlayer가 넣는다. 발사는 이 권한 경로로만 전달한다.
     public IAttackAuthority Authority { get; set; }
     public WeaponBase Weapon => currentWeapon;
     public float MaxChargeTime => maxChargeTime;
@@ -327,23 +327,7 @@ public class PlayerAttack : MonoBehaviour
         }
 
         hasFired = true;
-
-        // 온라인 명중은 공격한 클라이언트가 판정하고 체력은 서버가 반영한다.
-        if (Authority != null)
-        {
-            Authority.FireMagic(pendingChargeRatio);
-        }
-        else if (attackingWeapon != null)
-        {
-            if (attackingWeapon is IChargeableWeapon chargeable)
-                chargeable.FireCharged(pendingChargeRatio);
-            else
-                attackingWeapon.Fire();
-        }
-        else
-        {
-            Debug.LogError("PlayerAttack: currentWeapon is not assigned.", this);
-        }
+        Authority?.FireMagic(pendingChargeRatio);
     }
 
     // 공격 애니메이션 마지막 Animation Event에서 호출

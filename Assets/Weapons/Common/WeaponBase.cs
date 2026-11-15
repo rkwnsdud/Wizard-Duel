@@ -18,7 +18,4 @@ public abstract class WeaponBase : MonoBehaviour
     private float attackCooldown = 0.65f;
     public float AttackCooldown => Mathf.Max(0f, attackCooldown);
 
-    // Local/offline shot. Online combat uses IWeapon through IAttackAuthority;
-    // it must never fall back here when an online implementation is missing.
-    public abstract void Fire();
 }

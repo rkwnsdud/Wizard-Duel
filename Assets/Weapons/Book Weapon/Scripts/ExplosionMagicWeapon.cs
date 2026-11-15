@@ -37,10 +37,6 @@ public sealed class ExplosionMagicWeapon : WeaponBase, IWeapon, IWeaponReach
 
     // 날아가는 연출용 화염 공. 폭발 신호가 오면 attackId로 찾아 끈다.
     private readonly Dictionary<uint, ExplosionFireballVisual> flying = new Dictionary<uint, ExplosionFireballVisual>();
-    private LocalSink localSink;
-    // 오프라인 공격 id. 온라인 id(1부터 증가)와 겹치지 않게 위쪽 범위를 쓴다.
-    private uint offlineAttackId = 0x80000000u;
-
     public float Speed => speed;
     public float Range => range;
     public float ExplosionRadius => explosionRadius;
@@ -64,12 +60,6 @@ public sealed class ExplosionMagicWeapon : WeaponBase, IWeapon, IWeaponReach
     {
         if (sink == null) return;
         Launch(attackId, direction, sink);
-    }
-
-    public override void Fire()
-    {
-        localSink ??= new LocalSink(this);
-        Launch(offlineAttackId++, AimDirection, localSink);
     }
 
     private void Launch(uint attackId, Vector3 direction, IShotSink sink)
@@ -161,21 +151,6 @@ public sealed class ExplosionMagicWeapon : WeaponBase, IWeapon, IWeaponReach
     {
         v.y = 0f;
         return v.sqrMagnitude > 0.0001f ? v.normalized : Vector3.forward;
-    }
-
-    // 오프라인 발사는 온라인과 같은 경로로 연출을 보내고, 피해는 바로 넣는다.
-    private sealed class LocalSink : IShotSink
-    {
-        private readonly ExplosionMagicWeapon weapon;
-        public LocalSink(ExplosionMagicWeapon weapon) => this.weapon = weapon;
-        public void Broadcast(ShotEvent shot)
-        {
-            if (weapon != null) weapon.Present(shot);
-        }
-        public void Hit(uint attackId, int hitIndex, PlayerHealth target, float damage)
-        {
-            if (target != null) target.TakeDamage(damage);
-        }
     }
 
     private void OnDrawGizmosSelected()

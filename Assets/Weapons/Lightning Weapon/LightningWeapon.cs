@@ -1,7 +1,7 @@
 using UnityEngine;
 using UnityEngine.Serialization;
 
-public sealed class LightningWeapon : WeaponBase, IChargeableWeapon
+public sealed class LightningWeapon : WeaponBase, IChargeableWeapon, IWeapon, IWeaponReach
 {
     [FormerlySerializedAs("projectilePrefab")]
     [SerializeField] private LightningBolt boltPrefab;
@@ -40,29 +40,21 @@ public sealed class LightningWeapon : WeaponBase, IChargeableWeapon
     {
         HideChargePreview();
     }
-    public override void Fire() => FireCharged(0f);
+    public float ReachAt(float charge) => boltPrefab != null ? boltPrefab.GetRange(charge) : 0f;
+    public float ShotSpeed => 0f;
 
-    public void FireCharged(float chargeRatio)
+    void IWeapon.Fire(uint attackId, Vector3 direction, float charge, IShotSink sink)
     {
         HideChargePreview();
-        if (boltPrefab == null || firePoint == null)
-        {
-            Debug.LogError("LightningWeapon requires a bolt prefab and fire point.", this);
-            return;
-        }
+        if (boltPrefab == null || firePoint == null || sink == null) return;
+        boltPrefab.Fire(attackId, firePoint.position, direction, charge, GetComponentInParent<PlayerHealth>(), sink);
+    }
 
+    public void Present(ShotEvent shot)
+    {
+        if (shot.Kind == 1) { boltPrefab.PresentHit(shot.Point); return; }
+        if (shot.Kind != 0) return;
         Sfx.Play(SfxId.Thunder);
-
-        // PlayerAim rotates the player root on the ground plane. The staff and
-        // FirePoint rotate with the cast animation, so only use their position.
-        Quaternion rotation = Quaternion.LookRotation(GetAimDirection(), Vector3.up);
-
-        // Awake captures the owner while parented. Detach before building the mesh
-        // so later bone movement cannot move already-fired world-space geometry.
-        LightningBolt bolt = Instantiate(boltPrefab,
-            firePoint.position, rotation, firePoint);
-        bolt.transform.SetParent(null, true);
-        bolt.transform.localScale = boltPrefab.transform.localScale;
-        bolt.SetCharge(Mathf.Clamp01(chargeRatio));
+        boltPrefab.Present(shot);
     }
 }

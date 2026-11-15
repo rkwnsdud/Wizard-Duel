@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-// Online duel fire censer: IWeapon reports hits, while Fire stays for offline use.
+// IWeapon reports each hit through the supplied sink.
 // Melee fan attack. Reports each victim once per swing with an increasing hitIndex.
 public sealed class FireCenserWeapon : WeaponBase, IWeapon, IWeaponReach
 {
@@ -79,18 +79,6 @@ public sealed class FireCenserWeapon : WeaponBase, IWeapon, IWeaponReach
             attackEffectPrefab, visualOrigin, direction, range - visualStartOffset, attackAngle);
         HideTelegraph();
         Debug.Log($"[Censer] Present attackId={shot.AttackId} origin={shot.Start} range={attackRange} angle={attackAngle}.");
-    }
-
-    public override void Fire()
-    {
-        Vector3 direction = AimDirection;
-        List<PlayerHealth> victims = Trace(direction);
-        Vector3 ground = OwnerGroundPosition();
-        Present(new ShotEvent(0, 0, ground,
-            ground + direction * attackRange, 0f));
-        foreach (PlayerHealth victim in victims)
-            victim.TakeDamage(attackDamage);
-        Debug.Log($"[Censer] Offline fire hit {victims.Count} target(s) for {attackDamage}.");
     }
 
     List<PlayerHealth> Trace(Vector3 direction)

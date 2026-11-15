@@ -1,16 +1,16 @@
 using UnityEngine;
 
-// Online-only contract, separate from WeaponBase.Fire/ IChargeableWeapon.FireCharged.
+// Shared firing contract. Authority supplies presentation and damage transport.
 // DuelPlayer supplies authority and transport; weapons do not depend on Netcode.
 public interface IWeapon
 {
     // Called once by the attack owner at FireMagic. Non-charging weapons receive 0.
     // Report damage only through sink.Hit; never call PlayerHealth.TakeDamage or
-    // the offline Fire method. A future moving projectile must retain this attackId
+    // apply local damage directly. A moving projectile retains this attackId
     // and report its eventual hit through the same sink.
     void Fire(uint attackId, Vector3 direction, float charge, IShotSink sink);
     // Visuals only on both clients (including the owner). Do not run hit detection
-    // or spawn an offline projectile which applies damage from Present.
+    // or apply damage from Present.
     void Present(ShotEvent shot);
 }
 
