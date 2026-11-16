@@ -38,6 +38,27 @@ public class MainFlow : MonoBehaviour
     bool aiLobby;
     // AI 로비 화면의 "게임 설정" 탭에서 고른 값. 이번 실행 동안 기억한다.
     AiDuelOptions aiOptions = NetworkDuelConfig.DefaultAiOptions();
+    AudioSource bgmSource;
+    AudioClip lobbyBgm;
+    AudioClip battleBgm;
+
+    void Awake()
+    {
+        bgmSource = gameObject.AddComponent<AudioSource>();
+        bgmSource.playOnAwake = false;
+        bgmSource.loop = true;
+        bgmSource.spatialBlend = 0f;
+        lobbyBgm = Resources.Load<AudioClip>("BGM/LobbyBGM");
+        battleBgm = Resources.Load<AudioClip>("BGM/BattleBGM");
+        PlayBgm(lobbyBgm);
+    }
+
+    void PlayBgm(AudioClip clip)
+    {
+        if (bgmSource == null || clip == null || (bgmSource.clip == clip && bgmSource.isPlaying)) return;
+        bgmSource.clip = clip;
+        bgmSource.Play();
+    }
 
     void OnEnable()
     {
@@ -138,6 +159,7 @@ public class MainFlow : MonoBehaviour
     // 무대가 맵을 이어받은 뒤(stage.Show) 로비 화면 UI를 올리고 모형 마법사 둘을 세운다.
     IEnumerator ShowAiLobby()
     {
+        PlayBgm(lobbyBgm);
         lobby.gameObject.SetActive(true);
         lobby.OpenAi(settings, aiOptions);
         stage.Reveal();
@@ -149,6 +171,7 @@ public class MainFlow : MonoBehaviour
     // 지금 설정대로 전투 맵을 세우고 고른 무기와 난이도로 봇과 한 판을 치른다.
     IEnumerator EnterAiBattle()
     {
+        PlayBgm(battleBgm);
         lobby.SetStarting(true);
         // 맵을 만드는 동안 잠깐 멈추므로, 준비 중인 화면을 한 프레임 먼저 그린다.
         yield return null;
@@ -359,6 +382,7 @@ public class MainFlow : MonoBehaviour
     // EarlyUpdate에서 처리하므로 모형과 실제 플레이어가 한 프레임도 겹치지 않는다. 카메라는 다 내려가면 내 플레이어에게 넘어간다.
     IEnumerator EnterBattle()
     {
+        PlayBgm(battleBgm);
         ApplySnapshot();
         int slot = network.IsHost ? 0 : 1;
         backdrop.Dive(network.Arena, slot);
@@ -379,6 +403,7 @@ public class MainFlow : MonoBehaviour
     // 내 플레이어가 디스폰되어 카메라 추적이 끝나면 카메라를 되찾고, 같은 자리의 미리보기 맵 위로 대기실을 다시 올린다.
     IEnumerator ReturnToLobby()
     {
+        PlayBgm(lobbyBgm);
         resultBanner.Hide();
         float giveUp = Time.unscaledTime + DespawnWait;
         while (wantsLobby && network.HasLocalPlayer && Time.unscaledTime < giveUp) yield return null;
