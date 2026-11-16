@@ -311,7 +311,7 @@ Wizard-Duel/
 │  ├─ Scenes/                 게임 본편(Main)과 오프라인 테스트 씬(DuelOfflineTest)
 │  ├─ Settings/               URP 파이프라인·렌더러·볼륨 프로필·카메라 설정
 │  ├─ TextMesh Pro/           TMP 기본 리소스(패키지 경로 고정 제약으로 루트 유지)
-│  ├─ ThirdParty/             외부 에셋 팩(DanielMistage, EricVFXStudio, MagicEffectsPack, MapParts)
+│  ├─ ThirdParty/             외부 에셋 팩(DanielMistage, EricVFXStudio, MagicEffectsPack, MapParts, VFXPackFireWallcoeur)
 │  ├─ Editor/                 여러 기능에 걸친 에디터 도구(NetworkTestWindow, WeaponHudIconBaker, NetworkPrefabHashRepair) (WizardDuel.Editor)
 │  └─ Tests/                  테스트 실행기(TestSuites)와 기능별 EditMode·런타임 테스트 (WizardDuel.EditorTests, WizardDuel.RuntimeTests, WizardDuel.MapGeneration.EditorTests)
 ├─ Deploy/Server/             리눅스 전용 서버 Docker 배포
