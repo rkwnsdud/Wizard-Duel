@@ -1,4 +1,4 @@
-param([string]$OutputDirectory = (Join-Path $PSScriptRoot '../../Assets/Audio/Inventory'))
+param([string]$OutputDirectory = (Join-Path $PSScriptRoot '../../Assets/Audio/Clips/Inventory'))
 # Original procedural synthesis. No recordings, samples, or external libraries. License: 0BSD.
 Add-Type -TypeDefinition @'
 using System;

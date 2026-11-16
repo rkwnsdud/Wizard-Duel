@@ -1,4 +1,4 @@
-param([string]$OutputPath = (Join-Path $PSScriptRoot '../../Assets/Audio/BasicWand/BasicWandCast.wav'))
+param([string]$OutputPath = (Join-Path $PSScriptRoot '../../Assets/Audio/Clips/BasicWand/BasicWandCast.wav'))
 # Original procedural synthesis for the short, non-elemental Arcane Bolt launch sound.
 # SPDX-License-Identifier: 0BSD
 Add-Type -TypeDefinition @'

@@ -1,9 +1,0 @@
-Playing=True
-SceneDirty=False
-Renderer=Player/Wizard/WizardModel/Armature/Hips/Spine02/Spine01/Spine/RightShoulder/RightArm/RightForeArm/RightHand/WeaponSocket/LightningStaff/Model
-Material=Assets/Weapons/Lightning Weapon/LightningStaff/NewStaff/LightningStaff_URP.mat
-Shader=Universal Render Pipeline/Lit
-LocalEmission=True
-GI=BakedEmissive
-HDR=RGBA(8.000, 8.000, 8.000, 1.000)
-Map=Assets/Weapons/Lightning Weapon/LightningStaff/NewStaff/LightningStaff_Emission_CrystalFilled.png
