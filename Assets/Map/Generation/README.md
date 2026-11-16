@@ -64,7 +64,7 @@ float actualBushDensity = map.ActualBushDensity;      // 부시
 `Assets/Map/Scripts/ProceduralMap.cs`의 `ProceduralMap`은 논리 맵을 생성한 뒤 `GridMap`과 같은 배치 규칙으로 `BlockFactory`를 통해 실제 블록을 만든다. 한 칸은 1단위이고 맵은 컴포넌트의 로컬 원점을 중심으로 배치된다. 벽 블록(`Assets/Map/Blocks/Walls/Wall-1~4`)은 1×1 돌 두 개를 쌓은 1×2×1 크기다.
 
 1. 맵 오브젝트에 기존 `GridMap` 대신 `ProceduralMap`을 추가한다. `BlockFactory`가 함께 추가된다.
-2. `BlockFactory`에 바닥·벽 블록과 두 스폰 블록을 지정한다. 스폰 순서는 파랑(`B`), 주황(`O`)이다.
+2. `BlockFactory`에 바닥·벽 블록과 두 스폰 블록을 지정한다. 스폰 순서는 파랑(`B`), 주황(`O`)이다. `Bush Blocks`에도 `Assets/Map/Blocks/Bushes/Reeds.prefab` 같은 `BushBlock` 프리팹을 하나 이상 지정한다. 기본 부시 밀도는 0.05이므로 비워 두면 `*` 칸을 만들 때 예외가 난다. 부시 밀도를 0으로 두고 부시가 없는 레이아웃만 쓸 때는 비워도 된다.
 3. Inspector에서 시드, 형태, 장애물 밀도, 부시 밀도, 대칭, 노이즈를 설정한다. `Automatic Size`를 끄면 `Size`의 칸 수를 사용한다.
 4. 두 스폰 위치는 `SpawnPoints`(`ISpawnPointProvider`)로 읽는다. 게임에서는 `DuelArena`가 전투 맵의 `SpawnPoints`로 두 플레이어를 소환하고 맵 지문도 이 위치로 계산한다. `GridMap`도 같은 인터페이스를 구현한다.
 

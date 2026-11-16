@@ -1,20 +1,40 @@
 # 서버 명중 보고 처리 규칙
 
-서버는 `ServerHitReport.Evaluate` / `ServerHitReport.TryApply` 한곳에서 무기 명중 보고(`DuelPlayer.ReportHitRpc`)와 서버 상태이상 도트 틱(`DuelPlayer.ServerApplyStatusTick`, `DuelCombatState.TryTakeHit`)을 받을지 버릴지 결정한다.
+서버 경로는 `DuelPlayer.ReportHitRpc`(무기 명중 보고)와 `DuelPlayer.ServerApplyStatusTick`(서버 상태이상 도트 틱)이 `ServerHitReport.TryApply`를 부르고, 그 안의 `Evaluate`가 받을지 버릴지 결정하는 흐름이다.
+
+`DuelCombatState.TryTakeHit`은 테스트용 얇은 입구다. 같은 `ServerHitReport.TryApply` 판정을 `TryApplyTargetHit`을 통해 부르지만, 대상 단위 상태이상 틱 조건으로 검사하며 방·전투 시작·무기 이력 검사는 하지 않고 판 종료 플래그도 전달하지 않는다. 실제 서버 수신 경로가 아니고 네트워크 체력 동기화나 로그도 처리하지 않는다.
 
 ## 기본 전제
 
 - **쏜 쪽 판정 신뢰**: 악의적인 플레이어가 없다는 전제에서 피해량, 명중 여부, 사거리, 공격 간격은 공격한 쪽(`ReportHitRpc` 송신자) 판정을 그대로 사용한다. 서버가 적중 여부를 다시 계산해 깎거나 보정하지 않는다.
 - **무기 기준 적중 효과**: 보고가 받아들여지면 `PlayerWeaponPassiveController.NotifyServerHit`가 공격자의 지금 손에 든 무기가 아니라 보고에 실린 `AttackInfo(attackId, weaponId)`의 `weapon` 기준으로 적중 효과를 건다.
 - **이동 무검사·무로그**: 서버는 플레이어 이동(`DuelMoveSync`)이나 이동 속도를 검사하지 않으며, 이동 거절·경고 로그도 남기지 않는다.
-- **버릴 때 후속 처리**: 보고를 버려도 클라이언트 연결을 끊거나 클라이언트에 거절 알림 RPC를 보내지 않고, 서버 콘솔에 이유와 공격 신원(`attacker=`, `target=`, `attack=`, `weapon=`, `hit=`, `damage=`)을 한 줄 로그로만 남긴다.
+- **버릴 때 후속 처리**: `DuelPlayer`가 `ServerHitReport`까지 전달한 보고를 거절하면 연결을 끊거나 클라이언트에 거절 알림 RPC를 보내지 않고, 서버 콘솔에 이유와 공격 신원(`attacker=`, `target=`, `attack=`, `weapon=`, `hit=`, `damage=`)을 한 줄 로그로 남긴다. 판정에 도달하기 전의 무로그 반환은 아래 별도 절을 따른다.
 - **동시 마지막 일격**: 두 플레이어가 거의 동시에 마지막 일격을 보고하면 서버가 먼저 처리한 쪽의 보고만 `Accepted`로 받아 대상을 쓰러뜨리고 판을 끝낸다(`DuelArena.EndCombat` / `ServerDisableCombat`). 직후 도착한 상대의 마지막 일격 보고는 이미 끝난 판의 보고이므로 `RoundEnded`로 버린다.
 
 ---
 
 ## 판정 순서와 규칙 목록
 
-`ServerHitReport.Evaluate`는 아래 순서대로 검사하며, 처음 걸린 거절 이유(`HitReportDecision`)를 돌려주고 대상 체력과 타격 기록을 건드리지 않는다.
+`ServerHitReport.Evaluate`는 다음 순서로 검사한다. 처음 걸린 거절 이유(`HitReportDecision`)를 돌려주며, 거절하면 대상 체력과 타격 기록을 건드리지 않는다.
+
+| 검사 | 무기 보고 순서 | 상태이상 틱 순서 | 판정 결과 |
+|---|---:|---:|---|
+| 공격자 측 판 종료 | 1 | 검사 안 함 | `RoundEnded` |
+| 공격자 전투 입력 비활성 | 2 | 검사 안 함 | `CombatNotStarted` |
+| 대상 측 판 종료(틱 전용 선검사) | 검사 안 함 | 1 | `RoundEnded` |
+| 대상 없음 / 대상 combat 없음 | 3 | 2 | `MissingTarget` |
+| 같은 Match가 아님 | 4 | 검사 안 함 | `DifferentMatch` |
+| 대상 측 판 종료(같은 Match 확인 뒤) | 5 | 위에서 검사 | `RoundEnded` |
+| 공격자 슬롯과 대상 슬롯이 같음 | 6 | 3 | `SelfHit` |
+| 대상 체력 0 이하 | 7 | 4 | `TargetAlreadyDefeated` |
+| 피해가 유한 양수가 아님 | 8 | 5 | `InvalidDamage` |
+| 이번 판에 든 적 없는 무기 | 9 | 검사 안 함 | `WeaponNotHeld` |
+| 기록되지 않은 공격 번호·무기 조합 | 10 | 검사 안 함 | `UnknownAttack` |
+| 대상이 같은 공격자·공격·타격을 이미 받음 | 11 | 6 | `DuplicateHit` |
+| 모두 통과 | 12 | 7 | `Accepted` |
+
+예를 들어 대상이 다른 Match이면서 판도 끝났다면 무기 보고는 `DifferentMatch`가 먼저다. 아래 번호는 사유별 설명 번호이며 검사 순서는 위 표를 따른다.
 
 ### 1. 판 종료 뒤 보고 (`RoundEnded`)
 
@@ -121,3 +141,14 @@
   - `[Combat] DoT slot=<대상슬롯> attacker=<공격자슬롯> id=<도트번호> tick=<틱번호> health=<남은체력>`
 - **정상 클라이언트 포함 경로**: 일반 직격·즉시 명중, 무기 교체 뒤 지연 명중(폭발 화염 공 등), 범위 공격의 여러 대상·다단 타격, 상태이상 도트 틱, 로컬 호스트(`DuelOfflineTest`)와 AI 대전(`AiDuel`) 보고.
 - **테스트**: `ServerHitReportTests.WeaponHit_AcceptsDelayedProjectileAfterWeaponSwap_AndMultiVictimOrMultiTickHits`, `ServerHitReportTests.StatusTick_IgnoresAttackerCombatAndMatch_RejectsRoundEndedDuplicatesAndDefeated`, `ServerHitReportTests.SimultaneousLastHits_FirstProcessedWinsAndLaterReportIsDropped`, `ServerHitReportTests.FormatDropLog_ReturnsSingleLineWithReasonAndAttackIdentity`
+
+## 판정 전에 로그 없이 반환하는 경로
+
+다음은 `ServerHitReport`의 거절 로그를 만들기 전 단계다. 모든 무시·정리가 서버의 `dropped` 로그로 남는 것은 아니다.
+
+- `DuelPlayer.ReportHitRpc`와 `ServerApplyStatusTick`은 서버가 아니거나 아직 스폰되지 않았으면 즉시 반환한다. `IShotSink.Hit`도 스폰된 소유자가 아니거나 대상에 `DuelPlayer`가 없으면 보고 RPC를 보내지 않는다.
+- `DuelPlayer`의 공격 시작·발사 입구는 스폰·소유권·전투 입력·사망 조건으로 먼저 반환할 수 있다. `RecordServerStartedAttack`은 서버/스폰 여부, 판 종료, 입력 비활성, 사망 조건에서 공격 기록을 건너뛴다. 이 반환에는 보고 거절 로그가 없다. 실제 무기를 찾지 못한 발사와 패시브 적용은 별도 경고를 남긴다.
+- `PlayerStatusEffects.Update`는 서버가 아니거나 미스폰이면 반환한다. 대상이 이미 쓰러졌거나 판이 끝났으면 남은 화상·둔화를 지우고 반환해, 보통 다음 틱이 `ServerApplyStatusTick`까지 도달하지 않는다. 틱 시간이 아니거나 화상이 없을 때도 보고를 만들지 않는다.
+- `ServerApplyBurn`·`ServerApplySlow`는 서버/스폰 여부나 대상의 사망·판 종료 조건에서 로그 없이 반환한다. 화상의 피해·횟수·기간이 `<= 0`이거나, 둔화 배율이 `<= 0` 또는 `>= 1`이거나 기간이 `<= 0`이면 적용하지 않는다. `DuelPlayer.ServerInflictStatus` 역시 서버가 아니거나 대상이 없으면 반환하고, 양수가 아닌 틱 횟수·둔화 기간의 적용 호출은 건너뛴다.
+
+반대로 실제 `ServerApplyStatusTick` 호출이 판정까지 도달해 `RoundEnded`나 `TargetAlreadyDefeated`가 나오면 `DoT dropped` 로그를 남기고 남은 상태이상을 정리한다.

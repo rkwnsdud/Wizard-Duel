@@ -286,6 +286,7 @@ sequenceDiagram
 - 모든 테스트(`*Tests.cs`), 테스트 실행기(`TestSuites`), 픽스처는 `Assets/Tests/Editor/<기능>/`와 `Assets/Tests/Runtime/`에 모아 런타임 코드와 분리합니다.
 
 런타임에서 직접 참조하지 않는 다음 제작 원본은 재생성을 위해 보관합니다.
+
 - `Assets/Game/Weapons/BasicWand/Art/Models/BasicWand_v2.fbx`와 `Assets/Game/Weapons/LightningStaff/Art/Models/FixedStaff/LightningStaff_Fixed.fbx`는 현재 사용하는 감량 모델의 원본입니다.
 - `Assets/Game/Weapons/BasicWand/Art/Textures/texture_0_{metallic,roughness}.png`와 `Assets/Game/Player/Art/Models/WizardAnimated/Textures/`의 금속·거칠기 채널 맵은 현재 금속/매끄러움 텍스처를 다시 합성할 때 쓰는 원본입니다.
 - `Assets/Game/Weapons/FireCenser/Art/Animations/Standing Melee Attack Horizontal (1).fbx`는 현재 `FireCenserSwingMixamo.anim`의 Mixamo 원본입니다. `Art/Models/`의 `.fbm` 폴더에는 향로 모델의 원본 금속·거칠기·결합 채널 맵도 보관합니다.

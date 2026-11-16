@@ -17,7 +17,7 @@
 
 ## 자세와 애니메이션
 
-- `BasicWandIdlePose`는 완드를 든 동안 캐릭터 Animator 컨트롤러를 `Art/Animations/BasicWandGrip.overrideController`로 바꾼다. 이 Override는 Idle만 `WizardCombatIdle_BasicWandGrip.anim`으로 바꾸고 걷기는 원래 클립을 쓴다.
+- `BasicWandIdlePose`는 완드를 든 동안 캐릭터 Animator 컨트롤러를 `Art/Animations/BasicWandGrip.overrideController`로 바꾼다. 이 Override는 Idle을 `WizardCombatIdle_BasicWandGrip.anim`으로, `BaseCast`를 `BasicWandAttack.anim`으로 바꾸며 걷기는 원래 클립을 쓴다.
 - 공격 클립은 `Art/Animations/BasicWandAttack.anim`(0.65초)이다. 0.2초에 `FireMagic`, 0.65초에 `EndAttack` 이벤트가 있고, 이 두 이벤트는 공격 흐름에 필요하므로 지우지 않는다.
 - 공격 자세는 손목과 완드 파지를 Idle과 같은 상대 위치로 두고 윗팔·아래팔로 조준한다. 손목을 따로 비틀면 손바닥이 크게 돌아가 보여서 이 방식으로 바꿨다. 클립은 `Tools/fix_wand_attack_pose.cjs`가 `Assets/Game/Weapons/Common/Art/BaseCast.anim`과 Idle 클립을 읽어 다시 만든다.
 - 여러 무기 스크립트가 손 자세를 고치므로, 자세를 고칠 수 있는 무기는 `PlayerAttack.IsWeaponPoseActive(weapon)`가 참일 때만 고친다. 숨겨진 빛 구슬의 손 보정이 완드 자세를 덮어쓰던 문제가 이 규칙으로 해결됐다.

@@ -17,6 +17,8 @@ public sealed class DuelCombatState
     public float Health { get; private set; }
     public bool IsDefeated => Health <= 0f;
 
+    // 테스트용 얇은 입구. 서버 수신은 DuelPlayer가 ServerHitReport.TryApply를 직접 부른다.
+    // 여기서는 같은 판정을 대상 단위 틱 조건으로 쓰며 네트워크 동기화·로그는 처리하지 않는다.
     // (공격 id, 타격 번호)마다 한 번만 피해를 받는다. 늦게 도착한 이전 공격도 받는다.
     // 체력은 0 아래로 내려가지 않고, 사망은 0이 되는 순간에만 알린다.
     public bool TryTakeHit(int attackerSlot, uint attackId, int hitIndex, float damage, out bool defeatedNow) =>

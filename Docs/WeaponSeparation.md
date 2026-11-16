@@ -50,11 +50,12 @@ id 0은 "무기 없음"이다. 무기 이름과 시전 클립은 각 무기 폴�
 
 1. `Assets/Game/Weapons/<무기>/` 아래에 `Scripts/`, `Prefabs/`, `Art/`를 만든다. 무기 스크립트는 `WizardDuel.Game` 어셈블리에 들어간다.
 2. 무기 컴포넌트를 `WeaponBase`를 상속하고 `IWeapon`을 구현해 만든다. 피해는 `sink.Hit`으로만 보고하고, 여러 번 때리거나 여러 대상을 맞히면 `hitIndex`를 바꿔 보고한다. AI 상대가 거리를 맞추게 하려면 `IWeaponReach`도 구현한다.
-3. 무기 프리팹에 이 컴포넌트를 붙이고, `FireMagic`·`EndAttack` 이벤트가 있는 시전 클립을 연결한다.
-4. **Create > Wizard Duel > Weapon Definition**으로 `Assets/Game/Weapons/Definitions/`에 정의를 만든다. 다른 무기와 겹치지 않는 id(1~255), 프리팹, 표시 이름(`displayName`), HUD 이름(`hudDisplayName`), 아이콘, 스폰 여부(`canSpawn`), 전시 회전·크기를 넣는다. 무기 프리팹의 `WeaponBase`에도 이 정의를 연결한다.
-5. `Assets/Game/Battle/WeaponSpawnCatalog.asset`의 정의 목록에 추가한다. 무기 스폰과 AI 로비 화면의 무기 선택, HUD가 이 목록을 읽는다.
-6. 아이콘은 정의의 `iconFile`·`iconRotation`을 채운 뒤 **Tools > Wizard Duel > Bake missing weapon HUD icons**로 `Assets/Game/UI/Art/WeaponIcons/`에 굽는다. **Validate weapon HUD assets**로 정의가 빠짐없는지 확인한다.
-7. 가벼운 테스트를 돌린다. `WeaponIdentityTests`가 id 중복과 정의·프리팹 연결을 검사하고, `WeaponSpawnTests.Catalog_HasFourSpawnableWeapons_AndExcludesBasicWand`는 스폰되는 무기가 4종이라고 가정하므로 스폰되는 무기를 늘리면 이 테스트의 기대값도 고친다.
+3. 무기 프리팹에 이 컴포넌트를 붙이고, `FireMagic`·`EndAttack` 이벤트가 있는 시전 클립과 필요한 투사체·연출 프리팹을 연결한다. 장착·적중 패시브는 각각 하나까지만 붙인다. 전시 중에도 돌아야 하는 무기 자체 애니메이션에는 `IWeaponDisplayAnimation`을 구현한다.
+4. **Create > Wizard Duel > Weapon Definition**으로 `Assets/Game/Weapons/Definitions/`에 정의를 만든다. 다른 무기와 겹치지 않는 id(1~255), 표시 이름(`displayName`), HUD 이름(`hudDisplayName`), 스폰 여부(`canSpawn`), 전시 회전·크기를 넣는다. **정의의 `prefab`에는 무기 프리팹을, 그 프리팹의 `WeaponBase.definition`에는 같은 정의를 연결**한다. 양쪽 연결이 모두 필요하다.
+5. `Assets/Game/Battle/WeaponSpawnCatalog.asset`의 정의 목록에 추가한다. 무기 스폰과 AI 로비 화면의 무기 선택, HUD, 오프라인 테스트의 무기 목록이 이 목록을 읽는다. 스폰 대상은 `canSpawn`이 참이고 프리팹이 `IWeapon`을 구현해야 한다.
+6. 아이콘은 정의의 `iconFile`·`iconRotation`을 채운 뒤 **Tools > Wizard Duel > Bake missing weapon HUD icons**로 `Assets/Game/UI/Art/WeaponIcons/`에 굽는다. 이 도구가 정의의 `icon`도 연결한다. **Validate weapon HUD assets**로 정의가 빠짐없는지 확인한다.
+7. 효과음이 필요하면 클립과 라이선스를 `Assets/Audio/Clips/<무기 폴더 이름>/`에 둔다(예: `LightningStaff`, `LightOrb`, `ExplosionMagicBook`, `FireCenser`). 공용 소리는 `Assets/Audio/Clips/<용도>/`에 둔다. `Assets/Audio/Scripts/SfxId.cs` 끝에 기존 번호를 바꾸지 않고 새 id를 추가하고, `Assets/Audio/Resources/SfxLibrary.asset`에 해당 id의 클립·볼륨·속도·음 높이 항목을 하나 연결한다. 무기의 `Present`나 후속 연출에서 `Sfx.Play`로 재생해 쏜 무기의 소리가 나게 한다. **Tools > Wizard Duel > 효과음 패널**에서 들어 보고 `SfxLibraryTests.EverySfxId_HasOneEntryWithAClip`으로 누락을 확인한다.
+8. 가벼운 테스트를 돌린다. `WeaponIdentityTests`가 id 중복과 정의↔프리팹 연결을 검사한다. 스폰 무기를 늘리면 `WeaponSpawnTests.Catalog_HasFourSpawnableWeapons_AndExcludesBasicWand`의 4종 기대값과 `Round_EnforcesTimerOccupancyDuplicateRemovalCapAndReset`의 `{ 2, 3, 4, 5 }`처럼 스폰 id 집합을 고정한 테스트도 함께 갱신한다. 플레이에서는 로비 선택·오프라인 장착·바닥 전시/줍기·HUD·공격과 소리를 확인한다.
 
 ## 무기별 메모
 
