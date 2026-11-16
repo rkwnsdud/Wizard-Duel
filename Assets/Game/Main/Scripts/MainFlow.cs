@@ -177,6 +177,7 @@ public class MainFlow : MonoBehaviour
         yield return null;
         if (!aiDuel.Begin(settings.ToMapSettings(), aiOptions))
         {
+            PlayBgm(lobbyBgm);
             lobby.SetStarting(false);
             toast.Show("AI 대전을 시작할 수 없어요. 맵 설정을 바꿔 다시 시도해 주세요.");
             transition = null;
