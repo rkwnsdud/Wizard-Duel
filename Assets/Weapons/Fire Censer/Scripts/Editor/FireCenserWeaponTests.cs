@@ -19,9 +19,14 @@ public class FireCenserWeaponTests : PlayModeTestFixture
     sealed class ShotSink : IShotSink
     {
         public readonly List<string> Order = new List<string>();
+        public ShotEvent BroadcastShot;
         public readonly List<(uint id, int index, PlayerHealth target, float damage)> Hits =
             new List<(uint, int, PlayerHealth, float)>();
-        public void Broadcast(ShotEvent shot) => Order.Add("present");
+        public void Broadcast(ShotEvent shot)
+        {
+            BroadcastShot = shot;
+            Order.Add("present");
+        }
         public void Hit(uint id, int index, PlayerHealth target, float damage)
         {
             Hits.Add((id, index, target, damage));
@@ -97,6 +102,34 @@ public class FireCenserWeaponTests : PlayModeTestFixture
         Assert.That(sink.Hits[1].index, Is.EqualTo(1));
         Assert.That(sink.Hits[0].id, Is.EqualTo(9u));
         Assert.That(sink.Hits[1].id, Is.EqualTo(9u));
+    }
+
+    [UnityTest]
+    public IEnumerator OnlineFire_WallBlocksTargetButExposedFanEdgeStillHits()
+    {
+        var blocked = Target(new Vector3(0f, 0f, 3f));
+        var wall = new GameObject("Censer test wall");
+        wall.layer = LayerMask.NameToLayer("Wall");
+        wall.transform.position = Origin + new Vector3(0f, 1f, 1.5f);
+        wall.transform.localScale = new Vector3(2f, 3f, 0.2f);
+        wall.AddComponent<BoxCollider>();
+        yield return null;
+
+        var sink = new ShotSink();
+        ((IWeapon)weapon).Fire(10u, Vector3.forward, 0f, sink);
+        Assert.That(sink.Hits.Exists(hit => hit.target == blocked), Is.False,
+            "A wall across all sampled target lines should block the hit.");
+
+        // Shift the wall sideways: the target remains in the fan and a ray to
+        // its exposed collider edge should pass, preserving partial exposure.
+        wall.transform.position += Vector3.right * 1.5f;
+        Physics.SyncTransforms();
+        sink = new ShotSink();
+        ((IWeapon)weapon).Fire(11u, Vector3.forward, 0f, sink);
+        Assert.That(sink.Hits.Exists(hit => hit.target == blocked), Is.True,
+            "A target with an exposed part should still be hit by the area fan.");
+        Object.Destroy(blocked.gameObject);
+        Object.Destroy(wall);
     }
 
     [UnityTest]
@@ -226,7 +259,7 @@ public class FireCenserWeaponTests : PlayModeTestFixture
     }
 
     [UnityTest]
-    public IEnumerator Present_StartsFireFanAheadOfOwnerAndKeepsItsEndpoint()
+    public IEnumerator Present_UsesOwnerOriginAndWeaponAttackRange()
     {
         GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(
             "Assets/Weapons/Fire Censer/Effects/AttackFire.prefab");
@@ -235,36 +268,41 @@ public class FireCenserWeaponTests : PlayModeTestFixture
             .SetValue(weapon, prefab);
 
         Vector3 direction = Vector3.forward;
-        Vector3 end = Origin + direction * 4f;
-        weapon.Present(new ShotEvent(11u, 0, Origin, end, 0f));
-
-        GameObject effect = GameObject.Find("AttackFire(Clone)");
-        Assert.That(effect, Is.Not.Null);
-        Assert.That(
-            (effect.transform.position - (Origin + direction * 0.5f)).magnitude,
-            Is.LessThan(0.001f));
-
-        ParticleSystem particles = effect.GetComponent<ParticleSystem>();
-        var emitted = new ParticleSystem.Particle[640];
-        int emittedCount = particles.GetParticles(emitted);
-        Assert.That(emittedCount, Is.GreaterThan(0));
-        float maxTravelled = 0f;
-        var radialBands = new HashSet<int>();
-        for (int i = 0; i < emittedCount; i++)
+        float[] configuredRanges = { 2.5f, 6f };
+        foreach (float configuredRange in configuredRanges)
         {
-            float travelled = new Vector3(emitted[i].velocity.x, 0f, emitted[i].velocity.z).magnitude
-                * emitted[i].startLifetime;
-            maxTravelled = Mathf.Max(maxTravelled, travelled);
-            radialBands.Add(Mathf.RoundToInt(travelled * 100f));
-            Assert.That(
-                (emitted[i].position - (Origin + direction * 0.5f + Vector3.up * 0.25f)).magnitude,
-                Is.LessThan(0.001f));
-        }
-        Assert.That(maxTravelled, Is.EqualTo(3.5f).Within(0.01f));
-        Assert.That(radialBands.Count, Is.EqualTo(5));
+            typeof(FireCenserWeapon).GetField("attackRange", BindingFlags.Instance | BindingFlags.NonPublic)
+                .SetValue(weapon, configuredRange);
+            var sink = new ShotSink();
+            ((IWeapon)weapon).Fire(11u, direction, 0f, sink);
+            weapon.Present(sink.BroadcastShot);
 
-        Object.Destroy(effect);
-        yield return null;
+            GameObject effect = GameObject.Find("AttackFire(Clone)");
+            Assert.That(effect, Is.Not.Null);
+            Assert.That((effect.transform.position - Origin).magnitude, Is.LessThan(0.001f));
+
+            ParticleSystem particles = effect.GetComponent<ParticleSystem>();
+            var emitted = new ParticleSystem.Particle[640];
+            int emittedCount = particles.GetParticles(emitted);
+            Assert.That(emittedCount, Is.GreaterThan(0));
+            float maxTravelled = 0f;
+            var radialBands = new HashSet<int>();
+            for (int i = 0; i < emittedCount; i++)
+            {
+                float travelled = new Vector3(emitted[i].velocity.x, 0f, emitted[i].velocity.z).magnitude
+                    * emitted[i].startLifetime;
+                maxTravelled = Mathf.Max(maxTravelled, travelled);
+                radialBands.Add(Mathf.RoundToInt(travelled * 100f));
+                Assert.That(
+                    (emitted[i].position - (Origin + Vector3.up * 0.25f)).magnitude,
+                    Is.LessThan(0.001f));
+            }
+            Assert.That(maxTravelled, Is.EqualTo(configuredRange).Within(0.01f));
+            Assert.That(radialBands.Count, Is.EqualTo(5));
+
+            Object.Destroy(effect);
+            yield return null;
+        }
     }
 
     [UnityTest]

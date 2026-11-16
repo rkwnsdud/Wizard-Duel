@@ -11,7 +11,9 @@ public sealed class FireCenserWeapon : WeaponBase, IWeapon, IWeaponReach
     private float attackRange = 4f;
     [SerializeField, Range(0f, 180f), Tooltip("Full fan angle in degrees centered on the aim direction.")]
     private float attackAngle = 100f;
-    [SerializeField, Tooltip("Reference point used to place the fan's visual origin ahead of the owner.")]
+    [SerializeField, Tooltip("Layers that block the censer fan (Wall and Obstacle).")]
+    private LayerMask blockerMask = (1 << 9) | (1 << 10);
+    [SerializeField, Tooltip("Reference point used to orient the fire visual. The attack fan starts at the owner ground position.")]
     private Transform firePoint;
     [SerializeField, Tooltip("One-shot attack visual spawned through WeaponHitEffect.")]
     private GameObject attackEffectPrefab;
@@ -69,17 +71,8 @@ public sealed class FireCenserWeapon : WeaponBase, IWeapon, IWeaponReach
         }
         if (direction.sqrMagnitude < 0.0001f) direction = Vector3.forward;
         direction.Normalize();
-        float firePointOffset = 0f;
-        if (firePoint != null)
-        {
-            Vector3 offset = firePoint.position - shot.Start;
-            offset.y = 0f;
-            firePointOffset = Vector3.Dot(offset, direction);
-        }
-        float visualStartOffset = Mathf.Clamp(Mathf.Max(0.5f, firePointOffset), 0f, range * 0.5f);
-        Vector3 visualOrigin = shot.Start + direction * visualStartOffset;
         FireCenserAttackEffect.Spawn(
-            attackEffectPrefab, visualOrigin, direction, range - visualStartOffset, attackAngle);
+            attackEffectPrefab, shot.Start, direction, range, attackAngle);
         HideTelegraph();
         Debug.Log($"[Censer] Present attackId={shot.AttackId} origin={shot.Start} range={attackRange} angle={attackAngle}.");
     }
@@ -122,9 +115,47 @@ public sealed class FireCenserWeapon : WeaponBase, IWeapon, IWeaponReach
             if (toTarget.sqrMagnitude > attackRange * attackRange) continue;
             if (toTarget.sqrMagnitude < 0.0001f) { victims.Add(candidate); continue; }
             if (Vector3.Angle(direction, toTarget.normalized) > halfAngle) continue;
+            if (!HasFanLineOfSight(ownerPos, candidate)) continue;
             victims.Add(candidate);
         }
         return victims;
+    }
+
+    // A fan is an area attack: sample several points on each target's colliders
+    // so a target partly exposed around a wall edge can still be hit. A target
+    // is shielded only when every sampled line is blocked.
+    bool HasFanLineOfSight(Vector3 origin, PlayerHealth target)
+    {
+        Collider[] colliders = target.GetComponentsInChildren<Collider>();
+        Vector3 eyeOrigin = origin + Vector3.up;
+        for (int i = 0; i < colliders.Length; i++)
+        {
+            Collider collider = colliders[i];
+            if (collider == null || collider.isTrigger || !collider.enabled) continue;
+            Bounds bounds = collider.bounds;
+            Vector3 center = bounds.center;
+            Vector3 extents = bounds.extents;
+            Vector3[] samples =
+            {
+                center,
+                center + Vector3.up * extents.y,
+                center - Vector3.up * extents.y,
+                center + Vector3.right * extents.x,
+                center - Vector3.right * extents.x,
+                center + Vector3.forward * extents.z,
+                center - Vector3.forward * extents.z
+            };
+            for (int j = 0; j < samples.Length; j++)
+            {
+                Vector3 sample = samples[j];
+                Vector3 delta = sample - eyeOrigin;
+                float distance = delta.magnitude;
+                if (distance <= 0.001f || !Physics.Raycast(eyeOrigin, delta / distance,
+                    distance, blockerMask, QueryTriggerInteraction.Ignore))
+                    return true;
+            }
+        }
+        return false;
     }
 
     Vector3 OwnerGroundPosition()
