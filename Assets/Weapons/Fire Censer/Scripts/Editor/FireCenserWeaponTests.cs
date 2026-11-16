@@ -105,6 +105,34 @@ public class FireCenserWeaponTests : PlayModeTestFixture
     }
 
     [UnityTest]
+    public IEnumerator OnlineFire_WallBlocksTargetButExposedFanEdgeStillHits()
+    {
+        var blocked = Target(new Vector3(0f, 0f, 3f));
+        var wall = new GameObject("Censer test wall");
+        wall.layer = LayerMask.NameToLayer("Wall");
+        wall.transform.position = Origin + new Vector3(0f, 1f, 1.5f);
+        wall.transform.localScale = new Vector3(2f, 3f, 0.2f);
+        wall.AddComponent<BoxCollider>();
+        yield return null;
+
+        var sink = new ShotSink();
+        ((IWeapon)weapon).Fire(10u, Vector3.forward, 0f, sink);
+        Assert.That(sink.Hits.Exists(hit => hit.target == blocked), Is.False,
+            "A wall across all sampled target lines should block the hit.");
+
+        // Shift the wall sideways: the target remains in the fan and a ray to
+        // its exposed collider edge should pass, preserving partial exposure.
+        wall.transform.position += Vector3.right * 1.5f;
+        Physics.SyncTransforms();
+        sink = new ShotSink();
+        ((IWeapon)weapon).Fire(11u, Vector3.forward, 0f, sink);
+        Assert.That(sink.Hits.Exists(hit => hit.target == blocked), Is.True,
+            "A target with an exposed part should still be hit by the area fan.");
+        Object.Destroy(blocked.gameObject);
+        Object.Destroy(wall);
+    }
+
+    [UnityTest]
     public IEnumerator Spawn_AlignsFireFanToGroundDirection_AndRemovesEffects()
     {
         var directions = new[]
