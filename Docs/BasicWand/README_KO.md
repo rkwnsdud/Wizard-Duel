@@ -6,7 +6,7 @@
 
 - `Art/Models/BasicWand_v2.fbx`: Meshy AI로 만든 원본(삼각형 243,156개). 게임에서는 직접 쓰지 않고, 감량본을 만드는 원본으로 둔다.
 - `Art/Models/BasicWand_Low.fbx`: `Tools/WeaponMesh/decimate_weapon.py`로 삼각형 10,000개로 줄인 감량본. `Prefabs/BasicWand.prefab`이 이 모델을 쓴다.
-- `Art/Materials/BlackWood_Satin.mat`: URP/Lit 재질. 텍스처(`Image_0.jpg`, `Image_2.jpg`, `BlackWood_MetallicSmoothness.png` 등)는 예전 배치 그대로 `Assets/Game/Weapons/LightOrb/Art/Textures/`에 있다.
+- `Art/Materials/BlackWood_Satin.mat`: URP/Lit 재질. 텍스처(`Image_0.jpg`, `Image_2.jpg`, `BlackWood_MetallicSmoothness.png` 등)는 `Assets/Game/Weapons/BasicWand/Art/Textures/`에 있다.
 - 마력탄 VFX는 [VFX 문서](../../Assets/Game/Weapons/BasicWand/Art/VFX/README_KO.md)를 본다.
 
 ## 손 메시 보정(그립)

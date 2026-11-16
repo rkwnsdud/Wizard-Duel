@@ -278,7 +278,8 @@ sequenceDiagram
 ## 프로젝트 구조
 
 직접 만든 에셋과 스크립트는 기능별 PascalCase(띄어쓰기 없음) 폴더 아래에 모으고, 외부 에셋 팩은 `Assets/ThirdParty/`에 분리합니다.
-- 독립 기반 모듈(`Audio`, `Effects`, `Input`, `Map`)과 핵심 게임플레이(`Game/<기능>/`) 아래에 각 기능의 `Scripts/`, `Prefabs/`, `Art/`, `Audio/`, `Editor/`를 모아 한 기능을 수정할 때 볼 곳을 한 군데로 모읍니다. (여러 기능에 걸친 게임플레이 공통 코드는 `Assets/Game/Common/`, 공통 에디터 도구는 `Assets/Editor/`에 둡니다.)
+- 독립 기반 모듈(`Audio`, `Effects`, `Input`, `Map`)과 핵심 게임플레이(`Game/<기능>/`) 아래에 각 기능의 `Scripts/`, `Prefabs/`, `Art/`, `Editor/`를 모아 한 기능을 수정할 때 볼 곳을 한 군데로 모읍니다. (여러 기능에 걸친 게임플레이 공통 코드는 `Assets/Game/Common/`, 공통 에디터 도구는 `Assets/Editor/`에 둡니다.)
+- 효과음은 `SfxLibrary`를 소유한 Audio 모듈에 모읍니다. 무기 효과음은 `Assets/Audio/Clips/<무기 폴더 이름>/`(예: `LightOrb`, `LightningStaff`, `ExplosionMagicBook`, `FireCenser`), 공용 효과음은 `Assets/Audio/Clips/<용도>/`(예: `Inventory`, `Notifications`)에 둡니다.
 - 외부 에셋 팩은 `Assets/ThirdParty/<팩이름>/` 아래에 원본 내부 구조 그대로 분리합니다.
 - 단, `Assets/TextMesh Pro/`는 UGUI 패키지가 `Assets/TextMesh Pro/Resources/TMP Settings.asset` 경로를 고정으로 검사하므로 루트에 유지하고, UI에서 직접 생성해 쓰는 TMP SDF 폰트와 글꼴 원본은 `Assets/Game/UI/Fonts/`에 둡니다.
 - `Assets/DefaultNetworkPrefabs.asset`(NGO 기본 생성 경로), `Assets/Scenes/`(빌드·서버 배포 경로), `Assets/Settings/`(URP·카메라 설정)는 루트 아래 현 위치를 유지합니다.
