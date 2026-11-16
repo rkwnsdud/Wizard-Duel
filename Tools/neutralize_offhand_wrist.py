@@ -5,7 +5,7 @@ from pathlib import Path
 from mathutils import Quaternion
 
 root = Path(__file__).resolve().parents[1]
-folder = root / "Assets/Weapons/Basic Wand/Animations"
+folder = root / "Assets/Game/Weapons/BasicWand/Art/Animations"
 idle_file = folder / "WizardCombatIdle_BasicWandGrip.anim"
 hand_path = "WizardModel/Armature/Hips/Spine02/Spine01/Spine/LeftShoulder/LeftArm/LeftForeArm/LeftHand"
 forearm_path = hand_path.rsplit("/", 1)[0]
@@ -64,7 +64,7 @@ neutral_quat = "{x: %.9g, y: %.9g, z: %.9g, w: %.9g}" % (
     idle_hand.x, idle_hand.y, idle_hand.z, idle_hand.w)
 report = []
 
-for filename in ("BasicWandAttack.anim", "BasicWandAttack_DummyGrip.anim"):
+for filename in ("BasicWandAttack.anim",):
     file = folder / filename
     text = file.read_text(encoding="utf-8")
     curve_blocks, a, b = sections(text, "  m_RotationCurves:\n", "  m_CompressedRotationCurves:", "  - curve:\n")
@@ -155,5 +155,6 @@ for filename in ("BasicWandAttack.anim", "BasicWandAttack_DummyGrip.anim"):
     report.append(line)
     print(line)
 
-(root / "Docs/BasicWand/Attack/offhand-wrist-validation.txt").write_text(
-    "\n".join(report) + "\n", encoding="utf-8")
+report_file = root / "Logs/BasicWand/offhand-wrist-validation.txt"  # git-ignored
+report_file.parent.mkdir(parents=True, exist_ok=True)
+report_file.write_text("\n".join(report) + "\n", encoding="utf-8")

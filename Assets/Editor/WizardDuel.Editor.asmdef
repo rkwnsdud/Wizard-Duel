@@ -1,0 +1,13 @@
+{
+    "name": "WizardDuel.Editor",
+    "references": [
+        "WizardDuel.Game",
+        "WizardDuel.Map",
+        "WizardDuel.MapGeneration",
+        "WizardDuel.Audio",
+        "Unity.Netcode.Runtime"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ]
+}

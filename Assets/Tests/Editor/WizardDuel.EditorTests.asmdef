@@ -1,0 +1,35 @@
+{
+    "name": "WizardDuel.EditorTests",
+    "references": [
+        "WizardDuel.Game",
+        "WizardDuel.Game.Player.Editor",
+        "WizardDuel.Audio",
+        "WizardDuel.Effects",
+        "WizardDuel.Input",
+        "WizardDuel.Map",
+        "WizardDuel.Map.Editor",
+        "WizardDuel.MapGeneration",
+        "WizardDuel.RuntimeTests",
+        "UnityEngine.TestRunner",
+        "UnityEditor.TestRunner",
+        "Unity.Netcode.Runtime",
+        "Unity.Networking.Transport",
+        "Unity.InputSystem",
+        "Unity.TextMeshPro",
+        "UnityEngine.UI",
+        "Unity.RenderPipelines.Universal.Runtime",
+        "Unity.RenderPipelines.Core.Runtime",
+        "Unity.Collections"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "overrideReferences": true,
+    "precompiledReferences": [
+        "nunit.framework.dll"
+    ],
+    "autoReferenced": false,
+    "defineConstraints": [
+        "UNITY_INCLUDE_TESTS"
+    ]
+}

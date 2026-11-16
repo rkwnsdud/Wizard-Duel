@@ -7,23 +7,24 @@ This guide describes the current weapon passive and cooldown hooks so weapon, co
 - A weapon is a `WeaponBase` component on a weapon prefab. The player's `PlayerAttack` references the equipped component.
 - A weapon may provide at most one equipped passive and at most one hit passive. Either slot can be empty; one weapon may use both.
 - Equipped passives are applied and removed by the player root's `PlayerWeaponPassiveController` when the weapon changes.
-- Hit passives run on the server only after `DuelCombatState.TryTakeHit` accepts a hit. The callback is therefore deduplicated with the existing `(attacker slot, attack id, hit index)` check.
-- `PlayerCombatStats` owns attack-speed modifiers. They multiply together, and attack cooldown is calculated as `weapon base cooldown / attack speed multiplier`.
-- No concrete attack-speed passive or timed debuff is included yet. A hit-passive implementation must manage and replicate its concrete status effect. Reapplying the same timed debuff should refresh its duration rather than stack another copy.
+- Hit passives run on the server only after `ServerHitReport` accepts a hit report (see [ServerHitReportRules.md](ServerHitReportRules.md)). The callback is therefore deduplicated with the `(attacker slot, attack id, hit index)` check, and is not called for rejected, duplicate, self, post-defeat or post-round hits.
+- The hit passive is chosen from the weapon that started the attack (`AttackInfo.WeaponId`), not from the weapon the attacker holds now. Switching weapons after firing does not change which passive applies.
+- `PlayerCombatStats` owns attack-speed and move-speed modifiers. Each kind multiplies together (floor `0.01`), and attack cooldown is calculated as `weapon base cooldown / attack speed multiplier`.
+- Current passives: the Fire Censer's `CenserMoveSpeedPassive` (equipped, move speed) and `CenserFlameHitPassive` (hit, applies Burn). Timed debuffs such as Burn and Slow are stored and replicated by `PlayerStatusEffects`; see [MoveSpeedAndStatusEffects.md](MoveSpeedAndStatusEffects.md). No attack-speed passive exists yet.
 
 ## Relevant files and attachment points
 
 | File | Responsibility / location |
 | --- | --- |
-| `Assets/Weapons/Common/WeaponBase.cs` | Shared weapon component and per-weapon `AttackCooldown` value. Set the value on each weapon prefab. |
-| `Assets/Weapons/Common/IWeaponEquipPassive.cs` | Contract for effects active while a weapon is equipped. |
-| `Assets/Weapons/Common/IWeaponHitPassive.cs` | Contract for effects triggered by a server-approved hit. |
-| `Assets/Player/PlayerCombatStats.cs` | Player-root stats and attack-speed modifier collection. |
-| `Assets/Player/PlayerWeaponPassiveController.cs` | Player-root manager that applies/removes equipped passives and dispatches accepted hits. |
-| `Assets/Player/PlayerAttack.cs` | Owns local attack input, cooldown timing, and weapon changes. |
-| `Assets/Scripts/Battle/DuelPlayer.cs` | Network attack replay and server hit acceptance; invokes the hit-passive callback. |
-| `Assets/UI/PlayerAttackCooldownBar.cs` | UI line that displays remaining cooldown through a horizontal `Image.fillAmount`. |
-| `Assets/Player/Player.prefab` | Base player prefab with `PlayerCombatStats` and `PlayerWeaponPassiveController` attached. Duel player variants inherit these components. |
+| `Assets/Game/Weapons/Common/Scripts/WeaponBase.cs` | Shared weapon component and per-weapon `AttackCooldown` value. Set the value on each weapon prefab. |
+| `Assets/Game/Weapons/Common/Scripts/IWeaponEquipPassive.cs` | Contract for effects active while a weapon is equipped. |
+| `Assets/Game/Weapons/Common/Scripts/IWeaponHitPassive.cs` | Contract for effects triggered by a server-approved hit. |
+| `Assets/Game/Player/Scripts/PlayerCombatStats.cs` | Player-root stats and attack-/move-speed modifier collection. |
+| `Assets/Game/Player/Scripts/PlayerWeaponPassiveController.cs` | Player-root manager that applies/removes equipped passives and dispatches accepted hits (`NotifyServerHit`). |
+| `Assets/Game/Player/Scripts/PlayerAttack.cs` | Owns local attack input, cooldown timing, and weapon changes. |
+| `Assets/Game/Battle/Scripts/DuelPlayer.cs` | Network attack replay and hit-report RPC; calls `ServerHitReport` and then the hit-passive callback. |
+| `Assets/Game/UI/Scripts/PlayerAttackCooldownBar.cs` | UI line that displays remaining cooldown through a horizontal `Image.fillAmount`. |
+| `Assets/Game/Player/Prefabs/DuelWizard-1.prefab` | Combat player prefab with `PlayerCombatStats`, `PlayerWeaponPassiveController` and `PlayerAttackCooldownBar` attached. `DuelWizard-2` is its variant and inherits them. |
 
 Passive components belong on the weapon prefab, on the same GameObject as `WeaponBase` or one of its children. Do not put passive implementations on the player prefab: the weapon owns the effect definition, while the player manager owns its lifetime.
 
@@ -58,7 +59,7 @@ The manager calls `OnUnequipped` before disabling the previous weapon and `OnEqu
 
 Implement `IWeaponHitPassive` on a component on the weapon prefab. `OnServerHit(attacker, target)` runs from the server's accepted-hit path. It is not called for rejected, duplicate, self, or post-defeat hits.
 
-Keep gameplay state changes server-owned. A timed debuff should be stored on the target's server-side status/effect controller and synchronized to clients for display and client-side behavior. If the same effect is already active, update its expiry time to `now + duration`; do not add another stack. The interface is only the hook: a reusable timed-effect manager and any particular debuff have not been implemented yet.
+Keep gameplay state changes server-owned. Apply timed debuffs through the target's `PlayerStatusEffects`, which stores them on the server and synchronizes them to clients. Reapplying the same effect refreshes its duration instead of adding another stack.
 
 The current combat model still accepts the attacker's reported target and damage after basic validation; it does not retrace line-of-sight or recompute damage on the server. A hit passive shares that trust boundary. Server-side hit revalidation remains a separate combat security change.
 
@@ -68,16 +69,12 @@ Set `Attack Cooldown` on the weapon component in the weapon prefab inspector. Th
 
 The cooldown duration is captured at attack start. Equipping a different weapon during a cooldown does not shorten or extend that in-progress cooldown; the next attack uses the newly equipped weapon's value and current attack-speed modifiers. A zero cooldown disables the timer gate, while the attack animation still prevents overlap.
 
-For the line below a world-space health bar:
+For the line below the world-space health bar (already set up on `DuelWizard-1`):
 
 1. Create the fill `Image` as a child of the cooldown line's fixed-size background so the health bar's layout does not move as it shrinks.
 2. Add `PlayerAttackCooldownBar` to the line/fill object and assign its `Image` reference. It searches parent objects for `PlayerAttack`; assign that reference manually if the UI is not parented under the player.
 3. The script configures the image as a left-origin horizontal fill. It is hidden when ready and shrinks as remaining cooldown decreases.
 
-The base project does not yet contain the character health-bar UI, so the cooldown component is not attached to a health-bar prefab or scene object yet.
+## Online weapon switching
 
-## Network weapon switching limitation
-
-`PlayerAttack.TryEquipWeapon` currently performs a local equipment change. It does not synchronize a selected weapon with the server or the other client. The server hit callback therefore sees the weapon currently equipped on its own player object, which is correct for the initial prefab weapon but is not sufficient for a future online pickup/switch system.
-
-Before online switching is used with hit passives, add a server-validated, replicated equipped-weapon identity and make each client activate the matching weapon prefab. Do not trust a client-supplied passive or weapon identity directly in the hit RPC.
+Pickups and swaps are server-approved and replicated as weapon ids, so every screen holds the same weapon instances (see [WeaponSpawning.md](WeaponSpawning.md)). The hit report carries the attack's weapon id; the server accepts it only for a weapon that player has held during the current round (`WeaponNotHeld` otherwise), then runs that weapon's hit passive.

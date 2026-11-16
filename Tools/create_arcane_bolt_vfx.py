@@ -13,8 +13,8 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-SOURCE = ROOT / "Assets/AssetsPack/Eric VFX Studio"
-TARGET = ROOT / "Assets/Weapons/Basic Wand/VFX"
+SOURCE = ROOT / "Assets/ThirdParty/EricVFXStudio"
+TARGET = ROOT / "Assets/Game/Weapons/BasicWand/Art/VFX"
 PREFAB_SOURCE = SOURCE / "Free Game VFX/Prefab/FX_Fireball.prefab"
 MATERIAL_SOURCE = SOURCE / "Resource/Materials"
 SHADER_SOURCE = SOURCE / "Resource/Shader"

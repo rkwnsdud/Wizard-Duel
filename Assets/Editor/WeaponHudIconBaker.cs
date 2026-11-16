@@ -11,34 +11,9 @@ using UnityEngine.SceneManagement;
 // no existing scene or weapon prefab is saved.
 public static class WeaponHudIconBaker
 {
-    private const string OutputFolder = "Assets/UI/WeaponIcons";
-    private const string CatalogPath = "Assets/UI/SecondaryWeaponHudCatalog.asset";
+    private const string OutputFolder = "Assets/Game/UI/Art/WeaponIcons";
+    private const string CatalogPath = "Assets/Game/Battle/WeaponSpawnCatalog.asset";
     private const int Size = 512;
-
-    private readonly struct IconSource
-    {
-        public readonly string Path;
-        public readonly string File;
-        public readonly string Name;
-        public readonly Vector3 Rotation;
-
-        public IconSource(string path, string file, string name, Vector3 rotation)
-        {
-            Path = path;
-            File = file;
-            Name = name;
-            Rotation = rotation;
-        }
-    }
-
-    private static readonly IconSource[] Sources =
-    {
-        new IconSource("Assets/Weapons/Basic Wand/Prefabs/BasicWand.prefab", "BasicWand", "Basic Wand", new Vector3(0, 0, -28)),
-        new IconSource("Assets/Weapons/Lightning Weapon/DuelLightningStaff.prefab", "LightningStaff", "Lightning Staff", new Vector3(0, 0, -25)),
-        new IconSource("Assets/Weapons/Light Orb/LightOrb.prefab", "LightOrb", "Light Orb", new Vector3(0, 25, 0)),
-        new IconSource("Assets/Weapons/Book Weapon/ExplosionMagicBook.prefab", "ExplosionMagicBook", "Explosion Magic Book", new Vector3(-12, 25, 0)),
-        new IconSource("Assets/Weapons/Fire Censer/DuelFireCenser.prefab", "FireCenser", "Fire Censer", new Vector3(0, 0, -24))
-    };
 
     [MenuItem("Tools/Wizard Duel/Bake missing weapon HUD icons")]
     public static void BakeAll()
@@ -52,7 +27,7 @@ public static class WeaponHudIconBaker
         {
             if (!Application.isBatchMode)
                 throw new InvalidOperationException("Open a saved scene before baking weapon icons.");
-            EditorSceneManager.OpenScene("Assets/Scenes/NetworkDemo.unity", OpenSceneMode.Single);
+            EditorSceneManager.OpenScene("Assets/Scenes/Main.unity", OpenSceneMode.Single);
         }
         Scene captureScene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Additive);
         try
@@ -86,16 +61,15 @@ public static class WeaponHudIconBaker
             camera.allowMSAA = true;
             camera.cullingMask = 1 << 30;
 
-            var captured = new bool[Sources.Length];
-            for (int i = 0; i < Sources.Length; i++)
+            var catalog = AssetDatabase.LoadAssetAtPath<WeaponSpawnCatalog>(CatalogPath);
+            foreach (WeaponDefinition definition in catalog.Entries)
             {
-                string iconPath = OutputFolder + "/" + Sources[i].File + ".png";
-                captured[i] = AssetDatabase.LoadAssetAtPath<Sprite>(iconPath) != null ||
-                              Bake(Sources[i], camera, captureScene);
+                string iconPath = OutputFolder + "/" + definition.iconFile + ".png";
+                if (AssetDatabase.LoadAssetAtPath<Sprite>(iconPath) == null && !Bake(definition, camera, captureScene)) continue;
+                definition.icon = AssetDatabase.LoadAssetAtPath<Sprite>(iconPath);
+                EditorUtility.SetDirty(definition);
             }
 
-            AssetDatabase.Refresh();
-            BuildCatalog(captured);
             AssetDatabase.SaveAssets();
             Debug.Log("Weapon HUD icon bake finished; check warnings for prefabs with unavailable materials.");
         }
@@ -108,20 +82,19 @@ public static class WeaponHudIconBaker
     [MenuItem("Tools/Wizard Duel/Validate weapon HUD assets")]
     public static void ValidateHudAssets()
     {
-        var player = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Player/Player.prefab");
+        var player = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Game/Player/Prefabs/DuelWizard-1.prefab");
         var hud = player != null ? player.GetComponent<SecondaryWeaponHud>() : null;
         if (hud == null) throw new InvalidOperationException("Player prefab has no SecondaryWeaponHud.");
 
         var serializedHud = new SerializedObject(hud);
-        var catalog = serializedHud.FindProperty("catalog").objectReferenceValue as SecondaryWeaponHudCatalog;
+        var catalog = serializedHud.FindProperty("catalog").objectReferenceValue as WeaponSpawnCatalog;
         if (catalog == null) throw new InvalidOperationException("Player HUD catalog is not assigned.");
         if (serializedHud.FindProperty("fontAsset").objectReferenceValue == null)
             throw new InvalidOperationException("Player HUD font is not assigned.");
 
         foreach (string path in new[]
         {
-            "Assets/Player/Player-1.prefab", "Assets/Player/Player-2.prefab",
-            "Assets/Player/DuelWizard-1.prefab", "Assets/Player/DuelWizard-2.prefab"
+            "Assets/Game/Player/Prefabs/DuelWizard-1.prefab", "Assets/Game/Player/Prefabs/DuelWizard-2.prefab"
         })
         {
             var variant = AssetDatabase.LoadAssetAtPath<GameObject>(path);
@@ -129,37 +102,28 @@ public static class WeaponHudIconBaker
                 throw new InvalidOperationException("HUD is missing from combat variant: " + path);
         }
 
-        var entries = new SerializedObject(catalog).FindProperty("entries");
-        if (entries.arraySize != 6) throw new InvalidOperationException("Expected six weapon type mappings.");
-        int iconCount = 0;
-        for (int i = 0; i < entries.arraySize; i++)
+        foreach (WeaponDefinition definition in catalog.Entries)
         {
-            var entry = entries.GetArrayElementAtIndex(i);
-            if (entry.FindPropertyRelative("prefab").objectReferenceValue == null)
-                throw new InvalidOperationException("Catalog prefab missing at entry " + i);
-            bool hasIcon = entry.FindPropertyRelative("icon").objectReferenceValue != null;
-            if (!hasIcon)
-                throw new InvalidOperationException("Catalog icon missing at entry " + i);
-            if (hasIcon && i != 5) iconCount++;
+            if (definition.prefab == null || definition.icon == null || string.IsNullOrWhiteSpace(definition.hudDisplayName))
+                throw new InvalidOperationException("Weapon HUD definition is incomplete: " + definition.name);
         }
-        Debug.Log("Weapon HUD asset validation passed: four combat variants, " + iconCount +
-            " unique icons, six weapon mappings.");
+        Debug.Log("Weapon HUD asset validation passed: " + catalog.Entries.Length + " weapon definitions.");
     }
 
-    private static bool Bake(IconSource source, Camera camera, Scene captureScene)
+    private static bool Bake(WeaponDefinition source, Camera camera, Scene captureScene)
     {
-        var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(source.Path);
-        if (prefab == null) throw new InvalidOperationException("Weapon prefab missing: " + source.Path);
+        var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(AssetDatabase.GetAssetPath(source.prefab));
+        if (prefab == null) throw new InvalidOperationException("Weapon prefab missing: " + AssetDatabase.GetAssetPath(source.prefab));
 
         var instance = (GameObject)PrefabUtility.InstantiatePrefab(prefab, captureScene);
         try
         {
-            instance.transform.SetPositionAndRotation(Vector3.zero, Quaternion.Euler(source.Rotation));
+            instance.transform.SetPositionAndRotation(Vector3.zero, Quaternion.Euler(source.iconRotation));
             foreach (Transform child in instance.GetComponentsInChildren<Transform>(true))
                 child.gameObject.layer = 30;
 
             foreach (var behaviour in instance.GetComponentsInChildren<MonoBehaviour>(true))
-                if (!(behaviour is LightOrbSpin)) behaviour.enabled = false;
+                if (!(behaviour is IWeaponDisplayAnimation)) behaviour.enabled = false;
             foreach (var particle in instance.GetComponentsInChildren<ParticleSystem>(true))
                 particle.gameObject.SetActive(false);
             foreach (var renderer in instance.GetComponentsInChildren<Renderer>(true))
@@ -176,17 +140,17 @@ public static class WeaponHudIconBaker
                 {
                     if (material == null || material.shader == null || !material.shader.isSupported)
                     {
-                        Debug.LogWarning(source.File + ": " + renderer.name + " has a missing or unsupported material.");
+                        Debug.LogWarning(source.iconFile + ": " + renderer.name + " has a missing or unsupported material.");
                         materialsAvailable = false;
                     }
                 }
                 if (!found) { bounds = renderer.bounds; found = true; }
                 else bounds.Encapsulate(renderer.bounds);
             }
-            if (!found) throw new InvalidOperationException("No visible model renderer: " + source.Path);
+            if (!found) throw new InvalidOperationException("No visible model renderer: " + AssetDatabase.GetAssetPath(source.prefab));
             if (!materialsAvailable)
             {
-                Debug.LogWarning("Skipped " + source.File + " icon: prefab has missing or unsupported materials.");
+                Debug.LogWarning("Skipped " + source.iconFile + " icon: prefab has missing or unsupported materials.");
                 return false;
             }
 
@@ -218,7 +182,7 @@ public static class WeaponHudIconBaker
                 RenderTexture.active = target;
                 image.ReadPixels(new Rect(0, 0, Size, Size), 0, 0);
                 image.Apply();
-                string path = OutputFolder + "/" + source.File + ".png";
+                string path = OutputFolder + "/" + source.iconFile + ".png";
                 File.WriteAllBytes(path, image.EncodeToPNG());
                 AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceUpdate);
                 var importer = (TextureImporter)AssetImporter.GetAtPath(path);
@@ -227,11 +191,11 @@ public static class WeaponHudIconBaker
                 importer.alphaIsTransparency = true;
                 // Detailed source art is shown at roughly 50 UI pixels. Mipmaps
                 // prefilter it before reduction; compression adds visible blocks.
-                importer.mipmapEnabled = source.File != "LightOrb";
+                importer.mipmapEnabled = source.iconMipmaps;
                 importer.textureCompression = TextureImporterCompression.Uncompressed;
-                importer.filterMode = source.File == "LightOrb" ? FilterMode.Bilinear : FilterMode.Trilinear;
+                importer.filterMode = source.iconMipmaps ? FilterMode.Trilinear : FilterMode.Bilinear;
                 importer.SaveAndReimport();
-                Debug.Log("Baked " + path + " from " + source.Path);
+                Debug.Log("Baked " + path + " from " + AssetDatabase.GetAssetPath(source.prefab));
             }
             finally
             {
@@ -248,38 +212,4 @@ public static class WeaponHudIconBaker
         return true;
     }
 
-    private static void BuildCatalog(bool[] captured)
-    {
-        var catalog = AssetDatabase.LoadAssetAtPath<SecondaryWeaponHudCatalog>(CatalogPath);
-        if (catalog == null)
-        {
-            catalog = ScriptableObject.CreateInstance<SecondaryWeaponHudCatalog>();
-            AssetDatabase.CreateAsset(catalog, CatalogPath);
-        }
-        var serialized = new SerializedObject(catalog);
-        var entries = serialized.FindProperty("entries");
-        // The offline LightningStaff uses a different weapon component from the
-        // online DuelLightningStaff, but shares the same visual and icon.
-        entries.arraySize = Sources.Length + 1;
-        for (int i = 0; i < Sources.Length; i++)
-        {
-            var source = Sources[i];
-            var element = entries.GetArrayElementAtIndex(i);
-            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(source.Path);
-            element.FindPropertyRelative("prefab").objectReferenceValue = prefab.GetComponent<WeaponBase>();
-            element.FindPropertyRelative("icon").objectReferenceValue = captured[i]
-                ? AssetDatabase.LoadAssetAtPath<Sprite>(OutputFolder + "/" + source.File + ".png") : null;
-            element.FindPropertyRelative("displayName").stringValue = source.Name;
-        }
-        var offlineLightning = entries.GetArrayElementAtIndex(Sources.Length);
-        var lightningPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(
-            "Assets/Weapons/Lightning Weapon/LightningStaff.prefab");
-        offlineLightning.FindPropertyRelative("prefab").objectReferenceValue =
-            lightningPrefab.GetComponent<WeaponBase>();
-        offlineLightning.FindPropertyRelative("icon").objectReferenceValue = captured[1]
-            ? AssetDatabase.LoadAssetAtPath<Sprite>(OutputFolder + "/LightningStaff.png") : null;
-        offlineLightning.FindPropertyRelative("displayName").stringValue = "Lightning Staff";
-        serialized.ApplyModifiedPropertiesWithoutUndo();
-        EditorUtility.SetDirty(catalog);
-    }
 }

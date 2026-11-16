@@ -1,0 +1,9 @@
+{
+    "name": "WizardDuel.RuntimeTests",
+    "references": [
+        "WizardDuel.Game"
+    ],
+    "defineConstraints": [
+        "UNITY_INCLUDE_TESTS"
+    ]
+}

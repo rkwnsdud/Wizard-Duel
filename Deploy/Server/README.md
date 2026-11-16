@@ -3,8 +3,9 @@
 리눅스 서버에서 저장소를 받아 `bash Deploy/Server/build.sh` 한 번으로 전용 서버를 빌드하고 실행한다.
 
 - `build.sh`: 현재 브랜치가 `main`인지와 Unity secret 파일 세 개를 확인한 뒤 `git pull --ff-only`, `docker compose up -d --build`를 실행하고, 로그에 `[Lobby] Listening`이 나올 때까지 최대 60초 기다린다.
-- `Dockerfile`: 1단계에서 `unityci/editor` 이미지로 `unity-build.sh`를 실행해 `Assets/Scenes/Main.unity`를 Linux Dedicated Server로 빌드한다(`LinuxServerBuild.Build`). 2단계에서는 빌드 결과만 `ubuntu:22.04`에 담아 `-server`로 실행한다.
-- `unity-build.sh`: 빌드 컨테이너 안에서 Unity 라이선스를 활성화하고, 빌드한 뒤, 라이선스를 반납한다. 빌드가 실패해도 반납은 한다.
+- `Dockerfile`: 1단계에서 `unityci/editor` 이미지로 `unity-build.sh`를 실행해 `Assets/Scenes/Main.unity`를 Linux Dedicated Server로 빌드한다. 2단계에서는 빌드 결과만 `ubuntu:22.04`에 담아 `-server`로 실행한다.
+- `unity-build.sh`: 빌드 컨테이너 안에서 Unity 라이선스를 활성화하고, `-executeMethod LinuxServerBuild.Build -buildOutput <출력 폴더>`로 빌드한 뒤, 라이선스를 반납한다. 빌드가 실패해도 반납은 한다.
+- `LinuxServerBuild`: 실제 빌드 설정은 `Assets/Game/Main/Editor/LinuxServerBuild.cs`(에디터 어셈블리 `WizardDuel.Game.Main.Editor`)에 있다. 빌드 대상은 `Assets/Scenes/Main.unity` 한 씬이고, `-buildOutput`을 주지 않으면 `Build/LinuxServer/WizardDuel.x86_64`로 만든다. 실패하면 종료 코드 1로 끝난다.
 - `compose.yaml`: UDP 7777을 열고, 서버가 죽으면 다시 띄운다(`restart: unless-stopped`).
 - `Dockerfile.dockerignore`: 빌드 컨텍스트로 `Assets`, `Packages`, `ProjectSettings`와 `unity-build.sh`만 보낸다.
 
@@ -59,7 +60,7 @@ bash Deploy/Server/build.sh
 - `Assets`, `Packages`, `ProjectSettings`가 그대로면 Unity 빌드를 건너뛰고 컨테이너도 다시 띄우지 않는다. 문서만 바뀐 pull이 여기에 해당한다.
 - 빌드가 실패하면 기존 컨테이너가 그대로 돌아간다.
 - 로그 보기: `docker compose -f Deploy/Server/compose.yaml logs -f`
-- 클라이언트 접속: `WizardDuel.exe -join <서버 주소>`. 도메인도 된다(`-join limeskin.kr`). 에디터에서는 **Tools > Wizard Duel > Network Test** 창(Mode: Main)에서 **Build** 후 **Remote Client (limeskin.kr)**를 누른다. 클라이언트도 서버와 같은 커밋으로 빌드해야 한다(프로토콜 버전·맵 지문이 맞아야 한다).
+- 클라이언트 접속: `WizardDuel.exe -join <서버 주소>`. 도메인도 된다(`-join limeskin.kr`). 에디터에서는 **Tools > Wizard Duel > Network Test** 창에서 **Build** 후 **Remote Client (limeskin.kr)**를 누른다. 클라이언트도 서버와 같은 커밋으로 빌드해야 한다(프로토콜 버전·맵 지문이 맞아야 한다).
 
 `Deploy/Server/.env`로 기본값을 바꿀 수 있다(git에 올라가지 않는다).
 

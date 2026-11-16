@@ -11,8 +11,11 @@
   redistribution of the audio, including a version that is only cropped or
   converted. This edited asset is **not** covered by the project's 0BSD
   procedural-sound license.
-- Edited file: `Assets/Audio/BasicWand/ArcaneBolt_Fire.wav`.
-  SHA-256: `2E5AD1397BF9DF1C51AAD0B23E105CAF997D5A254BA6770013FD804FAA2395A7`.
+- Edited file: `Assets/Audio/Clips/BasicWand/ArcaneBolt_Fire.wav`.
+  SHA-256 right after the edit below: `2E5AD1397BF9DF1C51AAD0B23E105CAF997D5A254BA6770013FD804FAA2395A7`.
+  When the sound effects were gathered into one library, the file's level was
+  matched to the other effects (gain only, -14 LUFS over the loudest 400 ms
+  window). Current SHA-256: `640C180A8C001A29068CEF8275488D099EF9488046EA0054973DA5425971994F`.
 
 ## Edit record
 
@@ -26,12 +29,11 @@ interpolator, preserving playback speed and pitch. An 8 ms fade-in removes a
 start click; a 120 ms raised-cosine fade-out makes the shortened tail resolve
 smoothly. A uniform 1.6× gain (~4.1 dB) was applied without compression or
 limiting. No generated layers, low-frequency boost, or other sounds were added.
-The output is stereo 16-bit PCM WAV with a peak of about 0.592 (-4.6 dBFS).
+The output was stereo 16-bit PCM WAV with a peak of about 0.592 (-4.6 dBFS)
+before the later level match.
 
-The edit is prepared for Unity import. On the user's follow-up request, the
-`BasicWand.prefab` fireSound reference was updated to this clip. No scene or
-gameplay script was changed.
-
-The Basic Wand's dedicated Unity AudioSource was later set to pitch `1.1` at
-the user's request. This changes the in-game playback only; the edited WAV
-and its source-preserving edit record above remain unchanged.
+The edit is prepared for Unity import. The game plays it through the sound
+effect library: entry `WandFire` (id 0) in `Assets/Audio/Resources/SfxLibrary.asset`,
+currently volume `0.722`, speed `1.14`, pitch `0.88`. These values are edited in
+**Tools > Wizard Duel > 효과음 패널**. They change the in-game playback only; the
+edited WAV and its source-preserving edit record above remain unchanged.

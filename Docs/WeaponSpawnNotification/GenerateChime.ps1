@@ -1,4 +1,4 @@
-param([string]$OutputPath = (Join-Path $PSScriptRoot '../../Assets/Audio/Notifications/WeaponSpawnChime.wav'))
+param([string]$OutputPath = (Join-Path $PSScriptRoot '../../Assets/Audio/Clips/Notifications/WeaponSpawnChime.wav'))
 # Original additive synthesis; no external recordings or samples. License: 0BSD.
 Add-Type -TypeDefinition @'
 using System;

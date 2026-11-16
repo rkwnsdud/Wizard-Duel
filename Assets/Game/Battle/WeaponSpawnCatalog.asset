@@ -1,0 +1,21 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c5fb822989034de9914eb2e08e4da580, type: 3}
+  m_Name: WeaponSpawnCatalog
+  m_EditorClassIdentifier: Assembly-CSharp::WeaponSpawnCatalog
+  definitions:
+  - {fileID: 11400000, guid: 5723f373f5e642c41aec67aa6f23024a, type: 2}
+  - {fileID: 11400000, guid: e099d7a4db0464443a363fe2327cc938, type: 2}
+  - {fileID: 11400000, guid: 0e1403742c31bb34cb8853b8dacabe61, type: 2}
+  - {fileID: 11400000, guid: 69ae8ca6b9514a84686f6c55b612e2fe, type: 2}
+  - {fileID: 11400000, guid: 9a0b1be369daf934ca44c76196f17ba2, type: 2}
+  notificationFont: {fileID: 11400000, guid: ef2ba2f6499fe014a9ef0560a9e09d61, type: 2}

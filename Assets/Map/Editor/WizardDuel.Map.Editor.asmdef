@@ -1,0 +1,11 @@
+{
+    "name": "WizardDuel.Map.Editor",
+    "references": [
+        "WizardDuel.Map",
+        "WizardDuel.MapGeneration",
+        "WizardDuel.Game"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ]
+}

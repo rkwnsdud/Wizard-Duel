@@ -1,0 +1,9 @@
+{
+    "name": "WizardDuel.Audio.Editor",
+    "references": [
+        "WizardDuel.Audio"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ]
+}

@@ -1,0 +1,149 @@
+using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
+using System.Linq;
+using UnityEditor;
+using UnityEditor.SceneManagement;
+using UnityEngine;
+using Debug = UnityEngine.Debug;
+
+// Tools > Wizard Duel > Network Test: 테스트 빌드를 만들고 전용 서버와 클라이언트를 띄우거나 강제 종료한다.
+// Remote Client는 로컬 서버 대신 원격 리눅스 서버(RemoteServerAddress)에 접속하는 클라이언트를 띄운다.
+public class NetworkTestWindow : EditorWindow
+{
+    const string MainScenePath = "Assets/Scenes/Main.unity";
+    const string ExePath = "Build/LobbyTest/WizardDuel.exe";
+    const string LogDir = "Logs/LobbyTest";
+    const string ServerArgs = "-batchmode -nographics -server";
+    const string ClientWindowArgs = "-screen-fullscreen 0 -screen-width 1280 -screen-height 720";
+    const string LocalServerAddress = "127.0.0.1";
+    // Deploy/Server로 띄운 리눅스 전용 서버. Main 씬 서버라 Main 빌드로만 접속한다.
+    const string RemoteServerAddress = "limeskin.kr";
+    const string RunningKey = "NetworkTestWindow.Running";
+
+    // 플레이 모드 진입(도메인 리로드)으로 비워지면 SessionState에 남긴 "이름:PID"로 다시 찾는다.
+    static List<(string name, Process process)> running;
+    bool outdated;
+
+    [MenuItem("Tools/Wizard Duel/Network Test")]
+    static void Open() => GetWindow<NetworkTestWindow>("Network Test");
+
+    [InitializeOnLoadMethod]
+    static void CloseOnQuit() => EditorApplication.quitting += () => Running().ForEach(entry => Kill(entry.process));
+
+    void OnEnable() => OnFocus();
+
+    // 빌드 뒤에 바뀐 에셋이 있으면 다시 빌드하라고 표시한다.
+    void OnFocus() => outdated = File.Exists(ExePath) && Directory.EnumerateFiles("Assets", "*", SearchOption.AllDirectories)
+        .Any(path => File.GetLastWriteTime(path) > File.GetLastWriteTime(ExePath));
+
+    void OnInspectorUpdate()
+    {
+        if (Running().RemoveAll(Exited) == 0) return;
+        Save();
+        Repaint();
+    }
+
+    // 창을 닫거나 Kill해서 끝난 프로세스는 핸들을 닫고 목록에서 뺀다.
+    static bool Exited((string name, Process process) entry)
+    {
+        if (!entry.process.HasExited) return false;
+        entry.process.Dispose();
+        return true;
+    }
+
+    void OnGUI()
+    {
+        bool built = File.Exists(ExePath);
+        bool serverRunning = Running().Exists(entry => entry.name == "server");
+        GUILayout.Label(!built ? "No test build yet." : $"Build {File.GetLastWriteTime(ExePath):MM-dd HH:mm}" + (outdated ? " (assets changed since)" : ""));
+
+        // 실행 중에는 exe가 잠겨 있어 다시 빌드할 수 없다.
+        GUI.enabled = Running().Count == 0 && !EditorApplication.isPlayingOrWillChangePlaymode;
+        if (GUILayout.Button("Build")) EditorApplication.delayCall += Build;
+
+        GUILayout.BeginHorizontal();
+        GUI.enabled = built && !serverRunning;
+        if (GUILayout.Button("Server")) EditorApplication.delayCall += () => Launch("server", ServerArgs);
+        GUI.enabled = built;
+        if (GUILayout.Button("Client")) EditorApplication.delayCall += () => LaunchClient();
+        GUI.enabled = built && !serverRunning;
+        if (GUILayout.Button("1v1")) EditorApplication.delayCall += () => { Launch("server", ServerArgs); LaunchClient(); LaunchClient(); };
+        GUILayout.EndHorizontal();
+
+        // 원격 서버와 같은 커밋으로 빌드한 클라이언트여야 접속이 거절되지 않는다.
+        GUI.enabled = built;
+        if (GUILayout.Button($"Remote Client ({RemoteServerAddress})"))
+            EditorApplication.delayCall += () => LaunchClient("remote", RemoteServerAddress);
+
+        GUI.enabled = true;
+        foreach (var (name, process) in Running())
+        {
+            GUILayout.BeginHorizontal();
+            GUILayout.Label($"{name}  (pid {process.Id})");
+            if (GUILayout.Button("Kill", GUILayout.Width(60))) Kill(process);
+            GUILayout.EndHorizontal();
+        }
+
+        GUILayout.BeginHorizontal();
+        GUI.enabled = Running().Count > 0;
+        if (GUILayout.Button("Close All")) Running().ForEach(entry => Kill(entry.process));
+        GUI.enabled = Directory.Exists(LogDir);
+        if (GUILayout.Button("Open Logs")) EditorUtility.OpenWithDefaultApp(Path.GetFullPath(LogDir));
+        GUILayout.EndHorizontal();
+        GUI.enabled = true;
+    }
+
+    void Build()
+    {
+        if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo()) return;
+        var report = BuildPipeline.BuildPlayer(new[] { MainScenePath }, ExePath, BuildTarget.StandaloneWindows64, BuildOptions.Development);
+        Debug.Log($"[NetworkTest] Build {report.summary.result}: {Path.GetFullPath(ExePath)}");
+        OnFocus();
+    }
+
+    // 이름 뒤 번호는 같은 접두어끼리 늘린다(client1, client2 / remote1, remote2). 로그도 이 이름으로 남는다.
+    static void LaunchClient(string prefix = "client", string address = LocalServerAddress)
+    {
+        int number = 1;
+        while (Running().Exists(entry => entry.name == $"{prefix}{number}")) number++;
+        Launch($"{prefix}{number}", $"-join {address} {ClientWindowArgs}");
+    }
+
+    static void Launch(string name, string args)
+    {
+        Directory.CreateDirectory(LogDir);
+        string log = Path.GetFullPath($"{LogDir}/{name}.log");
+        var startInfo = new ProcessStartInfo(Path.GetFullPath(ExePath), $"{args} -logFile \"{log}\"")
+        {
+            UseShellExecute = false,
+            WindowStyle = name == "server" ? ProcessWindowStyle.Hidden : ProcessWindowStyle.Normal
+        };
+        Running().Add((name, Process.Start(startInfo)));
+        Save();
+    }
+
+    static void Kill(Process process)
+    {
+        if (!process.HasExited) process.Kill();
+    }
+
+    static List<(string name, Process process)> Running() => running ??= SessionState.GetString(RunningKey, "")
+        .Split(',', StringSplitOptions.RemoveEmptyEntries)
+        .Select(entry => entry.Split(':'))
+        .Select(entry => (name: entry[0], process: Find(int.Parse(entry[1]))))
+        .Where(entry => entry.process != null).ToList();
+
+    static Process Find(int id)
+    {
+        try
+        {
+            Process process = Process.GetProcessById(id);
+            return process.ProcessName == "WizardDuel" && !process.HasExited ? process : null;
+        }
+        catch (SystemException) { return null; } // 이미 끝난 프로세스
+    }
+
+    static void Save() => SessionState.SetString(RunningKey, string.Join(",", running.Select(entry => $"{entry.name}:{entry.process.Id}")));
+}

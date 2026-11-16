@@ -1,90 +1,64 @@
-# 무기 발사·애니메이션 구조
+# 무기 구조와 새 무기 추가
 
-Player는 WeaponSocket 아래의 무기를 `PlayerAttack.CurrentWeapon`으로 참조한다. 장착 위치, 모델, 기존 애니메이션 클립과 GUID를 유지한다.
+무기는 공통 계약(`Assets/Game/Weapons/Common/Scripts/`)을 구현한 프리팹과, 그 프리팹을 가리키는 무기 정의(`Assets/Game/Weapons/Definitions/`)로 이루어진다. 무기 코드는 Netcode를 모른다. 네트워크 전달은 `DuelPlayer`가 맡고, 무기는 받은 `IShotSink`로 연출과 명중만 넘긴다.
 
-## 책임과 계약
+## 무기 목록
 
-| 계약/클래스 | 책임 |
-| --- | --- |
-| `WeaponBase` | 장착 공통 타입, Attack Animation, Attack Cooldown, 오프라인 `Fire()` |
-| `IChargeableWeapon` | 선택적 `FireCharged(float)`, 충전 미리보기 표시/해제 |
-| `PlayerAttack` | 입력, 충전 시간, 쿨다운, 공격 무기 고정, 애니메이션과 발사 경로 선택 |
-| `IAttackAuthority` | 온라인 애니메이션 전달 및 소유자 발사 진입점 |
-| `IWeapon` | 온라인 소유자 판정 `Fire(attackId, direction, charge, sink)`와 피해 없는 `Present(shot)` |
-| `IShotSink` / `DuelPlayer` | 연출 전파, 소유권 확인, 서버 피해 보고와 체력 동기화 |
-| `DuelCombatState` | 서버 체력, 자기 피해 거절, `(공격자 슬롯, attackId, hitIndex)` 중복 제거 |
+| id | 무기 | 정의 | 무기 컴포넌트 | 스폰 |
+|---|---|---|---|---|
+| 1 | 기본 완드 | `BasicWand.asset` | `BasicWandWeapon` | 안 함(시작 무기) |
+| 2 | 번개 지팡이 | `LightningStaff.asset` | `DuelLightningWeapon` | 함 |
+| 3 | 빛 반사 구슬 | `LightOrb.asset` | `LightOrbWeapon` | 함 |
+| 4 | 폭발 마법 책 | `ExplosionMagicBook.asset` | `ExplosionMagicWeapon` | 함 |
+| 5 | 화염 향로 | `FireCenser.asset` | `FireCenserWeapon` | 함 |
 
-Basic Wand와 Light Orb는 충전 인수가 없는 `Fire()`를 구현한다. LightningWeapon과 DuelLightningWeapon은 `IChargeableWeapon`을 추가한다. 번개의 `Fire()`를 직접 호출하면 최소 충전인 `FireCharged(0f)`를 실행한다. 충전 시간은 기존 `PlayerAttack.maxChargeTime`을 사용한다.
+id 0은 "무기 없음"이다. 무기 이름과 시전 클립은 각 무기 폴더(`Assets/Game/Weapons/<무기>/`)의 프리팹과 `Art/`에 있다.
 
-DuelLightningWeapon의 온라인 `Fire(...)`는 명시적 인터페이스 구현이다. `((IWeapon)weapon).Fire(...)`로 호출하며 오프라인 발사를 경유하지 않는다. 기존 온라인 인터페이스 시그니처와 RPC 페이로드는 유지한다.
+## 공통 계약
 
-## 발사·상태 흐름
+| 타입 | 하는 일 |
+|---|---|
+| `WeaponBase` | 모든 무기의 기반 컴포넌트. 무기 정의(`Definition`, `Id`), 시전 클립(`AttackAnimation`), 재생 속도(`AttackAnimSpeed`), 공격 간격(`AttackCooldown`, 기본 0.65초)을 가진다. 시전 클립에는 `FireMagic`과 `EndAttack` 애니메이션 이벤트가 있어야 한다. |
+| `IWeapon` | 발사 계약. `Fire(AttackInfo, direction, charge, IShotSink)`는 공격한 쪽 화면에서 `FireMagic` 때 한 번 불린다. `Present(ShotEvent)`는 두 화면 모두에서 연출만 한다. 명중 판정과 피해는 `Present`에서 하지 않는다. |
+| `IShotSink` | 무기가 결과를 넘기는 곳. `Broadcast(ShotEvent)`로 연출을 보내고, `Hit(AttackInfo, hitIndex, target, damage)`로 명중을 보고한다. 연출을 명중보다 먼저 보낸다. |
+| `AttackInfo` | 공격 하나의 번호와 쏜 무기 id. 공격을 시작할 때 정하고 그 공격의 연출·명중 보고·적중 효과에 그대로 싣는다. 자세한 규칙은 `AttackInfo.cs` 주석에 있다. |
+| `ShotEvent` | 연출 한 건. `Kind`(발사·끝 등)는 무기가 정하고, `Start`·`Point`·`Charge`를 담는다. |
+| `IChargeableWeapon` | 충전 중 미리보기(`ShowChargePreview`, `HideChargePreview`). 번개 지팡이가 쓴다. |
+| `IWeaponReach` | 충전 정도에 따른 사거리와 탄속. AI 상대가 공격 거리를 고를 때 쓴다. 없으면 AI는 기본 사거리(`DuelBotTuning.fallbackReach`)를 쓴다. |
+| `IWeaponEquipPassive` | 장착·해제 때 효과(예: 향로의 이동 속도 증가). |
+| `IWeaponHitPassive` | 서버에서 명중이 받아들여진 뒤 효과(예: 향로의 화상). |
+| `IWeaponPose` | 매 프레임 캐릭터 뼈를 고치는 무기 자세. 사망 모션 동안 꺼진다. |
+| `IWeaponDisplayAnimation` | 로비 화면·바닥 픽업·아이콘 전시 때도 켜 두는 무기 자체 애니메이션. 나머지 컴포넌트는 전시 때 꺼진다. |
 
-- 일반 무기: 버튼 누름 → 공격 애니메이션 → FireMagic → 발사.
-- 충전 무기: 버튼 누름 → 충전/미리보기 → 버튼 놓음 → 충전값 확정 → 애니메이션 → FireMagic.
-- 오프라인: Authority가 없으면 고정한 무기의 `Fire()` 또는 `FireCharged(ratio)`를 호출한다.
-- 온라인: Authority가 있으면 DuelPlayer가 공격 시작 시 고정한 AttackingWeapon의 IWeapon.Fire를 소유자에서만 호출한다. 미지원 무기는 경고 후 발사를 생략하며 오프라인 피해 처리로 우회하지 않는다.
+패시브는 [무기 패시브와 쿨다운](WeaponPassivesAndCooldown.md), 상태이상은 [이동 속도 배율과 상태이상](MoveSpeedAndStatusEffects.md)에 정리되어 있다.
 
-기본 완드의 즉시 공격은 충전을 기다리지 않는다는 의미이며 실제 발사 시점은 기존 Animation Event다. hasFired로 중복 발사를 차단한다. 무기가 없으면 공격하지 않는다.
+## 공격 한 번의 흐름
 
-온라인 애니메이션은 StartAttack → PlayAttackRpc → PlayReplicatedAttack 경로를 사용한다. 원격은 쿨다운 시계 차이로 재생이 누락되지 않도록 기존 쿨다운 우회 재생을 유지한다. 실제 명중은 소유자에서만 수행한다.
+1. 공격한 쪽 `PlayerAttack`이 공격 번호를 정하고 시전 애니메이션을 시작한다. `DuelPlayer`가 `PlayAttackRpc`로 상대 화면에도 같은 공격 시작을 알린다.
+2. 애니메이션의 `FireMagic` 이벤트에서 `DuelPlayer`가 `PlayerAttack.FindWeapon(weaponId)`로 쏜 무기를 찾아 `IWeapon.Fire`를 부른다.
+3. 무기가 `sink.Broadcast`를 부르면 내 화면에서 바로 `Present`하고, `ShotRpc`로 상대 화면에서도 같은 연출을 한다.
+4. 무기가 `sink.Hit`을 부르면 `ReportHitRpc`로 서버에 보고한다. 서버는 `ServerHitReport`에서 받을지 정하고([서버 보고 처리 규칙](ServerHitReportRules.md)), 받으면 체력을 깎고 쏜 무기의 `IWeaponHitPassive`를 실행한다.
 
-온라인 번개는 Trace → sink.Broadcast → sink.Hit 순서를 유지한다. 연출을 먼저 보낸 뒤 서버가 피해를 반영한다. ApplyHealth는 서버 체력의 로컬 반영이며 원격 연출에서 별도 피해를 계산하지 않는다. 기존 장착 패시브, 서버 승인 타격 패시브, 공격 속도 보정과 쿨다운 UI 계약도 유지한다.
+이벤트는 지금 든 무기가 아니라 `AttackInfo`의 무기 id로 찾은 무기가 처리한다. 쏜 뒤 무기를 바꿔도 예전 무기는 꺼진 채 남아 있으므로, 늦게 온 연출과 명중도 쏜 무기 기준으로 처리된다.
 
-CancelAttack은 충전 미리보기, 충전값, 공격 상태와 임시 Cast Override를 정리한다. 비활성화 및 온라인 사망·디스폰에서 호출한다. 원격 입력 컴포넌트는 이미 꺼져 있으므로 사망·디스폰에서 명시적으로 정리한다. 디스폰 후에도 Authority를 유지해 남은 이벤트가 오프라인 발사로 전환되지 않도록 한다. 이미 발사된 투사체 회수나 별도 취소 RPC는 포함하지 않는다.
+## 무기 교체와 자세
 
-## 장착과 애니메이션 소유권
-
-PlayerAttack에서 HasActiveWand, animationOnlyWandAttack, 구체적인 완드 타입 검사를 제거했다. 실제 장착 무기로 공격과 포즈를 결정하며 Renderer 가시성만 바꿔 무기를 전환하지 않는다.
-
-장착은 TryEquipWeapon으로 처리한다. 충전·공격 중 교체를 거절하고 null은 해제한다. EquippedWeaponChanged는 초기화와 장착 변경을 포즈 컴포넌트에 동기적으로 알린다. 이미 활성화된 무기를 장착한 직후 공격해도 다음 Update까지 포즈 적용을 기다리지 않는다.
-
-BasicWandIdlePose는 자신의 WeaponBase와 부모 PlayerAttack을 기존 계층에서 찾아 장착된 경우에만 기존 Idle 컨트롤러를 적용한다. 해제 시 자신이 소유한 컨트롤러만 복원한다. 명시적 에디터 외형 미리보기의 가시성 조건은 유지한다.
-
-공격 시 현재 포즈 컨트롤러를 저장하고 기존 Override의 Idle/Grip 매핑을 복사한 뒤 Cast 슬롯만 AttackAnimation으로 교체한다. EndAttack/CancelAttack에서 원래 컨트롤러를 복원한다. 원본 클립·컨트롤러 에셋 수정이나 런타임 Rebind/강제 Animator.Play는 추가하지 않는다.
-
-읽기 전용 AnimationSourceController는 공격 Override 아래의 포즈 컨트롤러를 반환한다. BasicWandIdlePose는 공격 컨트롤러를 덮어쓰지 않으며, BasicWandGripSkin은 이 컨트롤러와 장착 무기를 확인해 공격 중에도 기존 Grip을 유지한다. 기존 Idle/Cast 및 이동→Cast 블렌드 조건을 유지한다. Light Orb의 손 포즈도 장착 여부로 결정하며 원격 입력 비활성화와 분리한다.
+- `PlayerAttack.TryEquipWeapon`은 충전·시전 중에는 무기를 바꾸지 않는다. 바닥 무기 줍기와 교체는 서버가 확인한 뒤 `PlayerWeaponInventory`가 무기 소켓 아래에 무기 인스턴스를 만들어 반영한다([무기 스폰](WeaponSpawning.md)).
+- 손 자세를 고치는 무기는 `PlayerAttack.IsWeaponPoseActive(this)`가 참일 때만 고친다. 숨겨진 무기의 자세 보정이 들고 있는 무기의 자세를 덮어쓰지 않게 하려는 규칙이다.
 
 ## 새 무기 추가
 
-1. 독립 프리팹에 모델, 발사점과 WeaponBase.Fire 구현을 구성한다. 충전이 필요하면 IChargeableWeapon을 구현한다.
-2. 현재 Wizard 골격용 Attack Animation을 지정하고 FireMagic, EndAttack 이벤트를 각각 한 번 포함한다. 미설정 클립은 기존 컨트롤러 모션을 사용한다.
-3. 플레이어의 WeaponSocket 아래에 생성한 뒤 TryEquipWeapon으로 장착한다. Inspector 초기 설정은 Current Weapon을 사용한다.
-4. 무기별 Idle/Grip 코드에서 장착 상태, EquippedWeaponChanged, AnimationSourceController를 사용할 수 있다. PlayerAttack에 무기 타입 분기를 추가하지 않는다.
-5. 온라인 무기는 IWeapon으로 판정과 연출을 분리한다. 기본 완드 프리팹의 실제 플레이 인스턴스에는 Projectile Prefab, Fire Point, Attack Animation을 연결해야 한다.
+1. `Assets/Game/Weapons/<무기>/` 아래에 `Scripts/`, `Prefabs/`, `Art/`를 만든다. 무기 스크립트는 `WizardDuel.Game` 어셈블리에 들어간다.
+2. 무기 컴포넌트를 `WeaponBase`를 상속하고 `IWeapon`을 구현해 만든다. 피해는 `sink.Hit`으로만 보고하고, 여러 번 때리거나 여러 대상을 맞히면 `hitIndex`를 바꿔 보고한다. AI 상대가 거리를 맞추게 하려면 `IWeaponReach`도 구현한다.
+3. 무기 프리팹에 이 컴포넌트를 붙이고, `FireMagic`·`EndAttack` 이벤트가 있는 시전 클립과 필요한 투사체·연출 프리팹을 연결한다. 장착·적중 패시브는 각각 하나까지만 붙인다. 전시 중에도 돌아야 하는 무기 자체 애니메이션에는 `IWeaponDisplayAnimation`을 구현한다.
+4. **Create > Wizard Duel > Weapon Definition**으로 `Assets/Game/Weapons/Definitions/`에 정의를 만든다. 다른 무기와 겹치지 않는 id(1~255), 표시 이름(`displayName`), HUD 이름(`hudDisplayName`), 스폰 여부(`canSpawn`), 전시 회전·크기를 넣는다. **정의의 `prefab`에는 무기 프리팹을, 그 프리팹의 `WeaponBase.definition`에는 같은 정의를 연결**한다. 양쪽 연결이 모두 필요하다.
+5. `Assets/Game/Battle/WeaponSpawnCatalog.asset`의 정의 목록에 추가한다. 무기 스폰과 AI 로비 화면의 무기 선택, HUD, 오프라인 테스트의 무기 목록이 이 목록을 읽는다. 스폰 대상은 `canSpawn`이 참이고 프리팹이 `IWeapon`을 구현해야 한다.
+6. 아이콘은 정의의 `iconFile`·`iconRotation`을 채운 뒤 **Tools > Wizard Duel > Bake missing weapon HUD icons**로 `Assets/Game/UI/Art/WeaponIcons/`에 굽는다. 이 도구가 정의의 `icon`도 연결한다. **Validate weapon HUD assets**로 정의가 빠짐없는지 확인한다.
+7. 효과음이 필요하면 클립과 라이선스를 `Assets/Audio/Clips/<무기 폴더 이름>/`에 둔다(예: `LightningStaff`, `LightOrb`, `ExplosionMagicBook`, `FireCenser`). 공용 소리는 `Assets/Audio/Clips/<용도>/`에 둔다. `Assets/Audio/Scripts/SfxId.cs` 끝에 기존 번호를 바꾸지 않고 새 id를 추가하고, `Assets/Audio/Resources/SfxLibrary.asset`에 해당 id의 클립·볼륨·속도·음 높이 항목을 하나 연결한다. 무기의 `Present`나 후속 연출에서 `Sfx.Play`로 재생해 쏜 무기의 소리가 나게 한다. **Tools > Wizard Duel > 효과음 패널**에서 들어 보고 `SfxLibraryTests.EverySfxId_HasOneEntryWithAClip`으로 누락을 확인한다.
+8. 가벼운 테스트를 돌린다. `WeaponIdentityTests`가 id 중복과 정의↔프리팹 연결을 검사한다. 스폰 무기를 늘리면 `WeaponSpawnTests.Catalog_HasFourSpawnableWeapons_AndExcludesBasicWand`의 4종 기대값과 `Round_EnforcesTimerOccupancyDuplicateRemovalCapAndReset`의 `{ 2, 3, 4, 5 }`처럼 스폰 id 집합을 고정한 테스트도 함께 갱신한다. 플레이에서는 로비 선택·오프라인 장착·바닥 전시/줍기·HUD·공격과 소리를 확인한다.
 
-## Basic Wand / Light Orb 온라인 후속 작업
+## 무기별 메모
 
-두 무기는 아직 IWeapon을 구현하지 않아 온라인 발사를 지원하지 않는다.
-
-- 소유자 투사체는 공격 ID와 sink를 유지하며 sink.Hit으로만 피해를 보고해야 한다. 단일 투사체는 hitIndex 0으로 한 번만 타격하고 자신을 제외한다.
-- Present는 양쪽에서 연출만 생성/갱신한다. 오프라인 피해 투사체를 그대로 생성해 원격 충돌/피해를 중복 실행하면 안 된다.
-- Arcane Bolt에는 시작 위치·방향·속도·공통 시각 또는 경과 시간, 충돌/종료 이벤트, 지연 수신 보정과 서버 피해 보고 구현이 필요하다.
-- Light Orb는 소유자가 결정한 반사 지점·구간 순서·진행 시각과 종료를 전달하고 원격에서 해당 경로를 재생해야 한다.
-- ShotEvent/ShotRpc에 시간·속도·경로 정보를 추가해야 한다. Charge에 다른 의미를 넣어 우회하지 않는다.
-- 현재 연출 라우팅은 장착 중인 IWeapon을 사용한다. 이동 투사체 도입 전 공격 ID와 발사 무기/연출을 연결해 장비 교체 후 늦은 이벤트를 올바르게 처리해야 한다.
-- 사망·취소·교체·디스폰 시 판정/연출 수명 정책과 오래된 이벤트 정리가 필요하다.
-
-## PR 범위와 검증
-
-이번 PR은 Arcane Bolt의 오프라인 벽·플레이어 충돌을 추가한다. 이동 구간을 SphereCastAll로 검색하고 거리순으로 소유자를 제외한 첫 충돌을 처리한다. 플레이어에게 10의 피해를 주고 투사체를 제거하며, 벽·장애물에서도 제거한다. 프리팹의 mask는 Player, Wall, Obstacle 레이어를 포함한다. BasicWandWeapon은 발사 시 소유자의 PlayerHealth를 전달한다. 온라인 Basic Wand 발사는 아직 지원하지 않는다.
-
-공통 Cast 클립은 GUID·곡선·이벤트를 유지한 채 BaseCast.anim / WizardBaseCast로 이름을 변경했다. PlayerAttack의 교체 기준 필드는 baseCastClip으로 정리하고 FormerlySerializedAs로 기존 attackAnimationSlot 참조를 보존한다. 무기별 실제 모션은 각 무기의 Attack Animation에서 지정한다.
-
-PlayerTest의 완드 발사 참조와 무기·캐릭터 활성 상태, 번개 프리팹 및 Light Orb 이동·반사의 검증용 단계 분리, WeaponSetupReview 검증 도구를 포함한다. Basic Wand의 Textures 폴더는 Light Orb 아래로 이동했으며 파일 내용과 GUID를 보존한다. 최신 main의 패시브·쿨다운·맵 변경은 유지한다.
-
-사용자는 1차 로컬 작업에서 완드 발사/벽 충돌, 번개 차징/공격, Light Orb 발사/반사, 온라인 번개의 애니메이션/연출/피해 동기화를 확인했다. 이는 로컬 진행 코드가 포함된 검증이며 이 PR 통합본이나 2차 애니메이션 변경의 실행 검증이 아니다.
-
-Unity 내장 Roslyn을 통한 통합본 컴파일 및 정적 비교 결과는 PR 본문에 기록한다. Unity 임포트/Netcode 후처리, EditMode/PlayMode 실행, 실제 두 클라이언트 검증은 별도다. 자동 테스트 씬은 생성하지 않는다.
-
-수동 확인 항목:
-
-- 완드의 Idle/Grip, 이동→Cast→Idle 전환과 공격 중 손 파지 유지
-- 실제 장착 무기 교체/해제 후 포즈 잔류 및 무기 없는 상태의 공격 차단
-- FireMagic 한 번 발사, EndAttack/취소/사망 후 복원과 다음 공격
-- 충전, 쿨다운·공격 속도 보정·패시브·쿨다운 UI
-- 두 클라이언트의 번개 애니메이션/연출 및 한 번의 서버 체력 감소
-
-기존 WeaponSeparationSetup.Apply는 명시적 마이그레이션 도구이며 재실행할 필요가 없다. 기존 테스트 소스의 컴파일 확인과 실제 테스트 통과는 구분한다.
-
-2026-11-05 통합본 검증: Unity 6000.3.24f1 내장 Roslyn과 캐시 참조로 WizardDuel.MapGeneration, Assembly-CSharp, Assembly-CSharp-Editor를 모두 컴파일했다. 종료 코드 0, 진단 출력 없음. Unity 임포트·Netcode 후처리와 EditMode/PlayMode 테스트는 실행하지 않았다.
+- **번개 지팡이**: 프리팹은 `Art/Models/FixedStaff/LightningStaff_Low.fbx`(`LightningStaff_Fixed.fbx`를 `Tools/WeaponMesh/decimate_weapon.py`로 줄인 것)와 `Staff_Original`·`Crystal_Cyan_Emission` 재질을 쓴다. 수정체는 얼룩진 원래 발광 텍스처 대신 균일한 발광색을 쓴다(`FixedStaff/README_KO.txt`). 번개 시각 효과는 [번개 이펙트](../Assets/Effects/Lightning/README.md)를 쓴다.
+- **빛 반사 구슬**: `Assets/Game/Weapons/LightOrb/Editor/LightOrbGlbImporter.cs`가 `Art/OrbVisual/LightOrb.glb`를 메시·재질·광학 데이터 하위 에셋으로 가져온다. 이 임포터를 지우면 구슬 외형이 깨진다. 굴절은 렌더러 기능 `LightOrbRefractionFeature`로 그리며 `Assets/Settings/PC_Renderer.asset`에 들어 있다.
+- **기본 완드**: 모델·손 메시 보정·자세는 [기본 완드 에셋](BasicWand/README_KO.md)에 있다.

@@ -2,6 +2,8 @@
 
 Blender 5.2.2 LTS에서 기존 흰 천 웨이트 및 전투 Idle 수정본을 이어서 작업했습니다.
 
+이 폴더는 마법사 모델 원본의 이전 단계입니다. 이 리깅에 걷기를 더한 다음 단계가 `Wizard_Idle_Walk/`이고, 게임에는 그 폴더의 `Wizard_Animated.fbx` 사본이 들어갑니다(`Wizard_Idle_Walk/README_KO.md` 참고). 아래 "남은 확인"은 이 단계를 만들 때의 기록입니다.
+
 ## 포함 파일
 - Wizard_Combat_Idle.blend: 손가락 리깅, 기본 쥐기 Idle, 손 펴기/쥐기 테스트 클립. 색상 텍스처 내장.
 - Wizard_Combat_Idle.fbx: 메시·39개 본·웨이트와 기본 쥐기 Idle 1개. 색상 텍스처 내장.

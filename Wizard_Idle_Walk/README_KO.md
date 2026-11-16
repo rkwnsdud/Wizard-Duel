@@ -22,5 +22,10 @@
 - 기존 Idle 본 위치 차이 약 0.00000003m로 수치 오차 범위.
 - FBX 재가져오기: 본 39개와 Idle/Walk 2개 확인. 본 위치 최대 왕복 오차 약 0.00000205m.
 - 앞·뒤 미리보기로 로브 움직임을 확인. 모든 리타게팅 자세에서의 관통 방지를 보장하는 검사는 아님.
-- Unity Editor 실행 검증은 하지 못함. Humanoid Avatar 매핑, 실제 지팡이 정렬 및 Animator 전환은 Unity 프로젝트에서 확인 필요.
+- 이 폴더 작업 시점에는 Unity Editor 실행 검증을 하지 못함. Unity 적용 결과는 아래 "Unity 프로젝트에서" 참고.
 - 이번 추가 작업에 달리기·공격 클립은 포함하지 않음.
+
+## Unity 프로젝트에서
+- `Wizard_Animated.fbx`와 같은 파일이 `Assets/Game/Player/Art/Models/WizardAnimated/Wizard_Animated.fbx`에 사본으로 들어가 있음. 이 폴더는 Blender 원본 보관용이며 Unity가 읽지 않음.
+- 리그는 Generic으로 가져옴. Humanoid 매핑도 가능했지만, 직접 만든 Transform 클립과 오른손 쥐기 자세를 그대로 쓰려고 Generic을 씀. 리그 종류를 바꾸려면 클립과 컨트롤러도 함께 다시 만들어야 함.
+- 게임용 Idle·걷기 클립은 `Assets/Game/Player/Art/Animations/WizardAnimated/`, 무기 공격 클립은 `Assets/Game/Weapons/` 아래에 있음.

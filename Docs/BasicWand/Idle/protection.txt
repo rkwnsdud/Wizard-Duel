@@ -1,3 +1,0 @@
-Protected source files: 123
-Changed protected files: 0
-SHA256 comparison covers Player prefab, PlayerAttack/PlayerMovement, source animations/controller, Lightning Weapon, Light Orb, BasicWand prefab/model/textures.

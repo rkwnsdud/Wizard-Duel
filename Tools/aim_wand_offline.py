@@ -5,7 +5,7 @@ from pathlib import Path
 from mathutils import Quaternion, Vector
 
 ROOT = Path(__file__).resolve().parents[1]
-FOLDER = ROOT / "Assets/Weapons/Basic Wand/Animations"
+FOLDER = ROOT / "Assets/Game/Weapons/BasicWand/Art/Animations"
 CHAIN = ["WizardModel/Armature", "WizardModel/Armature/Hips",
          "WizardModel/Armature/Hips/Spine02", "WizardModel/Armature/Hips/Spine02/Spine01",
          "WizardModel/Armature/Hips/Spine02/Spine01/Spine",
@@ -179,8 +179,7 @@ def rewrite_editor(text, new_samples):
     return text[:a] + "".join(out) + text[b:]
 
 
-for filename, local in (("BasicWandAttack.anim", (.115895, .861220, .226995, -.439708)),
-                        ("BasicWandAttack_DummyGrip.anim", (.077292, .877672, .151386, -.448108))):
+for filename, local in (("BasicWandAttack.anim", (.115895, .861220, .226995, -.439708)),):
     file = FOLDER / filename
     text = file.read_text(encoding="utf-8")
     rotations = data_of(text, "  m_RotationCurves:\n", "  m_CompressedRotationCurves:")
