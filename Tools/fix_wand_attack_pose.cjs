@@ -3,7 +3,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const assert = require('node:assert/strict');
 const ROOT = path.resolve(__dirname, '..');
-const DIR = path.join(ROOT, 'Assets/Weapons/Basic Wand/Animations');
+const DIR = path.join(ROOT, 'Assets/Game/Weapons/BasicWand/Art/Animations');
 const add=(a,b)=>a.map((v,i)=>v+b[i]), sub=(a,b)=>a.map((v,i)=>v-b[i]);
 const mul=(a,s)=>a.map(v=>v*s), dot=(a,b)=>a.reduce((s,v,i)=>s+v*b[i],0);
 const cross=(a,b)=>[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]];
@@ -37,7 +37,7 @@ const palmWidth=sub(idlePositions[HAND+'/RightLittleProximal'][0].v,idlePosition
 const handBack=unit(cross([0,1,0],palmWidth));
 // Calibrate the real elbow hinge from the original cast, not an arbitrary
 // shortest rotation between two segment directions.
-const source=curves(read(path.join(ROOT,'Assets/Weapons/Common/BaseCast.anim')),'Rotation');
+const source=curves(read(path.join(ROOT,'Assets/Game/Weapons/Common/Art/BaseCast.anim')),'Rotation');
 const sourceElbowDelta=qm(sample(source[ELBOW],.1),qi(idle[ELBOW][0].v));
 const elbowHinge=unit([sourceElbowDelta[0],0,sourceElbowDelta[2]]);
 function world(rot,pos,t){let q=[0,0,0,1],p=[0,0,0];const out={};for(const n of [...chain,ARM,ELBOW,HAND]){p=add(p,rotate(q,sample(pos[n],t,false)));q=qm(q,sample(rot[n],t));out[n]={q,p};}return out;}

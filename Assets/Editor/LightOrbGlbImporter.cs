@@ -22,8 +22,8 @@ public sealed class LightOrbGlbImporter : ScriptedImporter
 
     public override void OnImportAsset(AssetImportContext ctx)
     {
-        ctx.DependsOnArtifact("Assets/Weapons/Light Orb/OrbVisual/LightOrbCrystal.shader");
-        ctx.DependsOnArtifact("Assets/Weapons/Light Orb/OrbVisual/LightOrbMetal.shader");
+        ctx.DependsOnArtifact("Assets/Game/Weapons/LightOrb/Art/OrbVisual/LightOrbCrystal.shader");
+        ctx.DependsOnArtifact("Assets/Game/Weapons/LightOrb/Art/OrbVisual/LightOrbMetal.shader");
         byte[] file = File.ReadAllBytes(ctx.assetPath);
         if (file.Length < 28 || BitConverter.ToUInt32(file, 0) != 0x46546c67) throw new InvalidDataException("Invalid GLB header.");
         int jsonLength = BitConverter.ToInt32(file, 12);
@@ -164,7 +164,7 @@ public sealed class LightOrbGlbImporter : ScriptedImporter
 
     static Shader LoadOrbShader(string name)
     {
-        string path = "Assets/Weapons/Light Orb/OrbVisual/" + name + ".shader";
+        string path = "Assets/Game/Weapons/LightOrb/Art/OrbVisual/" + name + ".shader";
         Shader shader = AssetDatabase.LoadAssetAtPath<Shader>(path);
         if (shader == null) throw new InvalidDataException("Required orb shader failed to import: " + path);
         return shader;

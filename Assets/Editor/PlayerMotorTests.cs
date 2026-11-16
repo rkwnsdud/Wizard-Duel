@@ -41,7 +41,7 @@ public class PlayerMotorTests
             character.transform.SetParent(root.transform);
             var animator = character.AddComponent<Animator>();
             animator.runtimeAnimatorController = AssetDatabase.LoadAssetAtPath<RuntimeAnimatorController>(
-                "Assets/Player/Animations/WizardLocomotion.controller");
+                "Assets/Game/Player/Art/Animations/WizardLocomotion.controller");
             var stats = root.AddComponent<PlayerCombatStats>();
             var motor = root.AddComponent<PlayerMotor>();
             Awake(motor);
@@ -90,7 +90,7 @@ public class PlayerMotorTests
         Assert.That(typeof(Unity.Netcode.NetworkBehaviour).IsAssignableFrom(typeof(PlayerMotor)), Is.False);
         foreach (string name in new[] { "DuelWizard-1", "DuelWizard-2" })
         {
-            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Player/" + name + ".prefab");
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Game/Player/Prefabs/" + name + ".prefab");
             Assert.That(prefab.GetComponents<PlayerMotor>().Length, Is.EqualTo(1), name);
             CollectionAssert.AreEqual(new[] { typeof(DuelPlayer), typeof(PlayerStatusEffects), typeof(DuelMoveSync) },
                 System.Array.ConvertAll(prefab.GetComponents<Unity.Netcode.NetworkBehaviour>(), x => x.GetType()));

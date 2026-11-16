@@ -4,8 +4,8 @@ from pathlib import Path
 from mathutils import Quaternion, Vector
 
 root = Path(__file__).resolve().parents[1]
-folder = root / "Assets/Weapons/Basic Wand/Animations"
-source = root / "Assets/Player/Animations/WizardAnimated/WizardStaffCast.anim"
+folder = root / "Assets/Game/Weapons/BasicWand/Art/Animations"
+source = root / "Assets/Game/Player/Art/Animations/WizardAnimated/WizardStaffCast.anim"
 chain = ["WizardModel/Armature", "WizardModel/Armature/Hips",
          "WizardModel/Armature/Hips/Spine02", "WizardModel/Armature/Hips/Spine02/Spine01",
          "WizardModel/Armature/Hips/Spine02/Spine01/Spine",

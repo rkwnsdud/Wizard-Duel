@@ -130,7 +130,7 @@ flowchart TD
 - 전투가 시작되고 30초 뒤에 첫 무기가 떨어지고, 그 뒤로 30초마다 하나씩 더 떨어집니다. 무기가 떨어지면 화면 위쪽에 알림이 뜹니다.
 - 무기는 두 개까지 들 수 있습니다. 두 칸이 모두 찬 상태에서 주우면 손에 든 무기와 바뀝니다.
 - 무기 스폰은 지금 **AI 대전에서만** 열립니다. 전용 서버로 하는 온라인 대전에서는 아직 무기가 떨어지지 않습니다.
-- 피해량과 사거리 같은 수치는 각 무기 프리팹(`Assets/Weapons/`)에서 조정합니다.
+- 피해량과 사거리 같은 수치는 각 무기 프리팹(`Assets/Game/Weapons/`)에서 조정합니다.
 
 ## 맵
 
@@ -158,7 +158,7 @@ flowchart TD
 
 - 스폰 지점 주변은 항상 비워 두어 시작하자마자 벽에 갇히는 일이 없습니다.
 - 모든 바닥은 서로 이어져 있어 들어갈 수 없는 구역이 생기지 않습니다.
-- 맵 생성기는 별도 어셈블리(`WizardDuel.MapGeneration`)로 분리되어 있고, 생성 규칙은 [맵 생성 문서](Assets/Scripts/Map/Generation/README.md)에 정리되어 있습니다.
+- 맵 생성기는 별도 어셈블리(`WizardDuel.MapGeneration`)로 분리되어 있고, 생성 규칙은 [맵 생성 문서](Assets/Map/Generation/README.md)에 정리되어 있습니다.
 
 ## AI 대전
 
@@ -372,7 +372,7 @@ Magic effects pack
 <td align="center"><b>효과음</b></td>
 <td>
 Pixabay 음원과 직접 합성한 소리<br>
-출처와 라이선스: <a href="Docs/BasicWand/ArcaneBolt_Fire_License.md">기본 완드 발사음</a> · <a href="Assets/Audio/Inventory/LICENSE.txt">무기 줍기</a> · <a href="Assets/Audio/Notifications/LICENSE.txt">무기 등장 알림</a>
+출처와 라이선스: <a href="Docs/BasicWand/ArcaneBolt_Fire_License.md">기본 완드 발사음</a> · <a href="Assets/Audio/Clips/Inventory/LICENSE.txt">무기 줍기</a> · <a href="Assets/Audio/Clips/Notifications/LICENSE.txt">무기 등장 알림</a>
 </td>
 </tr>
 </table>

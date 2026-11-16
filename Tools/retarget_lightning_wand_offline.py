@@ -10,9 +10,9 @@ from pathlib import Path
 from mathutils import Quaternion
 
 ROOT = Path(__file__).resolve().parents[1]
-SOURCE = ROOT / "Assets/Player/Animations/WizardAnimated/WizardStaffCast.anim"
-IDLE = ROOT / "Assets/Weapons/Basic Wand/Animations/WizardCombatIdle_BasicWandGrip.anim"
-OUTPUT = ROOT / "Assets/Weapons/Basic Wand/Animations"
+SOURCE = ROOT / "Assets/Game/Player/Art/Animations/WizardAnimated/WizardStaffCast.anim"
+IDLE = ROOT / "Assets/Game/Weapons/BasicWand/Art/Animations/WizardCombatIdle_BasicWandGrip.anim"
+OUTPUT = ROOT / "Assets/Game/Weapons/BasicWand/Art/Animations"
 SOURCE_BYTES = SOURCE.read_bytes()
 SOURCE_SHA = hashlib.sha256(SOURCE_BYTES).hexdigest()
 src = SOURCE_BYTES.decode("utf-8").replace("\r\n", "\n")

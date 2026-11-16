@@ -28,7 +28,7 @@ public class CharacterPrefabTests
             var wizard = root.transform.Find("Wizard");
             Assert.That(wizard, Is.Not.Null, name);
             Assert.That(PrefabUtility.GetPrefabAssetPathOfNearestInstanceRoot(wizard.gameObject),
-                Is.EqualTo("Assets/Player/WizardBody.prefab"), name);
+                Is.EqualTo("Assets/Game/Player/Prefabs/WizardBody.prefab"), name);
             foreach (string dependency in AssetDatabase.GetDependencies(AssetDatabase.GetAssetPath(root)))
                 Assert.That(dependency, Is.Not.EqualTo("Assets/Player/Player.prefab"), name);
             if (name.StartsWith("Duel"))
@@ -77,6 +77,6 @@ public class CharacterPrefabTests
         CollectionAssert.AreEquivalent(new[] { Load("DuelWizard-1"), Load("DuelWizard-2") }, prefabs);
     }
 
-    static GameObject Load(string name) => AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Player/" + name + ".prefab");
+    static GameObject Load(string name) => AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Game/Player/Prefabs/" + name + ".prefab");
 }
 #endif

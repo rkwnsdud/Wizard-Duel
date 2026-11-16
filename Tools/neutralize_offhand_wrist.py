@@ -5,7 +5,7 @@ from pathlib import Path
 from mathutils import Quaternion
 
 root = Path(__file__).resolve().parents[1]
-folder = root / "Assets/Weapons/Basic Wand/Animations"
+folder = root / "Assets/Game/Weapons/BasicWand/Art/Animations"
 idle_file = folder / "WizardCombatIdle_BasicWandGrip.anim"
 hand_path = "WizardModel/Armature/Hips/Spine02/Spine01/Spine/LeftShoulder/LeftArm/LeftForeArm/LeftHand"
 forearm_path = hand_path.rsplit("/", 1)[0]

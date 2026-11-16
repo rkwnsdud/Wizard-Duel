@@ -22,7 +22,7 @@ for path in sorted(set(r)|set(p),key=lambda s:s.count('/')):
     q=n['sample'](r[path],t,n['quat']) if path in r else Quaternion()
     v=n['sample'](p[path],t,n['vector']) if path in p else Vector()
     world[path]=world.get(path.rsplit('/',1)[0],Matrix.Identity(4)) @ Matrix.LocRotScale(v,q,Vector((1,1,1)))
-mesh=(ROOT/'Assets/Weapons/Basic Wand/Grip/Wizard_BasicWandGrip.asset').read_text()
+mesh=(ROOT/'Assets/Game/Weapons/BasicWand/Art/Grip/Wizard_BasicWandGrip.asset').read_text()
 hash_bytes=bytes.fromhex(re.search(r'm_BoneNameHashes: (\w+)',mesh)[1])
 hashes=struct.unpack('<'+'I'*(len(hash_bytes)//4),hash_bytes)
 names=[]
@@ -56,7 +56,7 @@ for face in data.polygons:
         uv.data[loop].uv=struct.unpack_from('<2f',raw,count*40+data.loops[loop].vertex_index*8)
 material=bpy.data.materials.new('Wizard texture'); material.use_nodes=True
 texture=material.node_tree.nodes.new('ShaderNodeTexImage')
-texture.image=bpy.data.images.load(str(ROOT/'Assets/Player/Models/WizardAnimated/textures/Meshy_AI_Wizard_Navy_Rigged_biped_texture_0.png'))
+texture.image=bpy.data.images.load(str(ROOT/'Assets/Game/Player/Art/Models/WizardAnimated/Textures/Meshy_AI_Wizard_Navy_Rigged_biped_texture_0.png'))
 material.node_tree.links.new(texture.outputs['Color'],material.node_tree.nodes.get('Principled BSDF').inputs['Base Color'])
 material.node_tree.nodes.get('Principled BSDF').inputs['Roughness'].default_value=.8
 data.materials.append(material)

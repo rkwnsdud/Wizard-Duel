@@ -4,7 +4,7 @@ from pathlib import Path
 from mathutils import Quaternion, Vector
 
 root = Path(__file__).resolve().parents[1]
-base = root / "Assets/Weapons/Basic Wand/Animations"
+base = root / "Assets/Game/Weapons/BasicWand/Art/Animations"
 paths = ["WizardModel/Armature", "WizardModel/Armature/Hips",
          "WizardModel/Armature/Hips/Spine02", "WizardModel/Armature/Hips/Spine02/Spine01",
          "WizardModel/Armature/Hips/Spine02/Spine01/Spine",
@@ -55,7 +55,7 @@ def sample(keys, t):
     return keys[-1][1]
 
 
-source_file = root / "Assets/Weapons/Common/BaseCast.anim"
+source_file = root / "Assets/Game/Weapons/Common/Art/BaseCast.anim"
 source = curves(source_file)
 idle = curves("WizardCombatIdle_BasicWandGrip.anim")
 report = []

@@ -5,7 +5,7 @@ from pathlib import Path
 from mathutils import Quaternion, Vector
 
 ROOT = Path(__file__).resolve().parents[1]
-FOLDER = ROOT / "Assets/Weapons/Basic Wand/Animations"
+FOLDER = ROOT / "Assets/Game/Weapons/BasicWand/Art/Animations"
 CHAIN = ["WizardModel/Armature", "WizardModel/Armature/Hips",
          "WizardModel/Armature/Hips/Spine02", "WizardModel/Armature/Hips/Spine02/Spine01",
          "WizardModel/Armature/Hips/Spine02/Spine01/Spine",

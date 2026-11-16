@@ -10,7 +10,7 @@ public static class WeaponSeparationSetup
     {
         foreach (string name in new[] { "DuelWizard-1", "DuelWizard-2" })
         {
-            var root = PrefabUtility.LoadPrefabContents($"Assets/Player/{name}.prefab");
+            var root = PrefabUtility.LoadPrefabContents($"Assets/Game/Player/Prefabs/{name}.prefab");
             try
             {
                 var attack = root.GetComponent<PlayerAttack>();

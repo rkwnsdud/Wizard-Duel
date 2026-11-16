@@ -11,8 +11,8 @@ using UnityEngine.SceneManagement;
 // no existing scene or weapon prefab is saved.
 public static class WeaponHudIconBaker
 {
-    private const string OutputFolder = "Assets/UI/WeaponIcons";
-    private const string CatalogPath = "Assets/Scripts/Battle/WeaponSpawnCatalog.asset";
+    private const string OutputFolder = "Assets/Game/UI/Art/WeaponIcons";
+    private const string CatalogPath = "Assets/Game/Battle/WeaponSpawnCatalog.asset";
     private const int Size = 512;
 
     [MenuItem("Tools/Wizard Duel/Bake missing weapon HUD icons")]
@@ -82,7 +82,7 @@ public static class WeaponHudIconBaker
     [MenuItem("Tools/Wizard Duel/Validate weapon HUD assets")]
     public static void ValidateHudAssets()
     {
-        var player = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Player/DuelWizard-1.prefab");
+        var player = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Game/Player/Prefabs/DuelWizard-1.prefab");
         var hud = player != null ? player.GetComponent<SecondaryWeaponHud>() : null;
         if (hud == null) throw new InvalidOperationException("Player prefab has no SecondaryWeaponHud.");
 
@@ -94,7 +94,7 @@ public static class WeaponHudIconBaker
 
         foreach (string path in new[]
         {
-            "Assets/Player/DuelWizard-1.prefab", "Assets/Player/DuelWizard-2.prefab"
+            "Assets/Game/Player/Prefabs/DuelWizard-1.prefab", "Assets/Game/Player/Prefabs/DuelWizard-2.prefab"
         })
         {
             var variant = AssetDatabase.LoadAssetAtPath<GameObject>(path);
