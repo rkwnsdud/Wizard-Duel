@@ -1,0 +1,10 @@
+{
+    "name": "WizardDuel.Game.Player.Editor",
+    "references": [
+        "WizardDuel.Game",
+        "Unity.RenderPipelines.Universal.Runtime"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ]
+}

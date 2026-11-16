@@ -1,0 +1,6 @@
+{
+    "name": "WizardDuel.Game.Main.Editor",
+    "includePlatforms": [
+        "Editor"
+    ]
+}

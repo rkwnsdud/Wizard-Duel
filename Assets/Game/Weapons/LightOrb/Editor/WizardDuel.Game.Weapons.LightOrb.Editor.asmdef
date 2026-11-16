@@ -1,0 +1,6 @@
+{
+    "name": "WizardDuel.Game.Weapons.LightOrb.Editor",
+    "includePlatforms": [
+        "Editor"
+    ]
+}

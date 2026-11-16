@@ -1,0 +1,6 @@
+{
+    "name": "WizardDuel.Input",
+    "references": [
+        "Unity.InputSystem"
+    ]
+}

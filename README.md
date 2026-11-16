@@ -276,9 +276,9 @@ sequenceDiagram
 ```text
 Wizard-Duel/
 ├─ Assets/
-│  ├─ Audio/                  효과음 라이브러리(Resources/SfxLibrary), 클립, 재생 스크립트, SfxPanel
-│  ├─ Effects/                재사용 가능한 독립 이펙트(Lightning)
-│  ├─ Game/                   서로 참조하는 핵심 게임플레이(단일 게임 어셈블리 경계)
+│  ├─ Audio/                  효과음 라이브러리(Resources/SfxLibrary), 클립, 재생 스크립트, SfxPanel (WizardDuel.Audio)
+│  ├─ Effects/                재사용 가능한 독립 이펙트(Lightning) (WizardDuel.Effects)
+│  ├─ Game/                   서로 참조하는 핵심 게임플레이(WizardDuel.Game 단일 게임 어셈블리 경계)
 │  │  ├─ Common/              카메라 추적 등 기능 공통 코드
 │  │  ├─ Battle/              전투 진행(DuelArena, DuelPlayer), 봇(AI), 무기 스폰
 │  │  ├─ Lobby/               방 목록과 세션, 로비 네트워크(LobbyNetwork)
@@ -286,15 +286,15 @@ Wizard-Duel/
 │  │  ├─ Player/              마법사 프리팹, 이동·조준·공격·체력·상태이상, 캐릭터 아트·셰이더
 │  │  ├─ UI/                  전투 HUD, UI 아트·아이콘, UI 글꼴(Fonts)
 │  │  └─ Weapons/             무기 5종(BasicWand, ExplosionMagicBook, FireCenser, LightningStaff, LightOrb), 공통 계약(Common), 정의(Definitions)
-│  ├─ Input/                  PlayerInputActions 입력 액션과 생성 래퍼
-│  ├─ Map/                    맵 조립, 블록, 배경, 맵 지문, 바닥·벽·부시·스폰 프리팹·아트
+│  ├─ Input/                  PlayerInputActions 입력 액션과 생성 래퍼 (WizardDuel.Input)
+│  ├─ Map/                    맵 조립, 블록, 배경, 맵 지문, 바닥·벽·부시·스폰 프리팹·아트 (WizardDuel.Map)
 │  │  └─ Generation/          맵 생성기(WizardDuel.MapGeneration)
 │  ├─ Scenes/                 게임 본편(Main)과 오프라인 테스트 씬(DuelOfflineTest)
 │  ├─ Settings/               URP 파이프라인·렌더러·볼륨 프로필·카메라 설정
 │  ├─ TextMesh Pro/           TMP 기본 리소스(패키지 경로 고정 제약으로 루트 유지)
 │  ├─ ThirdParty/             외부 에셋 팩(BasicMan, DanielMistage, EricVFXStudio, MagicEffectsPack, MapParts)
-│  ├─ Editor/                 여러 기능에 걸친 에디터 도구(NetworkTestWindow, WeaponHudIconBaker, NetworkPrefabHashRepair)
-│  └─ Tests/                  테스트 실행기(TestSuites)와 기능별 EditMode·런타임 테스트
+│  ├─ Editor/                 여러 기능에 걸친 에디터 도구(NetworkTestWindow, WeaponHudIconBaker, NetworkPrefabHashRepair) (WizardDuel.Editor)
+│  └─ Tests/                  테스트 실행기(TestSuites)와 기능별 EditMode·런타임 테스트 (WizardDuel.EditorTests, WizardDuel.RuntimeTests, WizardDuel.MapGeneration.EditorTests)
 ├─ Deploy/Server/             리눅스 전용 서버 Docker 배포
 ├─ Docs/                      기능별 설계·검증 문서
 └─ Tools/                     모델·애니메이션 보조 스크립트

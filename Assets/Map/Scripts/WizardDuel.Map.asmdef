@@ -1,0 +1,7 @@
+{
+    "name": "WizardDuel.Map",
+    "references": [
+        "WizardDuel.MapGeneration",
+        "Unity.Netcode.Runtime"
+    ]
+}
