@@ -322,6 +322,7 @@ Wizard-Duel/
 - [기본 완드 에셋](Docs/BasicWand/README_KO.md) · [완드 마력탄 VFX](Assets/Game/Weapons/BasicWand/Art/VFX/README_KO.md) · [번개 이펙트](Assets/Effects/Lightning/README.md)
 - [맵 생성](Assets/Map/Generation/README.md)
 - [네트워크 테스트 창과 온라인 흐름](Assets/Editor/Multiplayer/README.md) · [리눅스 전용 서버 배포](Deploy/Server/README.md)
+- [Unity 밖에서 돌리는 보조 스크립트](Tools/README.md)
 
 ## 개발 인원
 

@@ -66,7 +66,7 @@ public class ArenaBackgroundBuilderNew : MonoBehaviour
 
     void Start()
     {
-        // 씬에 맵이 하나뿐인 구형 NetworkDemo 호환: 부모에서 먼저 찾고, 그래도 없으면 하나일 때만 자동 연결한다.
+        // 씬에 맵이 하나뿐인 경우: 부모에서 먼저 찾고, 그래도 없으면 하나일 때만 자동 연결한다.
         // Main처럼 맵이 둘(타이틀/전투)이면 자동 연결하지 않는다. 인스펙터에서 map을 직접 지정해야 한다.
         if (map == null) map = GetComponentInParent<ProceduralMap>();
         if (map == null) map = FindSingleMap();
@@ -409,7 +409,7 @@ public class ArenaBackgroundBuilderNew : MonoBehaviour
         }
     }
 
-    // 맵이 하나뿐인 씬(NetworkDemo) 호환용. Main처럼 맵이 둘이면 null을 돌려준다.
+    // 맵이 하나뿐인 씬용. Main처럼 맵이 둘이면 null을 돌려준다.
     static ProceduralMap FindSingleMap()
     {
 #if UNITY_2022_2_OR_NEWER

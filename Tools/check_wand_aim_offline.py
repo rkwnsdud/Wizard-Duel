@@ -165,5 +165,7 @@ for file, local in [("BasicWandAttack.anim", (0.115895, 0.861220, 0.226995, -0.4
     assert re.findall(r"(?m)^    functionName: (.+)$", txt) == ["FireMagic", "EndAttack"]
     assert re.findall(r"(?m)^  - time: (.+)$", txt)[-2:] == ["0.2", "0.65"]
 report.append("PASS: Lightning source remains separate; only standard FireMagic/EndAttack events in wand copies.")
-(root / "Docs/BasicWand/Attack/lightning-offline-validation.txt").write_text("\n".join(report) + "\n", encoding="utf-8")
+report_file = root / "Logs/BasicWand/lightning-offline-validation.txt"  # git-ignored
+report_file.parent.mkdir(parents=True, exist_ok=True)
+report_file.write_text("\n".join(report) + "\n", encoding="utf-8")
 print("\n".join(report))

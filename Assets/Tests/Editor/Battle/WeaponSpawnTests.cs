@@ -5,7 +5,7 @@ using NUnit.Framework;
 using UnityEditor;
 using UnityEngine;
 
-// A2 WeaponSpawnValidation 체크리스트를 옮긴 EditMode 테스트.
+// 무기 스폰 카탈로그·배치·라운드 규칙을 확인하는 EditMode 테스트.
 public class WeaponSpawnTests
 {
     const BindingFlags PrivateInstance = BindingFlags.Instance | BindingFlags.NonPublic;

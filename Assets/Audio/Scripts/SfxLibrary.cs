@@ -1,7 +1,7 @@
 using System;
 using UnityEngine;
 
-// 게임의 모든 효과음과 그 크기·속도·음 높이를 모은 표. Assets/Resources/SfxLibrary.asset 하나만 쓴다.
+// 게임의 모든 효과음과 그 크기·속도·음 높이를 모은 표. Assets/Audio/Resources/SfxLibrary.asset 하나만 쓴다.
 // 값은 효과음 패널(Tools/Wizard Duel/효과음 패널)에서 들으면서 고친다.
 public sealed class SfxLibrary : ScriptableObject
 {

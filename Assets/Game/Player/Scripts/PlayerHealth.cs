@@ -3,7 +3,7 @@
 public class PlayerHealth : MonoBehaviour
 {
     [SerializeField] private float maxHealth = 100f;
-    [SerializeField, Tooltip("Dying.fbx 안의 mixamo.com 클립(쓰러지는 모션) 길이. 오프라인 더미 리스폰 대기 등에 쓴다. Tools/Player/Connect Dying Motion 메뉴로 자동 연결.")]
+    [SerializeField, Tooltip("Dying.fbx 안의 mixamo.com 클립(쓰러지는 모션) 길이. 오프라인 더미 리스폰 대기 등에 쓴다.")]
     private AnimationClip deathClip;
 
     private float currentHealth;

@@ -26,8 +26,8 @@ public class BasicWandWeapon : WeaponBase, IWeapon, IWeaponReach
 
     private void OnDisable() => transform.localRotation = idleGripRotation;
 
-    // Duel prefabs instantiate their own wand; the PlayerTest scene has these
-    // pose components already. Connect the same grip when the duel wand starts.
+    // Duel prefabs instantiate their own wand, so connect the grip pose
+    // components when the wand starts.
     private void OnEnable() => EnsureGripPose();
     private void Start() => EnsureGripPose();
 

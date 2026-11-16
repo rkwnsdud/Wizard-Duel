@@ -110,5 +110,8 @@ for(const [file,wand] of [['BasicWandAttack.anim',[.115895,.861220,.226995,-.439
  report.push(`${file}: original elbow hinge revision. No elbow axial twist or reverse bend across 1301 Hermite samples at 0.5 ms. Max wrist bend ${maxWrist.toFixed(5)} deg; wand presentation pitch ${pitch} deg; presentation error ${releaseError.toFixed(5)} deg; elbow flexion ${elbowBend.toFixed(2)} deg; elbow outside shoulder ${elbowOutside.toFixed(5)} m, below shoulder ${elbowBelow.toFixed(5)} m; hand-back right/up ${handBackRight.toFixed(5)}/${handBackUp.toFixed(5)}; arm reach ${(reach*100).toFixed(2)}%; max adjacent key rotation ${maxJump.toFixed(2)} deg. All 15 finger tracks equal Idle throughout (max ${maxFinger.toFixed(5)} deg). Only RightArm/RightForeArm/RightHand rotation tracks and matching editor tracks changed. Positions, other bones, event payloads/times, settings unchanged. Idle endpoints pass.`);
 }
 report.push('Finger and wand relative transforms retain the existing Idle grip. No socket, mount, FirePoint, mesh, weapon script, controller or Idle asset writes. Rigid relative transforms prevent animation-induced slip. Previous Unity renders/validation in NeutralWrist describe the preceding pose, not this photo revision. Visual review is left to the user as requested.');
-fs.writeFileSync(path.join(ROOT,'Docs/BasicWand/Attack/neutral-wrist-validation.txt'),report.join('\n')+'\n');
+// The report goes to the git-ignored Logs folder; the clip files above are the only asset writes.
+const REPORT_DIR=path.join(ROOT,'Logs/BasicWand');
+fs.mkdirSync(REPORT_DIR,{recursive:true});
+fs.writeFileSync(path.join(REPORT_DIR,'neutral-wrist-validation.txt'),report.join('\n')+'\n');
 console.log(report.join('\n'));

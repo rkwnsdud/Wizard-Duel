@@ -104,7 +104,7 @@ public class ProceduralMap : MonoBehaviour, ISpawnPointProvider
             blockFactory.ReleaseTemplates();
         }
         // 맵 블록을 다 깔고 나서 배경을 갱신한다. (서버/클라 모두 map.Generate를
-        // 거치므로 NetworkDemo에서 따로 호출할 필요가 없다.)
+        // 거치므로 맵을 쓰는 쪽에서 따로 호출할 필요가 없다.)
         // 같은 오브젝트에 붙은 배경(=자식)만 갱신한다. 같은 씬의 다른 맵(타이틀/전투) 배경을 건드리지 않는다.
         // TitleBackdrop.HideMap처럼 맵이 꺼진 뒤 첫 생성이라면 자식이 비활성일 수 있으니 비활성 포함으로 찾는다.
         if (background == null) background = GetComponentInChildren<ArenaBackgroundBuilderNew>(true);

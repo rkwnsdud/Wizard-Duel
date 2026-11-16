@@ -155,5 +155,6 @@ for filename in ("BasicWandAttack.anim", "BasicWandAttack_DummyGrip.anim"):
     report.append(line)
     print(line)
 
-(root / "Docs/BasicWand/Attack/offhand-wrist-validation.txt").write_text(
-    "\n".join(report) + "\n", encoding="utf-8")
+report_file = root / "Logs/BasicWand/offhand-wrist-validation.txt"  # git-ignored
+report_file.parent.mkdir(parents=True, exist_ok=True)
+report_file.write_text("\n".join(report) + "\n", encoding="utf-8")
