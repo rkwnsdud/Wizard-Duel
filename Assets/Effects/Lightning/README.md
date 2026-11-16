@@ -16,12 +16,11 @@ Lightning/
 ├── Shaders/
 │   └── LightningBeam.shader
 └── Textures/
-    ├── T_VFX_Zap_Lightning_01.tga
-    └── T_VFX_Zap_LUT_03.tga
+    └── T_VFX_Zap_Lightning_01.tga
 ```
 
 - `LightningBeam.mat`: Tint (0.08, 0.35, 1, 1), Intensity 8, Render Queue 3000.
-- `LightningBeam.shader`: 셰이더 이름은 `ReusableEffects/Lightning Beam`입니다. `_LightningTex`에 `T_VFX_Zap_Lightning_01.tga`, `_LUT`에 `T_VFX_Zap_LUT_03.tga`를 씁니다. 폴더 밖 의존성은 URP 패키지의 셰이더 include뿐입니다.
+- `LightningBeam.shader`: 셰이더 이름은 `ReusableEffects/Lightning Beam`입니다. `_LightningTex`에 `T_VFX_Zap_Lightning_01.tga`를 씁니다. LUT 프로퍼티는 없습니다. 폴더 밖 의존성은 URP 패키지의 셰이더 include뿐입니다.
 
 ## 프리팹 구조
 

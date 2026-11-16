@@ -64,7 +64,7 @@ neutral_quat = "{x: %.9g, y: %.9g, z: %.9g, w: %.9g}" % (
     idle_hand.x, idle_hand.y, idle_hand.z, idle_hand.w)
 report = []
 
-for filename in ("BasicWandAttack.anim", "BasicWandAttack_DummyGrip.anim"):
+for filename in ("BasicWandAttack.anim",):
     file = folder / filename
     text = file.read_text(encoding="utf-8")
     curve_blocks, a, b = sections(text, "  m_RotationCurves:\n", "  m_CompressedRotationCurves:", "  - curve:\n")

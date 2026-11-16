@@ -55,15 +55,14 @@ function rewrite(text,start,end,prefix,values,editor=false){const [a,b]=section(
  }
  let i=0;return block.replace(keyRE(),(all,prefix,t,v,ip,iv,op,ov)=>{const k=keys[i++];assert(Math.abs(k.t-(+t))<1e-5);return prefix+format(k.v)+ip+format(k.i)+op+format(k.o);});
  }).join('')+text.slice(b);}
-for(const [file,wand] of [['BasicWandAttack.anim',[.115895,.861220,.226995,-.439708]],['BasicWandAttack_DummyGrip.anim',[.077292,.877672,.151386,-.448108]]]){
+for(const [file,wand] of [['BasicWandAttack.anim',[.115895,.861220,.226995,-.439708]]]){
  const filename=path.join(DIR,file), original=read(filename), rot=curves(original,'Rotation'), pos=curves(original,'Position');
  const neutral=idle[HAND][0].v, lower=unit(pos[HAND][0].v), shaft=rotate(qm(neutral,unit(wand)),[0,0,1]);
  console.log(file,'neutral wrist',angle(rotate(neutral,[0,1,0]),lower),'shaft/forearm',angle(shaft,lower));
  const release=world(rot,pos,.2), forward=[0,0,1];
- const dummy=file.includes('Dummy');
  // A shallow raised wand presentation avoids forcing the original grip into
  // a backwards elbow bend. Projectile direction/event code is unchanged.
- const pitch=dummy?36:32, aim=rotate(axis([1,0,0],-pitch*Math.PI/180),forward);
+ const pitch=32, aim=rotate(axis([1,0,0],-pitch*Math.PI/180),forward);
  // Solve hand-back right/up and wand aim together. Elbow placement is relative
  // to the shoulder/body, not an extra requirement to fold it outside the wrist.
  let handQ=between(rotate(unit(wand),forward),aim);
@@ -72,7 +71,7 @@ for(const [file,wand] of [['BasicWandAttack.anim',[.115895,.861220,.226995,-.439
  const handDirection=rotate(handQ,[0,1,0]);
  // A small wrist swing lets the forearm extend further forward while leaving
  // the hand orientation intact. No independent axial wrist roll is introduced.
- const wristAxis=rotate(axis(handDirection,(dummy?310:340)*Math.PI/180),unit(cross(handDirection,forward)));
+ const wristAxis=rotate(axis(handDirection,340*Math.PI/180),unit(cross(handDirection,forward)));
  const wristSwing=axis(wristAxis,24*Math.PI/180);
  const lowerDir=rotate(wristSwing,handDirection);
  const elbowQ=qm(qm(wristSwing,handQ),qi(neutral));

@@ -59,8 +59,7 @@ source_file = root / "Assets/Game/Weapons/Common/Art/BaseCast.anim"
 source = curves(source_file)
 idle = curves("WizardCombatIdle_BasicWandGrip.anim")
 report = []
-for file, local in [("BasicWandAttack.anim", (0.115895, 0.861220, 0.226995, -0.439708)),
-                    ("BasicWandAttack_DummyGrip.anim", (0.077292, 0.877672, 0.151386, -0.448108))]:
+for file, local in [("BasicWandAttack.anim", (0.115895, 0.861220, 0.226995, -0.439708))]:
     data = curves(file)
     pos = positions(file)
     unchanged = ("Hips", "Spine02", "Spine01", "Spine", "LeftUpLeg", "LeftLeg", "LeftFoot",

@@ -179,8 +179,7 @@ def rewrite_editor(text, new_samples):
     return text[:a] + "".join(out) + text[b:]
 
 
-for filename, local in (("BasicWandAttack.anim", (.115895, .861220, .226995, -.439708)),
-                        ("BasicWandAttack_DummyGrip.anim", (.077292, .877672, .151386, -.448108))):
+for filename, local in (("BasicWandAttack.anim", (.115895, .861220, .226995, -.439708)),):
     file = FOLDER / filename
     text = file.read_text(encoding="utf-8")
     rotations = data_of(text, "  m_RotationCurves:\n", "  m_CompressedRotationCurves:")

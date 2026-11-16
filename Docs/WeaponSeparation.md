@@ -58,6 +58,6 @@ id 0은 "무기 없음"이다. 무기 이름과 시전 클립은 각 무기 폴�
 
 ## 무기별 메모
 
-- **번개 지팡이**: 프리팹은 `Art/Models/FixedStaff/LightningStaff_Low.fbx`(`LightningStaff_Fixed.fbx`를 `Tools/WeaponMesh/decimate_weapon.py`로 줄인 것)와 `Staff_Original`·`Crystal_Cyan_Emission` 재질을 쓴다. 수정체는 얼룩진 원래 발광 텍스처 대신 균일한 발광색을 쓴다(`FixedStaff/README_KO.txt`). `Art/Models/NewStaff/`와 `LightningStaff_Model.fbx`는 예전 모델이다. 그 모델의 수정체 얼룩은 발광 맵이 수정체를 다 덮지 않아서 생겼고, 원본은 그대로 두고 별도 맵 `LightningStaff_Emission_CrystalFilled.png`를 만들어 보정했었다. 번개 시각 효과는 [번개 이펙트](../Assets/Effects/Lightning/README.md)를 쓴다.
-- **빛 반사 구슬**: `Assets/Game/Weapons/LightOrb/Editor/LightOrbGlbImporter.cs`가 `Art/OrbVisual/LightOrb.glb`를 메시·재질·광학 데이터 하위 에셋으로 가져온다. 이 임포터를 지우면 구슬 외형이 깨진다. 굴절은 렌더러 기능 `LightOrbRefractionFeature`로 그리며 `Assets/Settings/PC_Renderer.asset`과 `Mobile_Renderer.asset`에 이미 들어 있다.
+- **번개 지팡이**: 프리팹은 `Art/Models/FixedStaff/LightningStaff_Low.fbx`(`LightningStaff_Fixed.fbx`를 `Tools/WeaponMesh/decimate_weapon.py`로 줄인 것)와 `Staff_Original`·`Crystal_Cyan_Emission` 재질을 쓴다. 수정체는 얼룩진 원래 발광 텍스처 대신 균일한 발광색을 쓴다(`FixedStaff/README_KO.txt`). 번개 시각 효과는 [번개 이펙트](../Assets/Effects/Lightning/README.md)를 쓴다.
+- **빛 반사 구슬**: `Assets/Game/Weapons/LightOrb/Editor/LightOrbGlbImporter.cs`가 `Art/OrbVisual/LightOrb.glb`를 메시·재질·광학 데이터 하위 에셋으로 가져온다. 이 임포터를 지우면 구슬 외형이 깨진다. 굴절은 렌더러 기능 `LightOrbRefractionFeature`로 그리며 `Assets/Settings/PC_Renderer.asset`에 들어 있다.
 - **기본 완드**: 모델·손 메시 보정·자세는 [기본 완드 에셋](BasicWand/README_KO.md)에 있다.
