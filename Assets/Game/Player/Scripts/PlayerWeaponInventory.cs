@@ -35,8 +35,8 @@ public class PlayerWeaponInventory : MonoBehaviour
         Sfx.Play(id);
     }
 
-    // 무기 프리팹으로 실제 무기 생성
-    private WeaponBase CreateWeapon(WeaponBase prefab, Transform socket)
+    // 네트워크 슬롯과 오프라인 테스트가 같은 비활성 생성·소켓 보정을 쓴다.
+    public static WeaponBase CreateWeapon(WeaponBase prefab, Transform socket)
     {
         var holder = new GameObject("Inactive weapon holder");
         holder.SetActive(false);
@@ -45,7 +45,7 @@ public class PlayerWeaponInventory : MonoBehaviour
         weapon.gameObject.SetActive(false);
         weapon.transform.SetParent(socket, false);
         // Some existing scene-derived prefabs retain a world-sized root offset.
-        // Match the existing DuelOfflineTest socket normalization.
+        // Normalize those to the socket in both inventory and offline test setup.
         if (weapon.transform.localPosition.sqrMagnitude > 1f)
             weapon.transform.SetLocalPositionAndRotation(Vector3.zero, Quaternion.identity);
         Destroy(holder);

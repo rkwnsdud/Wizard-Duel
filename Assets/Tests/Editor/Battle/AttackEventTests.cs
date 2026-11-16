@@ -302,6 +302,48 @@ public class AttackEventTests
         Assert.That(remote.FindWeapon(0), Is.Null);
     }
 
+    [Test]
+    public void OfflineWeaponSetup_PreservesSocketTransformsAndReusesEachDefinition()
+    {
+        var catalog = AssetDatabase.LoadAssetAtPath<WeaponSpawnCatalog>("Assets/Game/Battle/WeaponSpawnCatalog.asset");
+        PlayerAttack attack = Player("Offline weapon setup", out Transform socket);
+        var wand = AddWeapon<AttackTestWeapon>(socket, 1);
+        var inventory = attack.gameObject.AddComponent<PlayerWeaponInventory>();
+        Awake(attack);
+        Assert.That(attack.TryEquipWeapon(wand), Is.True);
+        var offline = attack.gameObject.AddComponent<DuelOfflineTest>();
+        const BindingFlags fields = BindingFlags.Instance | BindingFlags.NonPublic;
+        typeof(DuelOfflineTest).GetField("playerAttack", fields).SetValue(offline, attack);
+        typeof(DuelOfflineTest).GetField("weaponCatalog", fields).SetValue(offline, catalog);
+        var addWeapons = typeof(DuelOfflineTest).GetMethod("AddExtraWeapons", fields);
+        foreach (WeaponDefinition definition in catalog.Entries)
+            if (definition.id != wand.Id) LogAssert.Expect(LogType.Error, DestroyInEditMode);
+
+        addWeapons.Invoke(offline, null);
+        var originals = attack.GetComponentsInChildren<WeaponBase>(true);
+        Assert.That(originals.Length, Is.EqualTo(catalog.Entries.Length));
+        Assert.That(attack.CurrentWeapon, Is.SameAs(wand));
+        Assert.That(inventory.NetworkAuthority, Is.Null);
+        foreach (WeaponDefinition definition in catalog.Entries)
+        {
+            WeaponBase weapon = attack.FindWeapon(definition.id);
+            Assert.That(weapon, Is.Not.Null, definition.name);
+            if (weapon == wand) continue;
+            Assert.That(inventory.CreateMissingWeapon(definition.id), Is.Null, "Offline lookup uses the socket children.");
+            Transform source = definition.prefab.transform;
+            bool normalize = source.localPosition.sqrMagnitude > 1f;
+            Assert.That(weapon.transform.parent, Is.SameAs(socket));
+            Assert.That(weapon.gameObject.activeSelf, Is.False);
+            Assert.That(weapon.name, Is.EqualTo(definition.prefab.name));
+            Assert.That(Vector3.Distance(weapon.transform.localPosition, normalize ? Vector3.zero : source.localPosition), Is.LessThan(0.00001f));
+            Assert.That(Quaternion.Angle(weapon.transform.localRotation, normalize ? Quaternion.identity : source.localRotation), Is.LessThan(0.001f));
+            Assert.That(weapon.transform.localScale, Is.EqualTo(source.localScale));
+        }
+
+        addWeapons.Invoke(offline, null);
+        CollectionAssert.AreEquivalent(originals, attack.GetComponentsInChildren<WeaponBase>(true));
+    }
+
     // 투사체는 실행 중에 쓰는 Destroy로 스스로 지운다. 편집 모드에서는 오류만 남고 TearDown이 지운다.
     static readonly Regex DestroyInEditMode = new Regex("Destroy may not be called from edit mode");
 

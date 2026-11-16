@@ -106,26 +106,18 @@ public sealed class DuelOfflineTest : MonoBehaviour
             Debug.Log($"[OfflineTest] Equipped id={target.Id} {target.name}", this);
     }
 
-    // 꺼진 부모 아래에서 만들어, 소켓에 붙기 전에 무기의 Awake·OnEnable이 돌지 않게 한다.
+    // 인벤토리와 같은 비활성 생성·소켓 보정을 쓰고, 오프라인 선택용 이름만 맞춘다.
     void AddExtraWeapons()
     {
         Transform socket = playerAttack.CurrentWeapon != null ? playerAttack.CurrentWeapon.transform.parent : null;
         if (socket == null) return;
-        var holder = new GameObject("Offline test weapon holder");
-        holder.SetActive(false);
         foreach (WeaponDefinition definition in weaponCatalog.Entries)
         {
             WeaponBase prefab = definition.prefab;
             if (System.Array.Exists(playerAttack.GetComponentsInChildren<WeaponBase>(true), weapon => weapon.Id == definition.id)) continue;
-            WeaponBase weapon = Instantiate(prefab, holder.transform, false);
+            WeaponBase weapon = PlayerWeaponInventory.CreateWeapon(prefab, socket);
             weapon.name = prefab.name;
-            weapon.gameObject.SetActive(false);
-            weapon.transform.SetParent(socket, false);
-            // 씬에 놓였던 자리를 루트에 그대로 저장한 프리팹(화염 향로)은 손에서 수십 m 떨어지므로 소켓 원점에 둔다.
-            if (weapon.transform.localPosition.sqrMagnitude > 1f)
-                weapon.transform.SetLocalPositionAndRotation(Vector3.zero, Quaternion.identity);
         }
-        Destroy(holder);
     }
 
     // 플레이어와 더미를 각자의 스폰 위치에 새로 세운다.
