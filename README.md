@@ -15,7 +15,7 @@
 
 ## 게임 소개
 
-Wizard Duel은 두 플레이어가 마법사가 되어 겨루는 쿼터뷰 1대1 대전 게임입니다. 방장이 시드와 형태, 장애물과 부시의 밀도를 고르면 그 설정대로 결투장이 만들어집니다. 두 마법사는 벽 뒤로 피하고 부시에 몸을 숨기며, 상대를 먼저 쓰러뜨리는 쪽이 이깁니다. 서버 없이 즐기는 AI 대전에서는 30초마다 새 무기가 맵에 떨어져 판의 흐름을 바꿉니다.
+Wizard Duel은 두 플레이어가 마법사가 되어 겨루는 쿼터뷰 1대1 대전 게임입니다. 방장이 시드와 형태, 장애물과 부시의 밀도를 고르면 그 설정대로 결투장이 만들어집니다. 두 마법사는 벽 뒤로 피하고 부시에 몸을 숨기며, 상대를 먼저 쓰러뜨리는 쪽이 이깁니다. 전투 중에는 10초마다 새 무기가 맵에 떨어져 판의 흐름을 바꿉니다.
 
 <table>
 <tr>
@@ -47,7 +47,7 @@ Wizard Duel은 두 플레이어가 마법사가 되어 겨루는 쿼터뷰 1대1
 </tr>
 <tr>
 <td valign="top"><img src="Docs/Readme/screenshots/weapon-spawn.jpg" alt="마법 무기가 등장했다는 알림이 뜬 전투 장면" width="100%"><br><b>무기 등장</b><br><sub>새 무기가 떨어지면 화면 위쪽에 알림이 뜹니다.</sub></td>
-<td valign="top"><img src="Docs/Readme/screenshots/result.jpg" alt="BLUE WIN! 승자 표시" width="100%"><br><b>승자 표시</b><br><sub>승부가 나면 3초 뒤 같은 로비 화면으로 돌아갑니다.</sub></td>
+<td valign="top"><img src="Docs/Readme/screenshots/result.jpg" alt="BLUE WIN! 승자 표시" width="100%"><br><b>승자 표시</b><br><sub>승부가 나면 5초 뒤 같은 로비 화면으로 돌아갑니다.</sub></td>
 </tr>
 </table>
 
@@ -65,7 +65,7 @@ flowchart TD
     L -->|방장이 게임 시작| B{{전투}}
     A -->|게임 시작| B
     B -->|한쪽 체력 0| R[승자 표시]
-    R -->|3초 뒤| L2[같은 로비 화면으로 복귀]
+    R -->|5초 뒤| L2[같은 로비 화면으로 복귀]
 ```
 
 1. **맵 생성**을 누르면 방이 열리고 6자리 맵 코드가 나옵니다. 상대는 **코드로 참가**에서 이 코드를 입력합니다.
@@ -127,10 +127,10 @@ flowchart TD
 </tr>
 </table>
 
-- 전투가 시작되고 30초 뒤에 첫 무기가 떨어지고, 그 뒤로 30초마다 하나씩 더 떨어집니다. 무기가 떨어지면 화면 위쪽에 알림이 뜹니다.
-- 무기는 두 개까지 들 수 있습니다. 두 칸이 모두 찬 상태에서 주우면 손에 든 무기와 바뀝니다.
-- 무기 스폰은 지금 **AI 대전에서만** 열립니다. 전용 서버로 하는 온라인 대전에서는 아직 무기가 떨어지지 않습니다.
-- 피해량과 사거리 같은 수치는 각 무기 프리팹(`Assets/Game/Weapons/`)에서 조정합니다.
+- 전투가 시작되고 10초 뒤에 첫 무기가 떨어지고, 그 뒤로 10초마다 하나씩 더 떨어집니다. 바닥에는 아무도 줍지 않은 무기가 두 개까지만 놓입니다. 무기가 떨어지면 화면 위쪽에 알림이 뜹니다.
+- 무기는 두 개까지 들 수 있습니다. 두 칸이 모두 찬 상태에서 주우면 손에 든 무기와 바뀝니다. 이미 가진 무기와 같은 무기는 주울 수 없습니다.
+- 온라인 대전과 AI 대전 모두 같은 규칙으로 무기가 떨어집니다.
+- 피해량과 사거리 같은 수치는 각 무기 프리팹(`Assets/Game/Weapons/`)에서 조정합니다. 무기 id·이름·아이콘·스폰 여부는 무기 정의(`Assets/Game/Weapons/Definitions/`)에 있고, 새 무기를 붙이는 순서는 [무기 구조 문서](Docs/WeaponSeparation.md)에 정리되어 있습니다.
 
 ## 맵
 
@@ -162,7 +162,7 @@ flowchart TD
 
 ## AI 대전
 
-시작 화면에서 **AI 대전**을 고르면 서버에 접속하지 않고 AI 상대와 겨룹니다. AI 로비 화면에서 맵 설정과 함께 내 무기, 상대 무기, 난이도를 고릅니다. 전투 규칙과 판정은 온라인 대전과 같은 코드로 동작하고, 전투 중에 떨어지는 무기도 주워 쓸 수 있습니다.
+시작 화면에서 **AI 대전**을 고르면 서버에 접속하지 않고 AI 상대와 겨룹니다. AI 로비 화면에서 맵 설정과 함께 내 무기, 상대 무기, 난이도를 고릅니다. 내 PC가 서버 역할을 함께 맡는 로컬 호스트로 돌기 때문에 전투 규칙과 판정은 온라인 대전과 같은 코드로 동작하고, 전투 중에 떨어지는 무기도 주워 쓸 수 있습니다.
 
 | 난이도 | 반응 시간 | 조준 오차 | 공격을 피할 확률 | 벽 뒤로 숨을 확률 |
 |---|:---:|:---:|:---:|:---:|
@@ -191,11 +191,10 @@ git clone git@github.com:rkwnsdud/Wizard-Duel.git
 
 에디터 메뉴 **Tools > Wizard Duel > Network Test** 창에서 서버와 클라이언트를 한 번에 띄울 수 있습니다.
 
-1. **Mode**를 `Main`으로 둡니다.
-2. **Build**를 눌러 `Build/LobbyTest/WizardDuel.exe`를 만듭니다.
-3. **1v1**을 누르면 서버 하나와 클라이언트 창 두 개가 뜹니다. 한쪽에서 맵을 생성하고 다른 쪽에서 코드로 참가합니다.
+1. **Build**를 눌러 `Assets/Scenes/Main.unity`를 `Build/LobbyTest/WizardDuel.exe`로 빌드합니다.
+2. **1v1**을 누르면 서버 하나와 클라이언트 창 두 개가 뜹니다. 한쪽에서 맵을 생성하고 다른 쪽에서 코드로 참가합니다.
 
-실행 기록은 `Logs/LobbyTest/`에 남고, **Open Logs**로 바로 열 수 있습니다.
+실행 기록은 `Logs/LobbyTest/`에 남고, **Open Logs**로 바로 열 수 있습니다. 창의 나머지 버튼은 [네트워크 테스트 문서](Assets/Editor/Multiplayer/README.md)에 정리되어 있습니다.
 
 <details>
 <summary>실행 파일을 직접 띄우는 방법</summary>
@@ -216,6 +215,15 @@ WizardDuel.exe -join 127.0.0.1 -screen-fullscreen 0 -screen-width 1280 -screen-h
 | `-join <주소>` | 접속할 서버 주소. IP와 도메인 모두 가능하고, 생략하면 `127.0.0.1` |
 
 </details>
+
+### 테스트
+
+에디터 메뉴 **Tools > Tests**에서 테스트를 돌립니다.
+
+- **가벼운 테스트 실행**: 플레이 모드에 들어가지 않는 테스트만 돌립니다. 결과는 `Logs/TestResults/light.txt`에도 남습니다.
+- **전체 테스트 실행 (플레이 모드 포함)**: 플레이 모드 테스트까지 돌립니다. 도메인을 여러 번 다시 불러와 느리고, 결과는 `Logs/TestResults/full.txt`에 남습니다.
+
+테스트 코드는 모두 `Assets/Tests/`에 있습니다.
 
 ## 전용 서버
 
@@ -260,8 +268,11 @@ sequenceDiagram
     S-->>G: 승자 표시 후 로비 화면으로
 ```
 
-- **명중 판정**은 공격한 쪽 클라이언트가 하고, **체력**은 서버가 관리합니다. 조준한 대로 맞는 손맛을 살리면서 체력과 승패는 한곳에서 정합니다.
-- **무기 스폰과 인벤토리**는 서버 권한으로 처리합니다. 줍기와 교체는 요청을 보내 확인받은 뒤에 반영됩니다. 다만 스폰은 맵을 직접 세워 두는 쪽에서만 열리기 때문에, 맵을 지문만 뽑고 지우는 전용 서버에서는 아직 열리지 않고 AI 대전의 호스트에서만 동작합니다.
+- **명중 판정**은 공격한 쪽 클라이언트가 하고, **체력**은 서버가 관리합니다. 조준한 대로 맞는 손맛을 살리면서 체력과 승패는 한곳에서 정합니다. 각 화면의 체력바는 서버가 보낸 체력 값을 그대로 보여 줍니다.
+- **공격 하나**에는 공격을 시작할 때 정한 공격 번호와 쏜 무기 id가 붙습니다. 쏜 뒤에 무기를 바꿔도 그 공격의 연출, 소리, 피해, 화상 같은 적중 효과는 모두 쏜 무기를 따릅니다.
+- **서버의 보고 처리**는 한곳에 모여 있습니다. 판이 끝난 뒤 도착한 보고, 이미 쓰러진 상대에 대한 보고, 다른 방이나 이전 판의 플레이어에 대한 보고, 같은 타격을 다시 보낸 보고는 버리고 이유를 서버 로그에 남깁니다. 전체 규칙은 [서버 보고 처리 규칙](Docs/ServerHitReportRules.md)에 있습니다.
+- **무기 스폰과 인벤토리**는 서버 권한으로 처리합니다. 서버는 판마다 맵에서 두 플레이어가 모두 갈 수 있는 자리를 골라 두고 그 자리에 무기를 떨어뜨립니다. 줍기와 교체는 요청을 보내 확인받은 뒤에 반영됩니다. 전용 서버는 맵 지문을 확인한 뒤 맵을 지우지만, 그 전에 스폰 자리와 맵 배치를 기억해 두므로 온라인에서도 같은 규칙으로 동작합니다. 자세한 규칙은 [무기 스폰 문서](Docs/WeaponSpawning.md)에 있습니다.
+- **로비 화면의 거절·오류 사유**는 문장 대신 코드(`LobbyReason`)로 주고받고, 각 화면이 한국어 안내 문구로 바꿔 보여 줍니다.
 - **부시 시야**는 각 화면에서 따로 계산합니다. 숨은 상대는 그리지 않을 뿐이고, 충돌과 위치 동기화는 그대로입니다.
 
 ## 프로젝트 구조
@@ -296,9 +307,21 @@ Wizard-Duel/
 │  ├─ Editor/                 여러 기능에 걸친 에디터 도구(NetworkTestWindow, WeaponHudIconBaker, NetworkPrefabHashRepair) (WizardDuel.Editor)
 │  └─ Tests/                  테스트 실행기(TestSuites)와 기능별 EditMode·런타임 테스트 (WizardDuel.EditorTests, WizardDuel.RuntimeTests, WizardDuel.MapGeneration.EditorTests)
 ├─ Deploy/Server/             리눅스 전용 서버 Docker 배포
-├─ Docs/                      기능별 설계·검증 문서
-└─ Tools/                     모델·애니메이션 보조 스크립트
+├─ Docs/                      기능별 설계·규칙 문서, README 이미지, 효과음 생성 스크립트
+├─ Tools/                     Unity 밖에서 돌리는 보조 스크립트(무기 메시 감량, 완드 VFX·공격 자세 생성, 에디터 창 캡처)
+├─ Wizard_Idle_Walk/          마법사 모델 Blender 원본(전투 Idle·걷기). 게임은 이 FBX의 사본을 씀
+└─ Wizard_Rig_Idle_Fixed/     마법사 모델 Blender 원본의 이전 단계(오른손 손가락 리깅)
 ```
+
+### 문서
+
+- [무기 구조와 새 무기 추가](Docs/WeaponSeparation.md)
+- [무기 스폰](Docs/WeaponSpawning.md) · [무기 등장 알림](Docs/WeaponSpawnNotification/README.md)
+- [무기 패시브와 쿨다운](Docs/WeaponPassivesAndCooldown.md) · [이동 속도 배율과 상태이상](Docs/MoveSpeedAndStatusEffects.md)
+- [서버 보고 처리 규칙](Docs/ServerHitReportRules.md)
+- [기본 완드 에셋](Docs/BasicWand/README_KO.md) · [완드 마력탄 VFX](Assets/Game/Weapons/BasicWand/Art/VFX/README_KO.md) · [번개 이펙트](Assets/Effects/Lightning/README.md)
+- [맵 생성](Assets/Map/Generation/README.md)
+- [네트워크 테스트 창과 온라인 흐름](Assets/Editor/Multiplayer/README.md) · [리눅스 전용 서버 배포](Deploy/Server/README.md)
 
 ## 개발 인원
 

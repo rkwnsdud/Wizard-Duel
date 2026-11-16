@@ -1,76 +1,50 @@
-# 1대1 온라인 연결 테스트
+# 네트워크 테스트 창과 온라인 흐름
 
-`Assets/Scenes/NetworkDemo.unity`에서 Netcode for GameObjects로 두 플레이어를 연결한다. 직접 연결(UDP 7777)만 사용하며 Relay는 쓰지 않는다.
+이 폴더의 `NetworkTestWindow.cs`(에디터 어셈블리 `WizardDuel.Editor`)는 게임 본편 `Assets/Scenes/Main.unity`를 빌드해 전용 서버와 클라이언트를 한 번에 띄우는 에디터 창이다. 연결은 Netcode for GameObjects와 Unity Transport의 직접 연결(UDP 7777)만 쓰고 Relay는 쓰지 않는다.
 
-## Main 대기실 테스트
+## Network Test 창
 
-**Tools > Wizard Duel > Network Test** 창의 **Mode**를 `Main`으로 두고 **Build**를 누르면 `Assets/Scenes/Main.unity`만 Development 빌드해 `Build/LobbyTest/WizardDuel.exe`에 만든다. **Server**는 창 없는 전용 서버로 UDP 7777을 열고, **Client**는 보이는 창에서 `-join 127.0.0.1` 주소를 설정해 시작 화면을 띄운다. `-join`은 방을 만들거나 참가하지 않으므로, 클라이언트 화면에서 **Create**를 누르거나 방장이 보여 준 6자리 코드로 **Join**한다. **Remote Client (limeskin.kr)**는 같은 빌드를 `-join limeskin.kr`로 띄워 리눅스 서버(`Deploy/Server/README.md`)에 접속하며, 로그는 `remote1.log`부터 남는다. Unity 6.1 이상의 Unity Transport는 도메인 이름을 해석하므로 IP 대신 도메인을 쓸 수 있다. 서버와 같은 커밋으로 빌드해야 접속이 거절되지 않는다.
+메뉴 **Tools > Wizard Duel > Network Test**로 연다.
 
-서버 하나가 방을 여러 개 열고(`LobbyNetwork`의 **Max Rooms**, 기본 50개), 방마다 확정 참가자 두 명을 받는다. 방은 6자리 코드로 구분하고, 각 방의 로비·전투·결과는 따로 진행된다. 플레이어 오브젝트는 그 방의 두 클라이언트에게만 보이므로 다른 방의 플레이어·공격·체력은 전달되지 않는다. 방이 가득 차면 새 방 생성은 `The server is full.`로 거절된다. Main 대기실에서 방을 만들면 현재 `TitleBackdrop.Current`의 전체 설정을 복사하고, 서버는 전달받은 시드를 그대로 저장해 두 참가자에게 동기화한다. 시드는 입력란에서 편집하거나 **새로 뽑기**로 바꿀 수 있으며, 다른 설정을 변경해도 시드는 유지된다. 접속한 두 참가자와 서버는 프로토콜 버전 4를 사용하므로 같은 빌드로 실행해야 한다. 확정 참가자 중 한 명이라도 나가면(강제 종료 포함) 그 방만 닫고, 다른 방과 서버는 그대로 돈다. 서버가 소켓을 다시 만들지 않으므로 Unity Transport 2.7.5 이상이 필요하다(아래 "방을 닫는 이유" 참고). 빌드와 로그는 NetworkDemo와 분리해 `Build/LobbyTest/`, `Logs/LobbyTest/server.log`, `client1.log`, `client2.log`에 둔다. `Open Logs`에서 같은 로그 폴더를 열 수 있고, `[LobbyPreview]` 로그의 시드·형태·크기·스폰 셀·hash를 비교한다. 상세 비교 기록은 `Logs/LobbyTest/stage3-preview-comparison.json`에 있다.
+| 버튼 | 하는 일 |
+|---|---|
+| **Build** | 바뀐 씬을 저장할지 물은 뒤 `Assets/Scenes/Main.unity` 한 씬을 Windows 64비트 Development 빌드로 `Build/LobbyTest/WizardDuel.exe`에 만든다. 띄운 프로세스가 있거나 플레이 모드 중이면 exe가 잠겨 있어 누를 수 없다. |
+| **Server** | `-batchmode -nographics -server`로 창 없는 전용 서버를 띄운다. 서버는 하나만 띄울 수 있다. |
+| **Client** | `-join 127.0.0.1`과 1280x720 창 모드로 클라이언트를 하나 더 띄운다. 이름은 `client1`, `client2` 순으로 붙는다. |
+| **1v1** | 서버 하나와 클라이언트 둘을 함께 띄운다. |
+| **Remote Client (limeskin.kr)** | `-join limeskin.kr`로 클라이언트를 띄워 리눅스 전용 서버([배포 문서](../../../Deploy/Server/README.md))에 접속한다. 이름은 `remote1`부터 붙는다. |
+| **Kill** / **Close All** | 띄운 프로세스를 하나씩 또는 모두 강제 종료한다. 에디터를 끄면 띄운 프로세스도 모두 닫는다. |
+| **Open Logs** | `Logs/LobbyTest/`를 연다. 로그는 프로세스 이름별로 `server.log`, `client1.log`, `remote1.log`처럼 남는다. |
 
-### Main에서 전투 시작
+- 빌드한 뒤 `Assets` 아래 파일이 바뀌면 빌드 시각 옆에 `(assets changed since)`가 붙는다. 이때는 다시 빌드한다.
+- 플레이 모드에 들어가 도메인을 다시 불러와도, 띄운 프로세스 목록은 PID로 다시 찾아 이어서 보여 준다.
+- `-join`은 접속할 주소만 정한다. 클라이언트 화면에서 방을 만들거나 방장이 알려 준 6자리 코드로 참가한다.
+- 서버와 클라이언트는 같은 커밋으로 빌드해야 한다. 접속 요청에 실린 프로토콜 버전(`LobbyJoinRequest.CurrentVersion`)이 서버와 다르면 접속을 거절한다. 원격 서버에 붙을 때도 마찬가지다.
+- 창을 클릭해 포커스를 준 클라이언트만 키보드·마우스 입력을 받는다.
 
-- 두 명이 확정 참가하면 방장의 **게임 시작** 버튼이 활성화된다. 서버도 방장 권한·참가 인원·`Lobby` 단계를 검증하며, 시작 후 설정 변경과 중복 시작을 거절한다.
-- `Preparing` 단계에서 서버와 두 클라이언트가 저장된 시드·맵 설정으로 전투 맵을 만든다. `[Arena] Ready`의 fingerprint는 논리 레이아웃과 두 월드 스폰 위치·회전의 SHA-256이다. 세 프로세스의 지문이 일치한 뒤에만 방장(파랑)과 참가자(빨강)를 소환한다.
-- 소환 이펙트가 끝나면 `Battle` 단계로 바뀌고 소유자의 이동·조준·공격 입력을 켠다. 대기실 미리보기를 감추고 카메라는 내 플레이어를 따라간다.
-- 시작 전에는 서버의 `playerobjects=0 mapgenerated=False`를 확인한다. 시작 버튼을 반복해도 `Battle preparing`·`Players spawned`가 한 번씩만 기록되고, 두 플레이어의 스폰 위치·회전이 `[Arena] Spawn`과 일치해야 한다.
-- 상대 이탈 시 플레이어와 맵을 정리하고 시작 화면으로 돌아간다. 승패 표시, 연결을 유지한 대기실 복귀·재대결, 공개 무기 설정은 후속 작업이다.
-- 기존 전투 시작 검증 기록은 `Logs/LobbyTest/stage5-validation.txt`와 `stage5-editmode.xml`에 있다. 해당 시점 EditMode 448개와 Main 빌드, 실제 서버·클라이언트 2개의 반복 시작·이탈·새 방 시작을 검증했다. 최신 `main` 통합 후 재검증 결과는 `Logs/Issue19Pr/`에 기록한다.
+## 온라인 흐름
 
-### Main 전투의 공격·피해·사망
+1. **방 만들기와 참가**: 서버 하나가 방을 여러 개 연다(`LobbyNetwork`의 **Max Rooms**, 기본 50개). 방은 숫자 6자리 코드로 구분하고 방마다 두 명까지 들어온다. 방이 가득 찬 서버에 새 방을 만들면 "서버에 방이 가득 찼어요. 잠시 후 다시 시도해 주세요.", 두 명이 들어간 방에 참가하면 "이미 두 명이 참가한 대기실이에요."가 뜬다.
+2. **로비 화면**: 방장이 맵 설정을 바꾸면 서버가 검사해 두 참가자에게 같은 설정을 보낸다. 두 명이 모이면 방장이 게임을 시작할 수 있다.
+3. **전투 준비**: 시작이 승인되면 서버와 두 클라이언트가 같은 설정으로 전투 맵을 만든다. 각 클라이언트는 맵 지문(논리 레이아웃과 두 스폰 위치·회전의 SHA-256)을 서버에 보내고, 서버 지문과 다르면 그 클라이언트의 연결을 끊는다("맵이 서버와 달라서 연결이 끊겼어요."). 전용 서버는 지문, 스폰 위치, 무기 스폰 자리, 맵 배치만 기억하고 자기 맵은 곧바로 지운다. 그래서 여러 방이 같은 월드 좌표를 써도 서로의 맵에 닿지 않는다.
+4. **전투**: 두 클라이언트의 지문이 모두 맞으면 방장은 `DuelWizard-1`, 참가자는 `DuelWizard-2`로 소환된다. 플레이어 오브젝트는 그 방의 두 클라이언트에게만 보이므로 다른 방의 플레이어·공격·체력은 전달되지 않는다. 소환 효과가 끝나면 이동·조준·공격 입력이 켜지고 무기 스폰이 시작된다.
+5. **결과와 복귀**: 한쪽이 쓰러지면 결과를 보여 주고, `resultDuration`(기본 5초) 뒤 같은 방의 로비 화면으로 돌아간다.
+6. **방 닫기**: 두 참가자 중 한 명이라도 나가면(강제 종료 포함) 그 방만 닫고 남은 사람을 내보낸다. 다른 방과 서버는 그대로 돈다. 강제 종료는 Unity Transport의 Disconnect Timeout(5초) 뒤에 감지된다.
 
-- 공격한 클라이언트가 충전·발사·명중을 판정한다. 서버는 보고받은 피해를 체력에 반영하고 첫 패배를 알린다. 클라이언트가 보고한 명중과 피해량을 신뢰한다.
-- `PlayerAttack`은 서버 응답을 기다리지 않고 시전 애니메이션을 시작한다. `PlayAttackRpc`는 상대에게 충전값을 전달한다.
-- 소유자의 `FireMagic`에서 `IWeapon.Fire`를 호출한다. `IShotSink.Broadcast`는 로컬 연출을 즉시 재생하고 `ShotRpc`로 상대에게 같은 시작점·끝점을 전달한다.
-- `IShotSink.Hit`은 `ReportHitRpc`로 대상·공격 ID·타격 번호·피해량을 서버에 보고한다. 보고는 공격자 소유의 네트워크 오브젝트에서만 보낼 수 있다.
-- `DuelCombatState`는 (공격자 슬롯, 공격 ID, 타격 번호) 중복, 자기 피해, 잘못된 피해량, 사망 이후 피해를 무시한다. 체력은 0 아래로 내려가지 않는다.
-- 체력은 서버만 쓰는 `NetworkVariable<float>`로 동기화한다. 각 화면의 `PlayerHealth`는 체력이 0이면 입력과 애니메이터를 멈춘다. 첫 패배는 `DuelArena`를 거쳐 `LobbyNetwork.OnPlayerDefeated`로 전달된다.
-- 온라인 무기는 `IWeapon`을 구현한다. 현재는 `DuelLightningWeapon`을 사용하며, 기존 `LightningWeapon`·`LightningBolt`와 PlayerTest 오프라인 공격은 독립적이다.
-- 상대 캐릭터의 콜라이더도 클라이언트에서 켜 두어 명중 판정에 사용한다. 상대의 이동·조준·공격 입력은 꺼 둔다.
-- 서버 로그: `[Combat] Hit … health=`, `[Arena] … defeated`, `[Lobby] Player defeated … loser= winner=`
-- `Logs/Issue46/`의 검증 기록은 이전 서버 판정 구현의 기록이다.
+> Unity Transport 2.7.4에서는 Windows에서 강제 종료된 상대에게 계속 보내면 수신 버퍼가 새어, 몇 초 뒤 서버가 아무 패킷도 받지 못했다. 2.7.5에서 고쳐졌으므로 서버는 소켓을 다시 만들지 않고 방만 닫는다. Transport 버전을 2.7.5 아래로 내리지 않는다.
 
-검사와 인계:
+전투 판정은 공격한 클라이언트가 명중을 판정해 `ReportHitRpc`로 보고하고, 서버가 `ServerHitReport`에서 받을지 버릴지 정한 뒤 체력을 깎는다. 받는 보고와 버리는 보고의 규칙은 [서버 보고 처리 규칙](../../../Docs/ServerHitReportRules.md)에 있다.
 
-> 아래 Stage 3/4 결과와 최종 상태는 자동 시드 정책을 사용하던 당시의 역사 기록이다. 현재 seed pass-through 동작의 검증 결과로 해석하지 않는다.
+## 로그로 확인하기
 
-- Unity Test Runner의 EditMode에서 `LobbySessionTests`, `NetworkLobbySnapshotTests`, `LobbyNetworkSettingsTests`, `NetworkMapSettingsTests`, `LobbyInputTests`를 실행한다.
-- `Logs/LobbyTest/stage3-validation.txt`에는 412/412 통과, Main Development 빌드 성공, 실제 UI 미리보기 hash 일치가 기록되어 있다. 이는 Stage 3의 이전 검증 결과이며, Stage 4 전체 EditMode 결과는 아래에 기록한다.
-- `Logs/LobbyTest/stage4-validation.txt`에는 방 종료·서버 재시작·오프라인 참가 취소와 최종 Main 실제 UI 시나리오, 호스트·게스트 preview hash 대조를 기록했다. Unity Test Runner에서 `Assembly-CSharp-Editor`와 `WizardDuel.MapGeneration.EditorTests`를 포함해 EditMode 전체를 실행한다. `stage4-complete.xml` 결과는 422/422 통과, 실패·건너뜀 0이다. 여기에 DynamicUpdate에서 가상 키보드 `QueueStateEvent`로 실행한 `LobbyInputTests` 6개가 포함된다. 이것은 물리 키보드 Esc 입력을 검증한 결과가 아니다.
-- `Logs/NetworkTest/LobbyRegression/`의 Stage 4 NetworkDemo 로그는 seed 7301 fingerprint `002A0CBA456D3E38F8B6FBA8B63A246EFBDDB462163C2CEED7DB6AE16EEBD1E6` 일치, 1명 준비 중 미스폰, 2명 준비 후 두 플레이어의 스폰 위치·회전 일치, 3번째 참가 거절, 게스트 강제 종료 후 방 닫힘과 서버 재수신을 확인한다. 첫 Demo Development 빌드는 성공(0 errors, 485 warnings)했으며 기존 Sentis/`ConvGeneric.compute` 셰이더 경고가 포함됐다. 후속 증분 빌드 `stage4-networkdemo-incremental-build.json`은 성공, 0 errors, 0 warnings이다.
-- 같은 NetworkDemo 런타임 로그에는 서버와 client1/client2에서 각각 2회 `LightningPreview requires a PreviewVisual LineRenderer reference.` 오류가 있다. 기존 프리팹의 `LightningWeapon.Awake`가 참조 없는 `LightningPreview`를 `AddComponent`하는 경로에서 나온다. 무기·플레이어·Demo 파일은 기준 브랜치와 diff가 없음을 독립 검토했지만 기준 바이너리는 재실행하지 않아 기준 빌드에서도 재현된다고 단정하지 않는다. 이 오류는 현재 대기실 변경 범위 밖이며 그대로 기록한다.
-- 최종 상태: Stage 4 EditMode 422/422(실패·건너뜀 0), Main 및 NetworkDemo 증분 Development 빌드, Main 실제 Create/Join/Leave UI 확인이 완료됐다. Main 첫 빌드는 0 errors, 485 기존 셰이더 warnings였고 최종 증분 빌드는 0 errors, 0 warnings였다. 실제 UI에서 코드 206204의 호스트·게스트 자동 시드 357524259와 Circle(36,26), spawnA (32,10), spawnB (3,15), hash C5CCBDE2가 일치했고, 두 실행 모두 playerobjects=0/mapgenerated=false였다. 호스트 Leave 후 게스트가 시작 화면으로 돌아오고 서버 UDP 7777 재수신 및 같은 호스트의 새 방 202405 생성도 확인했다. 최종 바이너리에는 임시 InputDiagnostics/ValidationRunner가 없다. 가상 키보드 테스트는 통과했지만 IMGUI Esc 주입은 raw InputSystem 이벤트를 만들지 않으므로 물리 키보드 Esc 동작은 확인하지 않았다.
-- PR #37은 기존 UI 변경 PR이며 현재 Open, base는 `main`이다. 이 후속 네트워크 브랜치의 비교 기준은 `issue-19-lobby`이며, `codex/issue-19-lobby-network`는 `af9704f7e4b7593eb38265841276f314daec4a67`에서 분기했다. PR #37 병합 뒤에는 분기점부터 현재 HEAD까지 이 브랜치의 커밋만 최신 `main`으로 옮겨 다시 검증한다.
+`Logs/LobbyTest/`의 로그에서 다음 줄을 찾으면 흐름을 따라갈 수 있다.
 
-## 실행
+- `[Lobby] Listening UDP=… maxrooms=…`: 서버가 열렸다. 리눅스 배포 스크립트도 이 줄을 기다린다.
+- `[Lobby] Connecting`, `[Lobby] Joined code=…`: 클라이언트가 접속해 방에 들어갔다.
+- `[Arena] Ready … fingerprint=…`, `[Arena] Spawn 0/1`: 각 프로세스가 만든 전투 맵의 지문과 스폰 위치. 서버와 두 클라이언트의 값이 같아야 한다.
+- `[Lobby] Client … map ready (n/2)`, `[Lobby] Players spawned`: 지문이 맞은 클라이언트 수와 소환.
+- `[WeaponSpawn] Round …`: 판마다 고른 스폰 자리 수와 떨어진 무기.
+- `[Combat] Hit … health=`: 서버가 받은 명중과 남은 체력. `[Combat] Hit dropped reason=…`, `[Combat] DoT dropped reason=…`은 버린 보고와 이유다.
+- `[Lobby] Player defeated`, `[Lobby] Closed`: 승부가 난 판과 닫힌 방.
 
-- **Tools > Wizard Duel > Network Test** 창에서 **Mode: NetworkDemo**를 선택해 명령어 없이 테스트한다.
-  - **Build**: 이 씬만 Development 빌드로 `Build/NetworkTest/`에 만든다. 빌드 뒤 에셋이 바뀌면 `(assets changed since)`가 붙으니 다시 누른다.
-  - **Server**: 창 없는 전용 서버. **Client**: 1280x720 창으로 띄워 바로 `127.0.0.1`에 접속하며, 누를 때마다 하나씩 늘어난다. **1v1**: 서버와 클라이언트 두 개.
-  - 목록의 **Kill**은 강제 종료다. **Close All**로 모두 닫고, 에디터를 끄면 함께 닫힌다. 로그는 **Open Logs**(`Logs/NetworkTest/`).
-- 게임 화면: 서버 IP(같은 PC는 `127.0.0.1`)를 입력하고 **Join**한다. 호스트 모드는 없고 서버는 항상 전용 서버다. **Server** 버튼(에디터/개발 빌드)은 그 인스턴스를 전용 서버로 띄운다.
-- 빌드 실행 인자
-  - `WizardDuel.exe -batchmode -nographics -server -logFile server.log`: 창 없는 전용 서버
-  - 서버에 `-mapSeed 1234`를 추가하면 Inspector의 시드 대신 해당 시드로 맵을 만든다. 클라이언트의 로컬 시드 설정은 사용하지 않는다.
-  - `WizardDuel.exe -join 127.0.0.1 -screen-fullscreen 0 -screen-width 1280 -screen-height 720`: 실행 즉시 접속
-
-세 번째 접속은 `This match already has two players.`로 거절된다. 한 명이라도 나가면(강제 종료 포함) 방이 닫혀 남은 플레이어는 `A player left, so the room was closed.`를 받고 메뉴로 돌아간다. 서버는 새 방을 다시 연다. 강제 종료는 UnityTransport의 Disconnect Timeout(5초) 뒤에 감지된다. 창을 클릭해 포커스를 준 쪽만 WASD/마우스 입력을 받는다.
-
-> 방을 닫는 이유: Windows에서 강제 종료된 상대에게 계속 보내면 Unity Transport 2.7.4의 수신 버퍼가 새어, 몇 초 뒤 서버가 아무 패킷도 받지 못한다. 연결을 끊고 소켓을 새로 만들어야 회복된다. 이 문제는 Unity Transport 2.7.5에서 고쳐졌고, 프로젝트는 2.7.5를 쓴다. NetworkDemo는 방이 하나라 기존처럼 방을 닫고 다시 연다.
-
-## 구성
-
-- `NetworkDemo`: 연결 UI, 접속 승인, 맵 설정 동기화, 방 닫기. **빈 슬롯 순서**로 `Player-1`(파랑)/`Player-2`(빨강)을 정하고, `ISpawnPointProvider`가 제공하는 두 스폰 위치와 회전에 배치한다.
-- `ProceduralMap`: 서버가 Inspector의 생성 설정(또는 `-mapSeed`)으로 맵을 생성한다. `NetworkMapSettings`로 시드, 자동/고정 크기, 형태, 장애물 밀도, 대칭, 노이즈 강도·스케일을 접속한 클라이언트에 전달한다. 씬의 `Generate On Awake`는 꺼 두어 클라이언트가 서버 설정을 받기 전에 맵을 생성하지 않는다.
-- 클라이언트는 같은 설정으로 맵을 생성한 뒤 논리 레이아웃과 두 월드 스폰 위치·회전의 SHA-256 지문을 준비 응답에 보낸다. 서버 맵과 두 클라이언트의 지문이 모두 일치한 뒤 두 플레이어를 함께 생성한다. 한 명만 접속한 동안은 스폰하지 않으며, 지문이 다르면 해당 접속을 종료한다.
-- `NetworkDemoPlayer`: 소유자에게만 `PlayerMovement`·`PlayerAim`·`PlayerAttack`·`CharacterController`·카메라 추적을 켜고, 상대는 받은 이동량으로 걷기 애니메이션만 재생한다.
-- `Assets/Player/Player-1.prefab`: 기존 마법사에 `NetworkObject`, 소유자 권한 `NetworkTransform`(위치·Y 회전), `NetworkDemoPlayer`를 붙인 프리팹. 공격(`PlayerAttack`·`LightningWeapon`)은 `Player.prefab`과 같게 구성했지만 자기 화면에서만 보이고, 체력은 아직 없다.
-- `Assets/Player/Player-2.prefab`: `Player-1`의 변형으로 로브 재질(`RobeRed.mat`)과 `slot`만 바꾼다.
-- 두 프리팹은 `Assets/DefaultNetworkPrefabs.asset`에 등록되어 있고, 이 목록이 씬의 NetworkManager **Network Prefabs Lists**에 연결되어 있어야 2P가 스폰된다.
-
-## 맵 동기화 검증
-
-- Unity Test Runner의 EditMode에서 `NetworkMapSettingsTests`를 실행하면 서로 다른 시드와 자동/고정 크기의 설정을 실제 Netcode 버퍼에 직렬화한 뒤 논리 레이아웃과 스폰 셀이 보존되는지 확인한다.
-- 서버를 `-mapSeed 7301`, `-mapSeed 0`, `-mapSeed -11`로 각각 실행하고 클라이언트 두 개를 접속한다. 세 로그의 `[Map] Ready` 설정·지문과 `[Map] Spawn` 위치·회전이 같은지 비교한다.
-- 첫 클라이언트만 접속했을 때 `[Player] Spawned`가 없어야 한다. 두 번째 클라이언트가 준비된 뒤 서버에 `map ready (2/2)`와 두 플레이어의 배치 로그가 생기며, 각 클라이언트의 `[Player] Spawned` 위치·회전은 해당 슬롯의 `[Map] Spawn`과 같아야 한다.
-- 세 번째 접속 거절 및 한 명 이탈 후 방 재개 흐름은 동일하다. 재접속한 두 클라이언트도 새로 맵 준비를 완료해야 스폰된다.
+로비와 연결 규칙의 테스트는 `Assets/Tests/Editor/Lobby/`에 있다. 플레이 모드가 필요한 테스트(`PlayMode` 범주)는 **Tools > Tests > 전체 테스트 실행 (플레이 모드 포함)**에서만 돌고, 나머지는 **가벼운 테스트 실행**에도 포함된다.

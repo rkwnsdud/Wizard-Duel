@@ -2,7 +2,7 @@
 
 ## 원본 분석
 
-- 원본: `Assets/AssetsPack/Eric VFX Studio/Free Game VFX/Prefab/FX_Fireball.prefab`
+- 원본: `Assets/ThirdParty/EricVFXStudio/Free Game VFX/Prefab/FX_Fireball.prefab`
 - 구조: 루트 `FX_Fireball` 파티클 아래 `Particle_up (1)`와 그 자식 `Particle_up`, `half`, `ball`, `aura2` 4개, `Ring`, `Glow`가 있다. 파티클 시스템은 총 11개다.
 - 구체 및 균열: `ball`의 `firerock 3`(AlphaBlendFlow), 루트의 `firerock 2`(AdditiveFlow). `firerock.png`에 검은 암석과 주황색 균열이 직접 그려져 있다.
 - 외곽 흐름과 잔상: `aura2` 계층의 `decal_fire10` 및 `Aura_Flame_001`, `half`의 `Gradient_Beam_007`, `Ring`의 `ring_03a`를 사용한다. `decal_fire10.png`에도 주황색 선이 직접 포함된다.
@@ -12,7 +12,9 @@
 
 ## 완드 전용 복사본
 
-- 프리팹: `ArcaneBoltVFX.prefab`
+- 프리팹: `ArcaneBoltVFX.prefab`(날아가는 마력탄). 명중 이펙트 `ArcaneBoltHit.prefab`은 따로 만든 것이며 `Prefabs/ArcaneBolt.prefab`이 함께 참조한다.
+- 생성 스크립트: `Tools/create_arcane_bolt_vfx.py`가 원본에서 `ArcaneBoltVFX.prefab`과 전용 머티리얼·셰이더를 이 폴더에 새 GUID로 만든다(`blender -b --python Tools/create_arcane_bolt_vfx.py`). 다시 돌리면 이 폴더의 같은 이름 파일을 덮어쓴다.
+- 주의: 스크립트는 출력 파일 경로로 GUID를 정한다. 지금 파일들은 예전 폴더(`Assets/Weapons/Basic Wand/VFX/`)에서 만든 GUID를 그대로 갖고 옮겨 왔으므로, 이 폴더에서 다시 돌리면 GUID가 바뀌어 `ArcaneBolt.prefab`의 `ArcaneBoltVFX` 참조가 끊긴다. 다시 만들었다면 그 참조를 새로 연결한다.
 - 전용 머티리얼: `ArcaneCrackedCore`, `ArcaneInnerShell`, `ArcaneWhiteCore`, `ArcaneCrackLightning`, `ArcaneFlow`, `ArcaneBeam`, `ArcaneRim`, `ArcaneSparks`.
 - 전용 URP 셰이더: `ArcaneAdditiveFlow`, `ArcaneAlphaBlendFlow`.
 - 원본 텍스처, 메시, 파티클 이동 곡선, UV 흐름은 그대로 참조한다. 텍스처 파일과 알파 채널은 수정하지 않았다. 복제한 셰이더가 따뜻한 텍스처 RGB만 밝기에 따라 진보라 `#7954C9`, 연보라 `#B79AFF`, 백색 `#F8F5FF` 범위로 다시 매핑한다. 머티리얼 색과 파티클 색도 같은 팔레트로 바꿨다.
