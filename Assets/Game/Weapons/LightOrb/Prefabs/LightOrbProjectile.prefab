@@ -379,7 +379,7 @@ MonoBehaviour:
     m_Bits: 1536
   hitMask:
     serializedVersion: 2
-    m_Bits: 1545
+    m_Bits: 1609
   maxReflections: 3
   reflectPrefab: {fileID: 2944396702758532163, guid: 1f45b785e6b84ea591d3984740d320d3, type: 3}
   beamGlow: {fileID: 6049892847002474729}

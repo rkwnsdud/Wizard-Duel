@@ -8,6 +8,7 @@ public class ArcaneBoltProjectile : MonoBehaviour
     [SerializeField] private float hitRadius = 0.12f;
     [SerializeField] private GameObject hitEffectPrefab;
 
+
     public float Speed => speed;
     public float MaxRange => maxRange;
 
@@ -34,7 +35,7 @@ public class ArcaneBoltProjectile : MonoBehaviour
         float moveDistance = Mathf.Min(speed * deltaTime, maxRange - distanceTraveled);
 
         RaycastHit[] hits = Physics.SphereCastAll(transform.position, hitRadius, transform.forward,
-                            moveDistance, mask, QueryTriggerInteraction.Ignore);
+                            moveDistance, mask, QueryTriggerInteraction.Collide);
 
         System.Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
 
@@ -42,10 +43,17 @@ public class ArcaneBoltProjectile : MonoBehaviour
         {
             PlayerHealth target = hit.collider.GetComponentInParent<PlayerHealth>();
 
-            if (target != null && target == ownerHealth)
+            if (target != null &&
+               (target == ownerHealth || hit.collider.gameObject.layer != LayerMask.NameToLayer("Hitbox")))
             {
                 continue;
             }
+
+            if (target == null && hit.collider.isTrigger)
+            {
+                continue;
+            }
+
             if (target != null)
             {
                 WeaponHitEffect.Spawn(hitEffectPrefab, hit.point);
