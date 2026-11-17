@@ -22327,6 +22327,8 @@ MonoBehaviour:
   resultBanner: {fileID: 409040972}
   network: {fileID: 2056890470}
   aiDuel: {fileID: 1326954170}
+  lobbyBgm: {fileID: 8300000, guid: 47546891a77166e4091cf55936abee4c, type: 3}
+  battleBgm: {fileID: 8300000, guid: 8cc8c2313ab48bb44b7a87ee14776921, type: 3}
 --- !u!4 &1326954169
 Transform:
   m_ObjectHideFlags: 0

@@ -39,8 +39,8 @@ public class MainFlow : MonoBehaviour
     // AI 로비 화면의 "게임 설정" 탭에서 고른 값. 이번 실행 동안 기억한다.
     AiDuelOptions aiOptions = NetworkDuelConfig.DefaultAiOptions();
     AudioSource bgmSource;
-    AudioClip lobbyBgm;
-    AudioClip battleBgm;
+    [SerializeField] AudioClip lobbyBgm;
+    [SerializeField] AudioClip battleBgm;
 
     void Awake()
     {
@@ -48,8 +48,6 @@ public class MainFlow : MonoBehaviour
         bgmSource.playOnAwake = false;
         bgmSource.loop = true;
         bgmSource.spatialBlend = 0f;
-        lobbyBgm = Resources.Load<AudioClip>("BGM/LobbyBGM");
-        battleBgm = Resources.Load<AudioClip>("BGM/BattleBGM");
         PlayBgm(lobbyBgm);
     }
 
