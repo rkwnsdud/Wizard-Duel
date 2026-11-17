@@ -48,7 +48,10 @@ public class WeaponFiringTests
             initialize.Invoke(root.AddComponent<PlayerHealth>(), null);
             var health = target.AddComponent<PlayerHealth>();
             initialize.Invoke(health, null);
-            target.AddComponent<BoxCollider>();
+            var hitbox = new GameObject("Hitbox");
+            hitbox.transform.SetParent(target.transform, false);
+            hitbox.layer = LayerMask.NameToLayer("Hitbox");
+            hitbox.AddComponent<BoxCollider>().isTrigger = true;
             var weapon = Object.Instantiate(AssetDatabase.LoadAssetAtPath<DuelLightningWeapon>(
                 "Assets/Game/Weapons/LightningStaff/Prefabs/DuelLightningStaff.prefab"), root.transform);
             var serialized = new SerializedObject(weapon);

@@ -93,7 +93,7 @@ public class LightOrbProjectile : MonoBehaviour
         Vector3 nextPoint = currentPoint + direction * moveDistance; 
 
         RaycastHit[] hits = Physics.RaycastAll(currentPoint, direction, moveDistance, hitMask,
-            QueryTriggerInteraction.Ignore);
+            QueryTriggerInteraction.Collide);
         
         // 가까운 순서대로 정렬
         System.Array.Sort(hits, (a, b) => 
@@ -109,7 +109,13 @@ public class LightOrbProjectile : MonoBehaviour
             PlayerHealth target =
                 candidate.collider.GetComponentInParent<PlayerHealth>();
 
-            if (target != null && target == ownerHealth)
+            if (target != null &&
+               (target == ownerHealth || candidate.collider.gameObject.layer != LayerMask.NameToLayer("Hitbox")))
+            {
+                continue;
+            }
+
+            if (target == null && candidate.collider.isTrigger)
                 continue;
 
             hit = candidate;

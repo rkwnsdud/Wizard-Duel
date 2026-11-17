@@ -85,7 +85,7 @@ public sealed class FireCenserWeapon : WeaponBase, IWeapon, IWeaponReach
         float sphereRadius = attackRange + 2f;
         PlayerHealth owner = GetComponentInParent<PlayerHealth>();
         float halfAngle = attackAngle * 0.5f;
-        foreach (Collider hit in Physics.OverlapSphere(sphereCenter, sphereRadius, ~0, QueryTriggerInteraction.Ignore))
+        foreach (Collider hit in Physics.OverlapSphere(sphereCenter, sphereRadius, LayerMask.GetMask("Hitbox"), QueryTriggerInteraction.Collide))
         {
             PlayerHealth candidate = hit.GetComponentInParent<PlayerHealth>();
             if (candidate == null || candidate == owner || candidate.IsDead) continue;
@@ -116,7 +116,7 @@ public sealed class FireCenserWeapon : WeaponBase, IWeapon, IWeaponReach
         for (int i = 0; i < colliders.Length; i++)
         {
             Collider collider = colliders[i];
-            if (collider == null || collider.isTrigger || !collider.enabled) continue;
+            if (collider == null || collider.gameObject.layer != LayerMask.NameToLayer("Hitbox") || !collider.enabled) continue;
             Bounds bounds = collider.bounds;
             Vector3 center = bounds.center;
             Vector3 extents = bounds.extents;

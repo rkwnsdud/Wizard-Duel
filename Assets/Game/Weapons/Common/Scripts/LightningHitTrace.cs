@@ -18,7 +18,7 @@ public static class LightningHitTrace
         Vector3 end = start + direction * range;
         Vector3 halfExtents = new Vector3(width / 2f, height / 2f, range / 2f);
         foreach (Collider collider in Physics.OverlapBox((start + end) / 2f, halfExtents,
-            Quaternion.LookRotation(direction, Vector3.up), Physics.AllLayers, QueryTriggerInteraction.Ignore))
+            Quaternion.LookRotation(direction, Vector3.up), LayerMask.GetMask("Hitbox"), QueryTriggerInteraction.Collide))
         {
             PlayerHealth candidate = collider.GetComponentInParent<PlayerHealth>();
             if (candidate == null || candidate == owner || candidate.IsDead) continue;

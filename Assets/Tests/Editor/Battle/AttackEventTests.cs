@@ -352,7 +352,10 @@ public class AttackEventTests
         var target = new GameObject("Attack target with a body");
         created.Add(target);
         target.transform.position = position;
-        target.AddComponent<BoxCollider>();
+        var hitbox = new GameObject("Hitbox");
+        hitbox.transform.SetParent(target.transform, false);
+        hitbox.layer = LayerMask.NameToLayer("Hitbox");
+        hitbox.AddComponent<BoxCollider>().isTrigger = true;
         return target.AddComponent<PlayerHealth>();
     }
 

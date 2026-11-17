@@ -62,13 +62,21 @@ public sealed class ExplosionFireball : MonoBehaviour
         if (step > 0f)
         {
             RaycastHit[] hits = Physics.SphereCastAll(position, settings.HitRadius, direction, step,
-                settings.HitMask, QueryTriggerInteraction.Ignore);
+                settings.HitMask, QueryTriggerInteraction.Collide);
             System.Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
             foreach (RaycastHit hit in hits)
             {
                 if (IsOwner(hit.collider)) continue;
                 PlayerHealth target = hit.collider.GetComponentInParent<PlayerHealth>();
-                if (target != null && target.IsDead) continue;
+                if (target != null && (target.IsDead || hit.collider.gameObject.layer != LayerMask.NameToLayer("Hitbox")))
+                {
+                    continue;
+                }
+                if (target == null && hit.collider.isTrigger)
+                {
+                    continue;
+                }
+
                 // 구체 중심에서 터지므로 벽에 닿으면 표면보다 반지름만큼 앞에서 터진다.
                 Explode(position + direction * hit.distance);
                 return;
@@ -109,7 +117,7 @@ public sealed class ExplosionFireball : MonoBehaviour
         var victims = new List<PlayerHealth>();
         if (radius <= 0f) return victims;
         foreach (Collider collider in Physics.OverlapSphere(center, radius, targetMask,
-                     QueryTriggerInteraction.Ignore))
+                     QueryTriggerInteraction.Collide))
         {
             PlayerHealth candidate = collider.GetComponentInParent<PlayerHealth>();
             if (candidate == null || candidate == owner || candidate.IsDead || victims.Contains(candidate))

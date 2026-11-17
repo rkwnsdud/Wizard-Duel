@@ -2,6 +2,8 @@
 
 무기는 공통 계약(`Assets/Game/Weapons/Common/Scripts/`)을 구현한 프리팹과, 그 프리팹을 가리키는 무기 정의(`Assets/Game/Weapons/Definitions/`)로 이루어진다. 무기 코드는 Netcode를 모른다. 네트워크 전달은 `DuelPlayer`가 맡고, 무기는 받은 `IShotSink`로 연출과 명중만 넘긴다.
 
+플레이어의 이동 충돌은 루트 `CharacterController`가 맡고, 피격 범위는 자식 `Hitbox`의 트리거 `CapsuleCollider`로 조절한다. 현재 피격 캡슐은 반지름 0.5, 높이 2.2, 중심 Y 1.1이며 `DuelWizard-2`는 기본 프리팹의 Hitbox를 상속한다. 프로젝트 6번 레이어의 이름은 `Hitbox`이며, 무기 대상 검색은 이 레이어와 `QueryTriggerInteraction.Collide`를 사용한다. 이동용 콜라이더와 일반 트리거는 명중 대상에서 제외하고, 벽·장애물 검사는 트리거를 무시한다. 테스트의 피격 대상도 같은 레이어의 트리거로 구성한다.
+
 ## 무기 목록
 
 | id | 무기 | 정의 | 무기 컴포넌트 | 스폰 |
