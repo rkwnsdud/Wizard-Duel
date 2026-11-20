@@ -71,11 +71,20 @@ public class BlockFactory : MonoBehaviour
     {
         int spawnIndex = cell == 'B' ? 0 : cell == 'O' ? 1 : -1;
         if (spawnIndex >= 0) spawnCells[spawnIndex].Add(position);
-        if (cell != '.' && cell != '#' && cell != BushRegions.Symbol) yield break;
+        if (cell != '.' && cell != '#' && cell != 'D' && cell != BushRegions.Symbol) yield break;
 
         yield return CreateBlock(floorBlocks, position, parent);
         if (cell == '#')
             yield return CreateBlock(wallBlocks, position, parent);
+        if (cell == 'D')
+        {
+            // Destructible walls must keep their own renderer so it can disappear
+            // with the block. Baking it into the static map mesh leaves an intact wall behind.
+            Block block = (Block)CreateBlock(wallBlocks, position, parent, false);
+            DestructibleWallBlock destructible = block.GetComponent<DestructibleWallBlock>();
+            if (destructible == null) destructible = block.gameObject.AddComponent<DestructibleWallBlock>();
+            yield return block;
+        }
         if (cell == BushRegions.Symbol)
         {
             if (bushBlocks == null || bushBlocks.Length == 0)
@@ -100,11 +109,11 @@ public class BlockFactory : MonoBehaviour
         }
     }
 
-    IBlock CreateBlock(Block[] variants, Vector3 position, Transform parent)
+    IBlock CreateBlock(Block[] variants, Vector3 position, Transform parent, bool combineRenderer = true)
     {
         Block block = variants[random.Next(variants.Length)];
         Quaternion rotation = Quaternion.Euler(0f, random.Next(4) * 90f, 0f);
-        if (combiner != null)
+        if (combiner != null && combineRenderer)
         {
             // Block.Create가 놓는 자리와 같다: 프리팹의 위치에 칸 위치를 더하고, 회전은 바꾸고, 스케일은 프리팹 그대로다.
             Transform source = block.transform;

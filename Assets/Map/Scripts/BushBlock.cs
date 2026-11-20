@@ -2,7 +2,7 @@ using UnityEngine;
 
 // 부시 칸에서 바닥 위에 까는 덤불(갈대). 이동과 투사체를 막지 않도록 콜라이더 없이 렌더러만 둔다.
 // 내 캐릭터가 들어간 덩어리만 SetFaded(true)로 반투명하게 그린다. 상대 화면에서는 늘 불투명하다.
-public class BushBlock : Block
+public class BushBlock : Block, IEnvironmentDestructible
 {
     [Tooltip("반투명으로 그릴 때 모든 머티리얼 슬롯에 대신 끼울 머티리얼. 비우면 반투명으로 바뀌지 않는다.")]
     [SerializeField] Material fadedMaterial;
@@ -12,6 +12,20 @@ public class BushBlock : Block
     Material[][] fadedMaterials;
 
     public bool Faded { get; private set; }
+    public int CellX { get; private set; }
+    public int CellZ { get; private set; }
+    public bool IsDestroyed { get; private set; }
+
+    public void SetCell(int x, int z) { CellX = x; CellZ = z; }
+
+    public void ApplyDestroyed(bool burning)
+    {
+        if (IsDestroyed) return;
+        IsDestroyed = true;
+        if (burning) EnvironmentBurnEffect.Spawn(transform.position);
+        gameObject.SetActive(false);
+        Destroy(gameObject);
+    }
 
     void Awake() => Cache();
 

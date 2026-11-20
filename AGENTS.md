@@ -38,7 +38,7 @@ Wizard-Duel에서 일하는 에이전트를 위한 작업 안내입니다. 게�
 - **온라인·AI·오프라인은 같은 전투 코드(`DuelPlayer`, `PlayerAttack`, `ServerHitReport`)를 쓴다.**
   - AI 대전은 로컬 호스트(`LocalHost` 세션 모드)로 돈다.
   - 오프라인 테스트 씬은 같은 플레이어 프리팹에 무기를 직접 붙인다(스폰·줍기 없음). 모드별 `if`를 늘리지 말고, 로컬 처리만 끼워 넣는다.
-- **접속 프로토콜 버전:** 아래가 바뀌면 `LobbyJoinRequest.CurrentVersion`을 1 올리고 그 위 주석에 한 줄 적는다(지금 9).
+- **접속 프로토콜 버전:** 아래가 바뀌면 `LobbyJoinRequest.CurrentVersion`을 1 올리고 그 위 주석에 한 줄 적는다(지금 11).
   - 서버와 클라이언트가 주고받는 메시지 형식, RPC 인자
   - 같은 시드에서 나오는 맵(`MapLayoutGenerator` 튜닝 값)
   - 버전이 다르면 서버가 접속을 거절하므로, 원격 서버도 같은 커밋으로 다시 배포해야 한다.

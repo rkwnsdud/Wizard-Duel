@@ -19,12 +19,13 @@ public class ExplosionMagicWeaponTests : PlayModeTestFixture
     ExplosionMagicWeapon weapon;
     Transform firePoint;
 
-    sealed class ShotSink : IShotSink
+    sealed class ShotSink : IShotSink, IEnvironmentShotSink
     {
         public readonly List<string> Order = new List<string>();
         public readonly List<ShotEvent> Shots = new List<ShotEvent>();
         public readonly List<(uint id, int index, PlayerHealth target, float damage)> Hits =
             new List<(uint, int, PlayerHealth, float)>();
+        public readonly List<IEnvironmentDestructible> EnvironmentHits = new List<IEnvironmentDestructible>();
         public void Broadcast(ShotEvent shot)
         {
             Shots.Add(shot);
@@ -34,6 +35,10 @@ public class ExplosionMagicWeaponTests : PlayModeTestFixture
         {
             Hits.Add((attack.Id, index, target, damage));
             Order.Add("hit");
+        }
+        public void EnvironmentHit(AttackInfo attack, IEnvironmentDestructible target, bool burning)
+        {
+            EnvironmentHits.Add(target);
         }
     }
 
@@ -189,6 +194,32 @@ public class ExplosionMagicWeaponTests : PlayModeTestFixture
         Assert.That(victims, Has.No.Member(dead));
         Assert.That(victims, Has.No.Member(outside));
         Assert.That(victims, Has.No.Member(behindWall));
+    }
+
+    [UnityTest]
+    public IEnumerator Explosion_DoesNotTreatTheCandidateWallAsAnOccluder()
+    {
+        var wallObject = new GameObject("Blast target wall") { layer = WallLayer };
+        wallObject.transform.position = Origin + new Vector3(1.1f, 0f, 0f);
+        wallObject.AddComponent<BoxCollider>().size = new Vector3(.4f, 2f, 1f);
+        DestructibleWallBlock wall = wallObject.AddComponent<DestructibleWallBlock>();
+        yield return null;
+        Physics.SyncTransforms();
+
+        var sink = new ShotSink();
+        ExplosionFireball fireball = ExplosionFireball.Spawn(new ExplosionFireball.Settings
+        {
+            Attack = new AttackInfo(18, weapon.Id),
+            Start = Origin,
+            Direction = Vector3.forward,
+            Range = 0f,
+            ExplosionRadius = 2f,
+            BlockerMask = BlockerMask,
+            Sink = sink
+        });
+        fireball.Advance(0f);
+
+        Assert.That(sink.EnvironmentHits, Is.EqualTo(new IEnvironmentDestructible[] { wall }));
     }
 
 }

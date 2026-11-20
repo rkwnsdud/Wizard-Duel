@@ -25,6 +25,7 @@ public class ProceduralMap : MonoBehaviour, ISpawnPointProvider
     const float cellSize = 1f;
     readonly List<IBlock> blocks = new List<IBlock>();
     readonly List<Transform> pieces = new List<Transform>();
+    readonly Dictionary<Vector2Int, IEnvironmentDestructible> destructibles = new Dictionary<Vector2Int, IEnvironmentDestructible>();
     // 렌더러를 합쳐 만든 맵에서만 쓴다. 합친 오브젝트와 런타임 메시를 들고 있다가 맵을 지울 때 함께 지운다.
     MapRendererCombiner combiner;
 
@@ -32,6 +33,18 @@ public class ProceduralMap : MonoBehaviour, ISpawnPointProvider
     // 깐 부시 칸과 덩어리. 맵을 지우면 null이다. 전투 맵이면 DuelArena가 BushField.Active로 등록한다.
     public BushField Bushes { get; private set; }
     public IReadOnlyList<IBlock> Blocks => blocks;
+    public IEnumerable<IEnvironmentDestructible> Destructibles => destructibles.Values;
+    public bool ApplyEnvironmentDestruction(int x, int z, bool burning)
+    {
+        if (!destructibles.TryGetValue(new Vector2Int(x, z), out IEnvironmentDestructible block) ||
+            block == null || block.IsDestroyed) return false;
+        if (burning && !(block is BushBlock)) return false;
+        if (!burning && !(block is DestructibleWallBlock)) return false;
+        destructibles.Remove(new Vector2Int(x, z));
+        if (block is BushBlock) Bushes?.RemoveCell(x, z);
+        block.ApplyDestroyed(burning);
+        return true;
+    }
     // 맵을 이루는 조각 전체. 앞쪽은 Blocks와 같은 순서의 블록이고, 그 뒤에 배경이 깐 바닥 타일과 장식이 온다.
     // 배경도 맵의 일부라서 시작 화면·로비 화면의 물결은 이 목록을 함께 움직인다.
     // 렌더러를 합친 맵에서는 바닥·벽 블록에 콜라이더만 있고 합쳐진 배경 조각은 목록에 없어서, 이 목록을 움직여도 화면은 따라오지 않는다.
@@ -76,8 +89,9 @@ public class ProceduralMap : MonoBehaviour, ISpawnPointProvider
         blockFactory.Initialize(settings.Seed, combineRenderers ? combiner : null);
 
         GeneratedLayout = generatedLayout;
+        destructibles.Clear();
         SpawnPoints = blockFactory.SpawnPoints;
-        string[] layout = generatedLayout.ToLayout();
+        string[] layout = generatedLayout.ToBlockLayout();
         Bushes = new BushField(layout, transform, cellSize);
         try
         {
@@ -92,6 +106,12 @@ public class ProceduralMap : MonoBehaviour, ISpawnPointProvider
                     {
                         blocks.Add(block);
                         Bushes.Add(x, z, block);
+                        if (block is Component component &&
+                            component.GetComponent<IEnvironmentDestructible>() is IEnvironmentDestructible destructible)
+                        {
+                            destructible.SetCell(x, z);
+                            destructibles[new Vector2Int(x, z)] = destructible;
+                        }
                     }
                 }
             }
@@ -135,6 +155,7 @@ public class ProceduralMap : MonoBehaviour, ISpawnPointProvider
     {
         BushField.Deactivate(Bushes);
         Bushes = null;
+        destructibles.Clear();
         foreach (IBlock block in blocks)
         {
             Block instance = (Block)block;

@@ -64,3 +64,9 @@ id 0은 "무기 없음"이다. 무기 이름과 시전 클립은 각 무기 폴�
 - **번개 지팡이**: 프리팹은 `Art/Models/FixedStaff/LightningStaff_Low.fbx`(`LightningStaff_Fixed.fbx`를 `Tools/WeaponMesh/decimate_weapon.py`로 줄인 것)와 `Staff_Original`·`Crystal_Cyan_Emission` 재질을 쓴다. 수정체는 얼룩진 원래 발광 텍스처 대신 균일한 발광색을 쓴다(`FixedStaff/README_KO.txt`). 번개 시각 효과는 [번개 이펙트](../Assets/Effects/Lightning/README.md)를 쓴다.
 - **빛 반사 구슬**: `Assets/Game/Weapons/LightOrb/Editor/LightOrbGlbImporter.cs`가 `Art/OrbVisual/LightOrb.glb`를 메시·재질·광학 데이터 하위 에셋으로 가져온다. 이 임포터를 지우면 구슬 외형이 깨진다. 굴절은 렌더러 기능 `LightOrbRefractionFeature`로 그리며 `Assets/Settings/PC_Renderer.asset`에 들어 있다.
 - **기본 완드**: 모델·손 메시 보정·자세는 [기본 완드 에셋](BasicWand/README_KO.md)에 있다.
+
+## 환경 블록 적중
+
+전투 맵의 `D` 칸은 파괴 가능한 벽이다. `BlockFactory`가 일반 벽과 같은 충돌 크기로 생성하고, 벽면에 금 표시를 추가한다. 공격 판정은 각 무기의 실제 충돌 결과에서 수행한다. 마도서 폭발·빛 구슬·번개 지팡이는 벽을 한 번 맞히면 부수며, 향로는 부채꼴 안의 부시만 태워 없앤다.
+
+허용 효과는 `WeaponDefinition.environmentEffect`로 지정한다. 무기 이름, 클래스 타입, ID 숫자를 공격 판정에 하드코딩하지 않는다. 환경 파괴 RPC는 `AttackInfo`와 맵 좌표를 서버에 전달하고, 서버가 시작된 공격과 정의의 효과를 확인한 뒤 모든 클라이언트에 같은 좌표의 파괴를 전파한다.

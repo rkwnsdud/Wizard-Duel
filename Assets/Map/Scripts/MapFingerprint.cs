@@ -10,7 +10,7 @@ public static class MapFingerprint
     {
         using var stream = new MemoryStream();
         using var writer = new BinaryWriter(stream);
-        foreach (string row in layout.ToLayout()) writer.Write(row);
+        foreach (string row in layout.ToBlockLayout()) writer.Write(row);
         foreach (Transform spawn in spawns)
         {
             Vector3 position = spawn.position;

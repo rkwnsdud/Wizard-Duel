@@ -24,6 +24,11 @@ public interface IShotSink
     void Hit(AttackInfo attack, int hitIndex, PlayerHealth target, float damage);
 }
 
+public interface IEnvironmentShotSink
+{
+    void EnvironmentHit(AttackInfo attack, IEnvironmentDestructible target, bool burning);
+}
+
 // 연출 한 건. Kind(발사·끝 등)는 무기가 정하고, Point는 Kind에 따라 끝점·방향·중심을 담는다.
 // Attack은 이 연출을 낸 공격이다. 받는 쪽은 지금 든 무기가 아니라 Attack.WeaponId의 무기로 연출한다.
 // Do not reinterpret Charge as speed/time or replay remote collision simulation.
