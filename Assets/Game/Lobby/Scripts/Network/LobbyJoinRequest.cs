@@ -12,7 +12,8 @@ public struct LobbyJoinRequest : INetworkSerializable
     // 8: 전투 플레이어의 이동 동기화를 NetworkTransform에서 DuelMoveSync의 RPC로 바꿨다.
     // 9: 공격 RPC에 공격 번호·무기 id를 싣고, 로비 거절 사유를 enum 코드로 보낸다.
     // 10: Random map layouts now include seed-derived destructible walls.
-    public const int CurrentVersion = 10;
+    // 11: Destructible walls exclude all void-adjacent arena boundary cells.
+    public const int CurrentVersion = 11;
 
     public int Version;
     public bool CreateRoom;

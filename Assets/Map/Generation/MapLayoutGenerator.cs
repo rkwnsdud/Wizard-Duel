@@ -107,7 +107,7 @@ public static class MapLayoutGenerator
     }
 
     // Preserve the generated obstacle silhouettes while marking a seed-stable subset
-    // of their wall cells as destructible. Boundary walls are excluded.
+    // of their wall cells as destructible. Walls touching void or the map edge are excluded.
     static bool[,] SelectDestructibleWalls(MapCell[,] cells, MapSymmetry symmetry, Random random)
     {
         const double destructibleShare = 0.25;
@@ -115,7 +115,21 @@ public static class MapLayoutGenerator
         var candidates = new List<Vector2Int>();
         for (int y = 1; y < height - 1; y++)
             for (int x = 1; x < width - 1; x++)
-                if (cells[x, y] == MapCell.Wall) candidates.Add(new Vector2Int(x, y));
+            {
+                if (cells[x, y] != MapCell.Wall) continue;
+                bool touchesVoid = false;
+                for (int dy = -1; dy <= 1 && !touchesVoid; dy++)
+                    for (int dx = -1; dx <= 1; dx++)
+                    {
+                        int nx = x + dx, ny = y + dy;
+                        if (cells[nx, ny] == MapCell.Void)
+                        {
+                            touchesVoid = true;
+                            break;
+                        }
+                    }
+                if (!touchesVoid) candidates.Add(new Vector2Int(x, y));
+            }
 
         // Shuffle with the map RNG so all peers derive the same destructible cells.
         for (int i = candidates.Count - 1; i > 0; i--)
