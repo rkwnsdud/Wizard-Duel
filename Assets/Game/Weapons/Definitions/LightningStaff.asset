@@ -13,6 +13,7 @@ MonoBehaviour:
   m_Name: LightningStaff
   m_EditorClassIdentifier: Assembly-CSharp::WeaponDefinition
   id: 2
+  environmentEffect: 1
   prefab: {fileID: 6208045803293748940, guid: 6b7c5eb841461db4784b142b9c3c5d99, type: 3}
   displayName: "\uBC88\uAC1C \uC9C0\uD321\uC774"
   hudDisplayName: Lightning Staff

@@ -4,7 +4,7 @@ using UnityEngine;
 
 // Main 전투의 플레이어. 서버가 전투를 켜면 소유자만 입력을 읽는다.
 // 공격과 명중은 소유자가 판정한다. 서버는 보고받은 피해와 패배만 관리한다.
-public sealed class DuelPlayer : NetworkBehaviour, IAttackAuthority, IShotSink
+public sealed class DuelPlayer : NetworkBehaviour, IAttackAuthority, IShotSink, IEnvironmentShotSink
 {
     // 0 = 방장(파랑), 1 = 참가자(빨강). DuelWizard-2 프리팹에서 1로 덮어쓴다.
     [SerializeField] int slot;
@@ -200,6 +200,44 @@ public sealed class DuelPlayer : NetworkBehaviour, IAttackAuthority, IShotSink
     {
         if (IsSpawned && IsOwner && target.TryGetComponent(out DuelPlayer player))
             ReportHitRpc(player.NetworkObject, attackInfo.Id, attackInfo.WeaponId, hitIndex, damage);
+    }
+
+    void IEnvironmentShotSink.EnvironmentHit(AttackInfo attackInfo, IEnvironmentDestructible target, bool burning)
+    {
+        if (!IsSpawned || !IsOwner || target == null || target.IsDestroyed) return;
+        ReportEnvironmentHitRpc(attackInfo.Id, attackInfo.WeaponId, target.CellX, target.CellZ, burning);
+    }
+
+    [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Owner)]
+    void ReportEnvironmentHitRpc(uint attackId, byte weaponId, int cellX, int cellZ, bool burning)
+    {
+        if (!IsServer || !IsSpawned || !combatEnabled.Value || IsServerCombatEnded ||
+            !serverAttackHistory.HasHeldWeapon(weaponId) ||
+            !serverAttackHistory.HasStartedAttack(new AttackInfo(attackId, weaponId))) return;
+        WeaponBase sourceWeapon = attack != null ? attack.FindWeapon(weaponId) : null;
+        WeaponEnvironmentEffect effect = sourceWeapon != null && sourceWeapon.Definition != null
+            ? sourceWeapon.Definition.environmentEffect : WeaponEnvironmentEffect.None;
+        bool validWeapon = burning
+            ? effect == WeaponEnvironmentEffect.BurnBushes
+            : effect == WeaponEnvironmentEffect.BreakDestructibleWalls;
+        if (!validWeapon) return;
+        DuelArena arena = FindFirstObjectByType<DuelArena>();
+        bool applied = arena != null
+            ? arena.ApplyEnvironmentDestruction(cellX, cellZ, burning)
+            : EnvironmentDestruction.Apply(cellX, cellZ, burning);
+        if (!applied) return;
+        EnvironmentDestroyedRpc(cellX, cellZ, burning);
+    }
+
+    [Rpc(SendTo.ClientsAndHost)]
+    void EnvironmentDestroyedRpc(int cellX, int cellZ, bool burning)
+    {
+        if (!IsServer)
+        {
+            DuelArena arena = FindFirstObjectByType<DuelArena>();
+            if (arena != null) arena.ApplyEnvironmentDestruction(cellX, cellZ, burning);
+            else EnvironmentDestruction.Apply(cellX, cellZ, burning);
+        }
     }
 
     [Rpc(SendTo.NotOwner, InvokePermission = RpcInvokePermission.Owner)]

@@ -96,13 +96,53 @@ public static class MapLayoutGenerator
                 settings.ObstacleDensity, settings.Symmetry, random, distances, queue);
             int bushes = PlaceBushes(cells, spawnA, spawnB, floorCount,
                 settings.BushDensity, settings.Symmetry, random, distances, queue);
+            bool[,] destructibleWalls = SelectDestructibleWalls(cells, settings.Symmetry, random);
             return new MapLayout(cells, spawnA, spawnB, shape,
-                (float)obstacles / floorCount, (float)bushes / floorCount);
+                (float)obstacles / floorCount, (float)bushes / floorCount, destructibleWalls);
         }
 
         throw new InvalidOperationException(
             $"Could not generate a connected {shape} map of size {size.x}x{size.y} " +
             $"with two safe spawns after {maxAttempts} attempts (seed {settings.Seed}).");
+    }
+
+    // Preserve the generated obstacle silhouettes while marking a seed-stable subset
+    // of their wall cells as destructible. Boundary walls are excluded.
+    static bool[,] SelectDestructibleWalls(MapCell[,] cells, MapSymmetry symmetry, Random random)
+    {
+        const double destructibleShare = 0.25;
+        int width = cells.GetLength(0), height = cells.GetLength(1);
+        var candidates = new List<Vector2Int>();
+        for (int y = 1; y < height - 1; y++)
+            for (int x = 1; x < width - 1; x++)
+                if (cells[x, y] == MapCell.Wall) candidates.Add(new Vector2Int(x, y));
+
+        // Shuffle with the map RNG so all peers derive the same destructible cells.
+        for (int i = candidates.Count - 1; i > 0; i--)
+        {
+            int j = random.Next(i + 1);
+            (candidates[i], candidates[j]) = (candidates[j], candidates[i]);
+        }
+
+        var selected = new bool[width, height];
+        int desired = (int)Math.Round(candidates.Count * destructibleShare);
+        if (desired <= 0) return selected;
+        int converted = 0;
+        foreach (Vector2Int cell in candidates)
+        {
+            if (cells[cell.x, cell.y] != MapCell.Wall) continue;
+            Vector2Int opposite = new Vector2Int(width - 1 - cell.x, height - 1 - cell.y);
+            if (symmetry == MapSymmetry.Rotate180 && cells[opposite.x, opposite.y] != MapCell.Wall) continue;
+            selected[cell.x, cell.y] = true;
+            converted++;
+            if (symmetry == MapSymmetry.Rotate180 && opposite != cell)
+            {
+                selected[opposite.x, opposite.y] = true;
+                converted++;
+            }
+            if (converted >= desired) break;
+        }
+        return selected;
     }
 
     static MapShape ChooseShape(MapGenerationSettings settings, Random random)

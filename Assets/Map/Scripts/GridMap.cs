@@ -23,11 +23,22 @@ public class GridMap : MonoBehaviour, ISpawnPointProvider
     const float cellSize = 1f;
 
     readonly List<IBlock> blocks = new List<IBlock>();
+    readonly Dictionary<Vector2Int, IEnvironmentDestructible> destructibles = new Dictionary<Vector2Int, IEnvironmentDestructible>();
 
     public IReadOnlyList<IBlock> Blocks => blocks;
     public Transform[] SpawnPoints { get; private set; }
     // 깐 부시 칸과 덩어리. generateOnAwake가 꺼져 있으면 null이다.
     public BushField Bushes { get; private set; }
+    public IEnumerable<IEnvironmentDestructible> Destructibles => destructibles.Values;
+    public bool ApplyEnvironmentDestruction(int x, int z, bool burning)
+    {
+        var key = new Vector2Int(x, z);
+        if (!destructibles.TryGetValue(key, out IEnvironmentDestructible block) || block == null || block.IsDestroyed ||
+            (burning ? !(block is BushBlock) : !(block is DestructibleWallBlock))) return false;
+        destructibles.Remove(key);
+        block.ApplyDestroyed(burning);
+        return true;
+    }
 
     void Awake()
     {
@@ -38,6 +49,7 @@ public class GridMap : MonoBehaviour, ISpawnPointProvider
         blockFactory.Initialize(seed);
         SpawnPoints = blockFactory.SpawnPoints;
         Bushes = new BushField(layout, transform, cellSize);
+        destructibles.Clear();
         for (int z = 0; z < layout.Length; z++)
         {
             for (int x = 0; x < layout[z].Length; x++)
@@ -49,6 +61,12 @@ public class GridMap : MonoBehaviour, ISpawnPointProvider
                 {
                     blocks.Add(block);
                     Bushes.Add(x, z, block);
+                    if (block is Component component &&
+                        component.GetComponent<IEnvironmentDestructible>() is IEnvironmentDestructible destructible)
+                    {
+                        destructible.SetCell(x, z);
+                        destructibles[new Vector2Int(x, z)] = destructible;
+                    }
                 }
             }
         }
@@ -57,5 +75,5 @@ public class GridMap : MonoBehaviour, ISpawnPointProvider
         BushField.Activate(Bushes);
     }
 
-    void OnDestroy() => BushField.Deactivate(Bushes);
+    void OnDestroy() { BushField.Deactivate(Bushes); destructibles.Clear(); }
 }
