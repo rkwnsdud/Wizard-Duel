@@ -78,6 +78,9 @@ public sealed class ExplosionFireball : MonoBehaviour
                 }
 
                 // 구체 중심에서 터지므로 벽에 닿으면 표면보다 반지름만큼 앞에서 터진다.
+                IEnvironmentDestructible destructible = hit.collider.GetComponentInParent<IEnvironmentDestructible>();
+                if (destructible is DestructibleWallBlock)
+                    (settings.Sink as IEnvironmentShotSink)?.EnvironmentHit(settings.Attack, destructible, false);
                 Explode(position + direction * hit.distance);
                 return;
             }
@@ -101,6 +104,16 @@ public sealed class ExplosionFireball : MonoBehaviour
         // 명중으로 승부가 나면 플레이어가 정리될 수 있으므로 대상은 미리 고르고 연출을 먼저 보낸다.
         List<PlayerHealth> victims = FindVictims(center, settings.ExplosionRadius, settings.Owner,
             settings.TargetMask, settings.BlockerMask);
+        if (settings.Sink is IEnvironmentShotSink environmentSink)
+            foreach (Collider collider in Physics.OverlapSphere(center, settings.ExplosionRadius, ~0,
+                         QueryTriggerInteraction.Ignore))
+            {
+                if (!(collider.GetComponentInParent<IEnvironmentDestructible>() is DestructibleWallBlock wall) || wall.IsDestroyed)
+                    continue;
+                Vector3 point = collider.ClosestPoint(center);
+                if (!IsBlastOccluded(center, point, collider, wall, settings.BlockerMask))
+                    environmentSink.EnvironmentHit(settings.Attack, wall, false);
+            }
         settings.Sink.Broadcast(new ShotEvent(settings.Attack, ExplosionMagicWeapon.ExplodeKind,
             settings.Start, center, 0f));
         // 폭발 한 번은 대상마다 다른 타격 번호로 한 번씩 보고한다.
@@ -108,6 +121,24 @@ public sealed class ExplosionFireball : MonoBehaviour
             settings.Sink.Hit(settings.Attack, i, victims[i], settings.Damage);
         Debug.Log($"[ExplosionMagic] Explode {settings.Attack} center={center} victims={victims.Count}.");
         Destroy(gameObject);
+    }
+
+    static bool IsBlastOccluded(Vector3 center, Vector3 point, Collider candidateCollider,
+        IEnvironmentDestructible candidate, LayerMask blockerMask)
+    {
+        Vector3 offset = point - center;
+        float distance = offset.magnitude;
+        if (distance <= Mathf.Epsilon) return false;
+        foreach (RaycastHit hit in Physics.RaycastAll(center, offset / distance, distance, blockerMask,
+                     QueryTriggerInteraction.Ignore))
+        {
+            // ClosestPoint lies on the target surface, so the candidate itself can appear
+            // as the linecast endpoint. Other colliders on the same destructible are the same target.
+            if (hit.collider == candidateCollider ||
+                hit.collider.GetComponentInParent<IEnvironmentDestructible>() == candidate) continue;
+            return true;
+        }
+        return false;
     }
 
     // 폭발 반경 안의 상대. 시전자·사망자는 빼고, 중심과 대상 사이가 벽으로 막혀 있으면 뺀다.

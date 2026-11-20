@@ -13,6 +13,7 @@ MonoBehaviour:
   m_Name: ExplosionMagicBook
   m_EditorClassIdentifier: Assembly-CSharp::WeaponDefinition
   id: 4
+  environmentEffect: 1
   prefab: {fileID: 1264406045734964430, guid: 554d672bbaff32c47be49e14173c711f, type: 3}
   displayName: "\uD3ED\uBC1C \uB9C8\uBC95 \uCC45"
   hudDisplayName: Explosion Magic Book

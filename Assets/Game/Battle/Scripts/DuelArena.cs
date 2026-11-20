@@ -58,6 +58,9 @@ public sealed class DuelArena : MonoBehaviour
     public void UnregisterWeaponMessages() => Weapons?.Shutdown();
 
     public bool HasMap => map.GeneratedLayout != null;
+    public IEnumerable<IEnvironmentDestructible> EnvironmentBlocks => map != null ? map.Destructibles : System.Array.Empty<IEnvironmentDestructible>();
+    public bool ApplyEnvironmentDestruction(int x, int z, bool burning) =>
+        map != null && map.ApplyEnvironmentDestruction(x, z, burning);
 
     // 이 클라이언트에 선 전투 맵의 스폰 지점들. 0은 방장(파랑), 1은 참가자(빨강)다. 맵이 없으면 null이다.
     public Transform[] SpawnPoints => map != null && HasMap ? map.SpawnPoints : null;

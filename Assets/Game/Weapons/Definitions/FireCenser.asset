@@ -13,6 +13,7 @@ MonoBehaviour:
   m_Name: FireCenser
   m_EditorClassIdentifier: Assembly-CSharp::WeaponDefinition
   id: 5
+  environmentEffect: 2
   prefab: {fileID: 8220961399317443507, guid: c9cf41e51711fb8409d5e098e9ccd5fd, type: 3}
   displayName: "\uD654\uC5FC \uD5A5\uB85C"
   hudDisplayName: Fire Censer

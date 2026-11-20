@@ -52,6 +52,30 @@ public sealed class FireCenserWeapon : WeaponBase, IWeapon, IWeaponReach
         sink.Broadcast(new ShotEvent(attack, 0, start, start + direction * attackRange, charge));
         for (int i = 0; i < victims.Count; i++)
             sink.Hit(attack, i, victims[i], attackDamage);
+        BurnBushes(attack, direction, sink);
+    }
+
+    void BurnBushes(AttackInfo attack, Vector3 direction, IShotSink sink)
+    {
+        if (!(sink is IEnvironmentShotSink environmentSink)) return;
+        Vector3 origin = OwnerGroundPosition() + Vector3.up;
+        List<BushBlock> targets = new List<BushBlock>();
+        DuelArena arena = FindFirstObjectByType<DuelArena>();
+        IEnumerable<IEnvironmentDestructible> blocks = arena != null
+            ? arena.EnvironmentBlocks : EnvironmentDestruction.AllBlocks();
+        foreach (IEnvironmentDestructible block in blocks)
+        {
+            if (!(block is BushBlock bush) || bush.IsDestroyed) continue;
+            Vector3 point = bush.transform.position + Vector3.up * .7f;
+            Vector3 delta = point - origin;
+            delta.y = 0f;
+            if (delta.sqrMagnitude > attackRange * attackRange ||
+                (delta.sqrMagnitude > .0001f && Vector3.Angle(direction, delta.normalized) > attackAngle * .5f)) continue;
+            if (Physics.Raycast(origin, (point - origin).normalized, Vector3.Distance(origin, point),
+                    blockerMask, QueryTriggerInteraction.Ignore)) continue;
+            targets.Add(bush);
+        }
+        foreach (BushBlock bush in targets) environmentSink.EnvironmentHit(attack, bush, true);
     }
 
     public void Present(ShotEvent shot)

@@ -13,6 +13,7 @@ MonoBehaviour:
   m_Name: LightOrb
   m_EditorClassIdentifier: Assembly-CSharp::WeaponDefinition
   id: 3
+  environmentEffect: 1
   prefab: {fileID: 241648436553267233, guid: e2592a6a3e1c5be4d908bd34e3e7a4b6, type: 3}
   displayName: "\uBE5B \uBC18\uC0AC \uAD6C\uC2AC"
   hudDisplayName: Light Orb

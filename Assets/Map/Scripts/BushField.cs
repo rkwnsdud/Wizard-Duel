@@ -28,8 +28,9 @@ public sealed class BushField
     readonly string[] layout;
     readonly Transform root;
     readonly float cellSize;
-    readonly int[,] ids;
-    readonly List<BushBlock>[] blocks;
+    int[,] ids;
+    List<BushBlock>[] blocks;
+    readonly Dictionary<Vector2Int, BushBlock> bushByCell = new Dictionary<Vector2Int, BushBlock>();
     // 덤불 모양 시드에 섞는 레이아웃 해시. 같은 맵이면 모든 클라이언트가 같은 갈대를 본다.
     readonly int layoutHash;
 
@@ -37,13 +38,10 @@ public sealed class BushField
     // 칸 (x, z)의 중심은 root 기준 ((x - (행 길이 - 1) / 2) * cellSize, 0, ((행 수 - 1) / 2 - z) * cellSize)이다.
     public BushField(string[] layout, Transform root, float cellSize)
     {
-        this.layout = layout;
+        this.layout = (string[])layout.Clone();
         this.root = root;
         this.cellSize = cellSize;
-        ids = BushRegions.Label(layout, out int count);
-        Count = count;
-        blocks = new List<BushBlock>[count];
-        for (int i = 0; i < count; i++) blocks[i] = new List<BushBlock>();
+        RebuildRegions();
         unchecked
         {
             int hash = (int)2166136261;
@@ -54,7 +52,7 @@ public sealed class BushField
     }
 
     // 덩어리 수. 번호는 0부터 Count - 1까지다.
-    public int Count { get; }
+    public int Count { get; private set; }
 
     public static void Activate(BushField field) => Active = field;
 
@@ -71,9 +69,35 @@ public sealed class BushField
     public void Add(int x, int z, IBlock block)
     {
         if (!(block is BushBlock bush)) return;
+        bushByCell[new Vector2Int(x, z)] = bush;
         int id = IdAt(x, z);
         if (id >= 0) blocks[id].Add(bush);
         bush.FitTo(SeedAt(x, z), NeighborsAt(x, z), cellSize);
+    }
+
+    public bool RemoveCell(int x, int z)
+    {
+        if (IdAt(x, z) < 0) return false;
+        char[] row = layout[z].ToCharArray();
+        row[x] = '.';
+        layout[z] = new string(row);
+        RebuildRegions();
+        return true;
+    }
+
+    void RebuildRegions()
+    {
+        ids = BushRegions.Label(layout, out int count);
+        Count = count;
+        blocks = new List<BushBlock>[count];
+        for (int i = 0; i < count; i++) blocks[i] = new List<BushBlock>();
+        foreach (KeyValuePair<Vector2Int, BushBlock> entry in bushByCell)
+        {
+            int id = IdAt(entry.Key.x, entry.Key.y);
+            if (id < 0 || entry.Value == null) continue;
+            blocks[id].Add(entry.Value);
+            entry.Value.FitTo(SeedAt(entry.Key.x, entry.Key.y), NeighborsAt(entry.Key.x, entry.Key.y), cellSize);
+        }
     }
 
     // 칸 둘레 여덟 칸 중 부시인 칸. 같은 덩어리는 8방향으로 이어지므로 모두 이 칸과 같은 덩어리다.
@@ -152,6 +176,7 @@ public sealed class BushField
 
     public void SetFaded(int id, bool faded)
     {
+        if (id < 0 || id >= blocks.Length) return;
         foreach (BushBlock block in blocks[id])
             if (block != null) block.SetFaded(faded);
     }

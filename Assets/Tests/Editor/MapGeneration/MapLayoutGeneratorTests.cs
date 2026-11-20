@@ -720,6 +720,19 @@ public class MapLayoutGeneratorTests
         for (int x = 0; x < map.Width; x++)
         {
             if (distances[x, y] >= 0) reachable++;
+            if (map.IsDestructibleWall(x, y))
+            {
+                Assert.That(map[x, y], Is.EqualTo(MapCell.Wall), $"Destructible cell {x},{y} must be a wall.");
+                for (int dy = -1; dy <= 1; dy++)
+                for (int dx = -1; dx <= 1; dx++)
+                {
+                    if (dx == 0 && dy == 0) continue;
+                    int nx = x + dx, ny = y + dy;
+                    bool insideArena = InBounds(map, new Vector2Int(nx, ny)) && map[nx, ny] != MapCell.Void;
+                    Assert.That(insideArena, Is.True,
+                        $"Destructible wall at {x},{y} touches the arena perimeter at {nx},{ny}.");
+                }
+            }
             if (Walkable(map, x, y))
             {
                 // 칸마다 Assert.That을 부르면 느리다. 어긋난 칸에서만 실패를 알린다.

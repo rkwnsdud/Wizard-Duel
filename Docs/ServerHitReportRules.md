@@ -152,3 +152,11 @@
 - `ServerApplyBurn`·`ServerApplySlow`는 서버/스폰 여부나 대상의 사망·판 종료 조건에서 로그 없이 반환한다. 화상의 피해·횟수·기간이 `<= 0`이거나, 둔화 배율이 `<= 0` 또는 `>= 1`이거나 기간이 `<= 0`이면 적용하지 않는다. `DuelPlayer.ServerInflictStatus` 역시 서버가 아니거나 대상이 없으면 반환하고, 양수가 아닌 틱 횟수·둔화 기간의 적용 호출은 건너뛴다.
 
 반대로 실제 `ServerApplyStatusTick` 호출이 판정까지 도달해 `RoundEnded`나 `TargetAlreadyDefeated`가 나오면 `DoT dropped` 로그를 남기고 남은 상태이상을 정리한다.
+
+## 환경 파괴 보고
+
+환경 파괴는 플레이어 체력 보고인 `ReportHitRpc`와 별도 RPC로 처리한다. 공격 클라이언트는 실제 무기 충돌에서 `AttackInfo`와 격자 좌표를 보낸다. 서버는 전투 중인지, 공격 번호와 쏜 무기가 기록되어 있는지, `WeaponDefinition.environmentEffect`가 해당 블록의 파괴 효과와 맞는지 확인한 후 맵 블록을 제거하고 클라이언트에 좌표를 전파한다. 일반 클라이언트 보고만으로는 블록을 제거하지 않는다.
+
+- `BreakDestructibleWalls`: 마도서·빛·번개 공격에 지정한다. 한 번의 유효한 충돌로 해당 벽 칸을 제거한다.
+- `BurnBushes`: 향로에 지정한다. 부채꼴 안의 부시를 불꽃 효과와 함께 제거한다.
+- 이 효과는 서버의 공격 이력과 무기 정의를 사용하므로 공격을 시작한 뒤 무기를 바꿔도 `AttackInfo.WeaponId` 기준으로 판정한다.

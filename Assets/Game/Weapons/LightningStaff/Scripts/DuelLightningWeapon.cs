@@ -40,7 +40,7 @@ public sealed class DuelLightningWeapon : WeaponBase, IChargeableWeapon, IWeapon
     void IWeapon.Fire(AttackInfo attack, Vector3 direction, float charge, IShotSink sink)
     {
         HideChargePreview();
-        ShotEvent shot = Trace(attack, direction, charge, out PlayerHealth target);
+        ShotEvent shot = Trace(attack, direction, charge, out PlayerHealth target, out IEnvironmentDestructible environment);
         // A lethal hit may despawn players, so send the visual first.
         sink.Broadcast(shot);
         if (target != null)
@@ -48,6 +48,8 @@ public sealed class DuelLightningWeapon : WeaponBase, IChargeableWeapon, IWeapon
             sink.Broadcast(new ShotEvent(attack, 1, shot.Start, GetHitPoint(target, shot), charge));
             sink.Hit(attack, 0, target, Mathf.Lerp(minDamage, maxDamage, charge));
         }
+        else if (environment is DestructibleWallBlock)
+            (sink as IEnvironmentShotSink)?.EnvironmentHit(attack, environment, false);
     }
 
     public void Present(ShotEvent shot)
@@ -79,12 +81,16 @@ public sealed class DuelLightningWeapon : WeaponBase, IChargeableWeapon, IWeapon
     }
 
     private ShotEvent Trace(AttackInfo attack, Vector3 direction, float charge, out PlayerHealth target)
+        => Trace(attack, direction, charge, out target, out _);
+
+    private ShotEvent Trace(AttackInfo attack, Vector3 direction, float charge, out PlayerHealth target,
+        out IEnvironmentDestructible environment)
     {
         Vector3 start = firePoint.position;
         charge = Mathf.Clamp01(charge);
         Vector3 end = LightningHitTrace.Trace(start, direction, Mathf.Lerp(minRange, maxRange, charge),
             Mathf.Lerp(minHitWidth, maxHitWidth, charge), hitHeight, blockerMask,
-            GetComponentInParent<PlayerHealth>(), out target);
+            GetComponentInParent<PlayerHealth>(), out target, out environment);
         return new ShotEvent(attack, 0, start, end, charge);
     }
 }

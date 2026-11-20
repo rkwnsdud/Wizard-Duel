@@ -21,6 +21,7 @@ public sealed class MapLayout
     public const int BushSpawnClearance = SpawnClearance + 2;
 
     readonly MapCell[,] cells;
+    readonly bool[,] destructibleWalls;
     readonly int[,] bushIds;
 
     public int Width => cells.GetLength(0);
@@ -41,11 +42,13 @@ public sealed class MapLayout
 
     // x는 열, y는 행이며 ToLayout()[y][x]와 같은 좌표를 사용한다.
     public MapCell this[int x, int y] => cells[x, y];
+    public bool IsDestructibleWall(int x, int y) => destructibleWalls[x, y];
 
     internal MapLayout(MapCell[,] cells, Vector2Int spawnA, Vector2Int spawnB,
-        MapShape shape, float actualObstacleDensity, float actualBushDensity)
+        MapShape shape, float actualObstacleDensity, float actualBushDensity, bool[,] destructibleWalls)
     {
         this.cells = cells;
+        this.destructibleWalls = destructibleWalls;
         SpawnA = spawnA;
         SpawnB = spawnB;
         Shape = shape;
@@ -60,6 +63,14 @@ public sealed class MapLayout
 
     public string[] ToLayout()
     {
+        return ToLayout(false);
+    }
+
+    // Runtime block construction and fingerprints include the deterministic wall variant.
+    public string[] ToBlockLayout() => ToLayout(true);
+
+    string[] ToLayout(bool includeDestructibleWalls)
+    {
         var layout = new string[Height];
         for (int y = 0; y < Height; y++)
         {
@@ -69,7 +80,7 @@ public sealed class MapLayout
                 row[x] = cells[x, y] switch
                 {
                     MapCell.Floor => '.',
-                    MapCell.Wall => '#',
+                    MapCell.Wall => includeDestructibleWalls && destructibleWalls[x, y] ? 'D' : '#',
                     MapCell.Bush => BushRegions.Symbol,
                     _ => ' '
                 };

@@ -60,6 +60,30 @@ public class BushFieldTests
     }
 
     [Test]
+    public void RemoveCell_RemovesConcealmentAndRelabelsSplitBushGroups()
+    {
+        Transform root = NewObject("Map").transform;
+        var field = new BushField(new[] { "#####", "#***#", "#####" }, root, 1f);
+        BushBlock left = NewObject("Bush left").AddComponent<BushBlock>();
+        BushBlock center = NewObject("Bush center").AddComponent<BushBlock>();
+        BushBlock right = NewObject("Bush right").AddComponent<BushBlock>();
+        field.Add(1, 1, left);
+        field.Add(2, 1, center);
+        field.Add(3, 1, right);
+
+        Assert.That(field.RemoveCell(2, 1), Is.True);
+
+        Assert.That(field.BushAt(Cell(root, 2, 1)), Is.EqualTo(-1));
+        Assert.That(field.Count, Is.EqualTo(2));
+        int leftId = field.BushAt(Cell(root, 1, 1));
+        int rightId = field.BushAt(Cell(root, 3, 1));
+        Assert.That(leftId, Is.GreaterThanOrEqualTo(0));
+        Assert.That(rightId, Is.GreaterThanOrEqualTo(0).And.Not.EqualTo(leftId));
+        Assert.That(field.BlocksOf(leftId), Is.EqualTo(new[] { left }));
+        Assert.That(field.BlocksOf(rightId), Is.EqualTo(new[] { right }));
+    }
+
+    [Test]
     public void Add_GroupsOnlyBushBlocksByCluster()
     {
         Transform root = NewObject("Map").transform;

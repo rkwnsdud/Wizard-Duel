@@ -136,6 +136,10 @@ public class LightOrbProjectile : MonoBehaviour
             }
 
             // 반사 가능한 레이어인지 확인
+            IEnvironmentDestructible destructible = hit.collider.GetComponentInParent<IEnvironmentDestructible>();
+            if (destructible is DestructibleWallBlock)
+                (sink as IEnvironmentShotSink)?.EnvironmentHit(attack, destructible, false);
+
             if ((reflectionMask.value & (1 << hit.collider.gameObject.layer)) == 0)
             {
                 Destroy(gameObject);

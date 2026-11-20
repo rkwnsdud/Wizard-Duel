@@ -5,12 +5,21 @@ public static class LightningHitTrace
 {
     public static Vector3 Trace(Vector3 start, Vector3 direction, float range, float width,
         float height, LayerMask blockers, PlayerHealth owner, out PlayerHealth target)
+        => Trace(start, direction, range, width, height, blockers, owner, out target, out _);
+
+    public static Vector3 Trace(Vector3 start, Vector3 direction, float range, float width,
+        float height, LayerMask blockers, PlayerHealth owner, out PlayerHealth target,
+        out IEnvironmentDestructible environment)
     {
         direction.Normalize();
+        environment = null;
         foreach (RaycastHit hit in Physics.RaycastAll(start, direction, range, blockers, QueryTriggerInteraction.Ignore))
         {
-            if (hit.collider.GetComponentInParent<PlayerHealth>() == null)
+            if (hit.collider.GetComponentInParent<PlayerHealth>() == null && hit.distance < range)
+            {
                 range = Mathf.Min(range, hit.distance);
+                environment = hit.collider.GetComponentInParent<DestructibleWallBlock>();
+            }
         }
 
         target = null;
