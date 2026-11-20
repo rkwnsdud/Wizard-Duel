@@ -2,13 +2,13 @@ using UnityEngine;
 
 public static class FireCenserAttackEffect
 {
-    const float BaseParticleLifetime = 0.55f;
-    const float PlaybackSpeed = 1.3f;
-    const float ParticleDensityPerMeter = 12f;
-    const int MinimumParticleCount = 16;
-    const int MaximumParticleCount = 128;
-    const int RadialLayers = 5;
-    const float MinimumSpeedFactor = 0.2f;
+    const float BaseParticleLifetime = 0.54f;
+    const float PlaybackSpeed = 1.2f;
+    const float ParticleDensityPerMeter = 22f;
+    const int MinimumParticleCount = 32;
+    const int MaximumParticleCount = 192;
+    const int RadialLayers = 8;
+    const float MinimumRadiusFactor = 0.14f;
     const float SpawnHeight = 0.25f;
 
     static float ParticleLifetime => BaseParticleLifetime / PlaybackSpeed;
@@ -45,9 +45,39 @@ public static class FireCenserAttackEffect
         main.startDelay = 0f;
         main.startLifetime = ParticleLifetime;
         main.startSpeed = 0f;
-        main.startSize = new ParticleSystem.MinMaxCurve(0.35f, 0.55f);
+        main.startSize = new ParticleSystem.MinMaxCurve(0.4f, 0.7f);
         main.maxParticles = Mathf.Max(main.maxParticles, MaximumParticleCount * RadialLayers);
         main.simulationSpace = ParticleSystemSimulationSpace.World;
+
+        var colorOverLifetime = particles.colorOverLifetime;
+        colorOverLifetime.enabled = true;
+        var flameGradient = new Gradient();
+        flameGradient.SetKeys(
+            new[]
+            {
+                new GradientColorKey(new Color(1f, 1f, .78f), 0f),
+                new GradientColorKey(new Color(1f, .72f, .12f), .28f),
+                new GradientColorKey(new Color(1f, .2f, .025f), .72f),
+                new GradientColorKey(new Color(.24f, .025f, .008f), 1f)
+            },
+            new[]
+            {
+                new GradientAlphaKey(1f, 0f),
+                new GradientAlphaKey(.95f, .62f),
+                new GradientAlphaKey(0f, 1f)
+            });
+        colorOverLifetime.color = flameGradient;
+
+        var textureSheet = particles.textureSheetAnimation;
+        textureSheet.enabled = true;
+        textureSheet.mode = ParticleSystemAnimationMode.Grid;
+        textureSheet.numTilesX = 3;
+        textureSheet.numTilesY = 3;
+        textureSheet.animation = ParticleSystemAnimationType.WholeSheet;
+        textureSheet.startFrame = new ParticleSystem.MinMaxCurve(0f);
+        textureSheet.frameOverTime = new ParticleSystem.MinMaxCurve(
+            1f, AnimationCurve.Linear(0f, 0f, 1f, 1f));
+        textureSheet.cycleCount = 1;
 
         var sizeOverLifetime = particles.sizeOverLifetime;
         sizeOverLifetime.enabled = true;
@@ -60,10 +90,19 @@ public static class FireCenserAttackEffect
         emission.enabled = false;
         var limitVelocity = particles.limitVelocityOverLifetime;
         limitVelocity.enabled = false;
+        var noise = particles.noise;
+        noise.enabled = true;
+        noise.strength = new ParticleSystem.MinMaxCurve(.18f, .42f);
+        noise.frequency = .55f;
+        noise.scrollSpeed = .8f;
+        noise.damping = true;
+        var rotation = particles.rotationOverLifetime;
+        rotation.enabled = true;
+        rotation.z = new ParticleSystem.MinMaxCurve(-220f, 220f);
 
         ParticleSystemRenderer particleRenderer = particles.GetComponent<ParticleSystemRenderer>();
-        particleRenderer.velocityScale = 0.02f;
-        particleRenderer.lengthScale = 2f;
+        particleRenderer.velocityScale = 0.05f;
+        particleRenderer.lengthScale = 3.5f;
 
         particles.Play(false);
 
@@ -75,22 +114,26 @@ public static class FireCenserAttackEffect
                 Mathf.CeilToInt(arcLength * ParticleDensityPerMeter),
                 MinimumParticleCount,
                 MaximumParticleCount);
-        float horizontalSpeed = range / ParticleLifetime;
-
         for (int i = 0; i < particleCount; i++)
         {
             float t = particleCount == 1 ? 0.5f : (float)i / (particleCount - 1);
-            float yaw = Mathf.Lerp(-halfAngle, halfAngle, t);
-            Vector3 particleDirection = Quaternion.AngleAxis(yaw, Vector3.up) * direction;
+            float baseYaw = Mathf.Lerp(-halfAngle, halfAngle, t);
             for (int layer = 0; layer < RadialLayers; layer++)
             {
                 float layerT = (float)layer / (RadialLayers - 1);
-                float speedFactor = Mathf.Lerp(MinimumSpeedFactor, 1f, layerT);
+                float sway = Mathf.Sin(t * Mathf.PI * 4f + layerT * Mathf.PI) * 5f * Mathf.Sin(t * Mathf.PI);
+                float yaw = Mathf.Clamp(baseYaw + sway, -halfAngle, halfAngle);
+                Vector3 particleDirection = Quaternion.AngleAxis(yaw, Vector3.up) * direction;
+                Vector3 tangent = Vector3.Cross(Vector3.up, particleDirection).normalized;
+                float swirl = Mathf.Sin(t * Mathf.PI * 6f + layerT * Mathf.PI) * Mathf.Lerp(.25f, .8f, layerT);
+                float radius = range * Mathf.Lerp(MinimumRadiusFactor, 1f, layerT);
                 var emit = new ParticleSystem.EmitParams
                 {
-                    position = origin + Vector3.up * SpawnHeight,
-                    velocity = particleDirection * (horizontalSpeed * speedFactor) + Vector3.up * 0.35f,
+                    // Fill the whole fan on the impact frame; the particles flare and curl in place.
+                    position = origin + Vector3.up * SpawnHeight + particleDirection * radius,
+                    velocity = Vector3.up * Mathf.Lerp(.8f, 2f, layerT) + tangent * swirl,
                     startLifetime = ParticleLifetime,
+                    startSize = Mathf.Lerp(.42f, .9f, layerT),
                     applyShapeToPosition = false,
                 };
                 particles.Emit(emit, 1);
