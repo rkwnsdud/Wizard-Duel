@@ -12,7 +12,7 @@ public sealed class DestructibleWallBlock : MonoBehaviour, IEnvironmentDestructi
 
     void AddCrackMarks()
     {
-        // A small, dark branching fissure on two faces makes these walls readable
+        // Deep, branching fissures on every face make these walls readable
         // without requiring a separate imported mesh or changing their collider.
         var material = new Material(Shader.Find("Universal Render Pipeline/Lit") ?? Shader.Find("Standard"));
         if (material.HasProperty(BaseColor)) material.SetColor(BaseColor, new Color(.12f, .10f, .09f));
@@ -31,12 +31,16 @@ public sealed class DestructibleWallBlock : MonoBehaviour, IEnvironmentDestructi
         float yaw = side ? 90f : 0f;
         float z = side ? 0f : face;
         float x = side ? face : 0f;
-        // Broad, branching dark fissures read clearly against the wall at game distance.
-        MakeCrack(material, new Vector3(x, 1.2f, z), new Vector3(.085f, .82f, .025f), direction * 12f, yaw);
-        MakeCrack(material, new Vector3(x + (side ? 0f : -.10f), 1.27f, z + (side ? .10f : 0f)),
-            new Vector3(.065f, .36f, .027f), -direction * 43f, yaw);
-        MakeCrack(material, new Vector3(x + (side ? 0f : .10f), .98f, z + (side ? -.10f : 0f)),
-            new Vector3(.06f, .29f, .027f), direction * 48f, yaw);
+        // A wider central split with four jagged branches reads at game distance.
+        MakeCrack(material, new Vector3(x, 1.2f, z), new Vector3(.11f, .98f, .03f), direction * 15f, yaw);
+        MakeCrack(material, new Vector3(x + (side ? 0f : -.12f), 1.46f, z + (side ? .12f : 0f)),
+            new Vector3(.08f, .42f, .032f), -direction * 48f, yaw);
+        MakeCrack(material, new Vector3(x + (side ? 0f : .12f), 1.31f, z + (side ? -.12f : 0f)),
+            new Vector3(.075f, .38f, .032f), direction * 48f, yaw);
+        MakeCrack(material, new Vector3(x + (side ? 0f : -.11f), .99f, z + (side ? .11f : 0f)),
+            new Vector3(.075f, .35f, .032f), direction * 45f, yaw);
+        MakeCrack(material, new Vector3(x + (side ? 0f : .10f), .83f, z + (side ? -.10f : 0f)),
+            new Vector3(.07f, .32f, .032f), -direction * 46f, yaw);
     }
 
     void MakeCrack(Material material, Vector3 localPosition, Vector3 scale, float angle, float yaw = 0f)
