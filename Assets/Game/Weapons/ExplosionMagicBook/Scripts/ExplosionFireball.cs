@@ -111,7 +111,7 @@ public sealed class ExplosionFireball : MonoBehaviour
                 if (!(collider.GetComponentInParent<IEnvironmentDestructible>() is DestructibleWallBlock wall) || wall.IsDestroyed)
                     continue;
                 Vector3 point = collider.ClosestPoint(center);
-                if (!Physics.Linecast(center, point, settings.BlockerMask, QueryTriggerInteraction.Ignore))
+                if (!IsBlastOccluded(center, point, collider, wall, settings.BlockerMask))
                     environmentSink.EnvironmentHit(settings.Attack, wall, false);
             }
         settings.Sink.Broadcast(new ShotEvent(settings.Attack, ExplosionMagicWeapon.ExplodeKind,
@@ -121,6 +121,24 @@ public sealed class ExplosionFireball : MonoBehaviour
             settings.Sink.Hit(settings.Attack, i, victims[i], settings.Damage);
         Debug.Log($"[ExplosionMagic] Explode {settings.Attack} center={center} victims={victims.Count}.");
         Destroy(gameObject);
+    }
+
+    static bool IsBlastOccluded(Vector3 center, Vector3 point, Collider candidateCollider,
+        IEnvironmentDestructible candidate, LayerMask blockerMask)
+    {
+        Vector3 offset = point - center;
+        float distance = offset.magnitude;
+        if (distance <= Mathf.Epsilon) return false;
+        foreach (RaycastHit hit in Physics.RaycastAll(center, offset / distance, distance, blockerMask,
+                     QueryTriggerInteraction.Ignore))
+        {
+            // ClosestPoint lies on the target surface, so the candidate itself can appear
+            // as the linecast endpoint. Other colliders on the same destructible are the same target.
+            if (hit.collider == candidateCollider ||
+                hit.collider.GetComponentInParent<IEnvironmentDestructible>() == candidate) continue;
+            return true;
+        }
+        return false;
     }
 
     // 폭발 반경 안의 상대. 시전자·사망자는 빼고, 중심과 대상 사이가 벽으로 막혀 있으면 뺀다.

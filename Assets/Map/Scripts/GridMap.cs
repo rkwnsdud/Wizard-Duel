@@ -36,6 +36,7 @@ public class GridMap : MonoBehaviour, ISpawnPointProvider
         if (!destructibles.TryGetValue(key, out IEnvironmentDestructible block) || block == null || block.IsDestroyed ||
             (burning ? !(block is BushBlock) : !(block is DestructibleWallBlock))) return false;
         destructibles.Remove(key);
+        if (block is BushBlock) Bushes?.RemoveCell(x, z);
         block.ApplyDestroyed(burning);
         return true;
     }

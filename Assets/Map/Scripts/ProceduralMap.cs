@@ -41,6 +41,7 @@ public class ProceduralMap : MonoBehaviour, ISpawnPointProvider
         if (burning && !(block is BushBlock)) return false;
         if (!burning && !(block is DestructibleWallBlock)) return false;
         destructibles.Remove(new Vector2Int(x, z));
+        if (block is BushBlock) Bushes?.RemoveCell(x, z);
         block.ApplyDestroyed(burning);
         return true;
     }
