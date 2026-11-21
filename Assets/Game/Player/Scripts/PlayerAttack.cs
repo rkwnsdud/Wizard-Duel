@@ -9,6 +9,7 @@ public class PlayerAttack : MonoBehaviour
     private PlayerHealth playerHealth;
     private PlayerWeaponPassiveController passiveController;
     private PlayerCombatStats combatStats;
+    private PlayerStatusEffects statusEffects;
 
     [SerializeField] private WeaponBase currentWeapon;
     public WeaponBase CurrentWeapon => currentWeapon;
@@ -99,7 +100,7 @@ public class PlayerAttack : MonoBehaviour
     public bool AttackInputBlocked { get; set; }
     // Hold new attacks while a server-confirmed equipment transaction is pending.
     public bool InventoryChangePending { get; set; }
-    public bool CanChangeWeapon => !IsAttacking && !isCharging && (playerHealth == null || !playerHealth.IsDead);
+    public bool CanChangeWeapon => !IsAttacking && !isCharging && (playerHealth == null || !playerHealth.IsDead) &&(statusEffects == null || !statusEffects.StunActiveNet);
     public bool IsOnCooldown => CooldownRemaining > 0f;
     public float CooldownRemaining => Mathf.Max(0f, cooldownEndsAt - Time.time);
     public float CooldownRemainingFraction => activeCooldownDuration <= 0f || !IsOnCooldown
@@ -170,6 +171,7 @@ public class PlayerAttack : MonoBehaviour
         playerHealth = GetComponent<PlayerHealth>();
         passiveController = GetComponent<PlayerWeaponPassiveController>();
         combatStats = GetComponent<PlayerCombatStats>();
+        statusEffects = GetComponent<PlayerStatusEffects>();
 
         // Keep player variants working if the weapon reference is not serialized on the variant.
         if (currentWeapon == null)
@@ -193,6 +195,12 @@ public class PlayerAttack : MonoBehaviour
 
     private void LateUpdate()
     {
+        if (statusEffects != null && statusEffects.StunActiveNet)
+        {
+            if(isCharging || IsAttacking) CancelAttack();
+            return;
+        }
+
         // PlayerAim updates first so the preview follows this frame's aim.
         if (isCharging && currentWeapon != null && currentWeapon is IChargeableWeapon chargeable)
             chargeable.ShowChargePreview(ChargeRatio);
@@ -249,6 +257,9 @@ public class PlayerAttack : MonoBehaviour
     // 공격 버튼을 누른 순간 차징 시작
     private void AttackStarted(InputAction.CallbackContext context)
     {
+        if (statusEffects != null && statusEffects.StunActiveNet)
+            return;
+
         if (AttackInputBlocked || InventoryChangePending || currentWeapon == null || IsAttacking || isCharging || IsOnCooldown ||
             (playerHealth != null && playerHealth.IsDead))
         {
@@ -269,6 +280,12 @@ public class PlayerAttack : MonoBehaviour
     // 공격 버튼을 뗀 순간 공격 애니메이션 시작
     private void Attack(InputAction.CallbackContext context)
     {
+        if (statusEffects != null && statusEffects.StunActiveNet)
+        {
+            CancelAttack();
+            return;
+        }
+
         if (IsAttacking || IsOnCooldown || !isCharging || (playerHealth != null && playerHealth.IsDead))
         {
             return;
@@ -287,7 +304,7 @@ public class PlayerAttack : MonoBehaviour
     public bool TryStartAttack(float chargeRatio)
     {
         if (currentWeapon == null || IsAttacking || isCharging || IsOnCooldown ||
-            (playerHealth != null && playerHealth.IsDead))
+            (playerHealth != null && playerHealth.IsDead) || (statusEffects != null && statusEffects.StunActiveNet))
             return false;
         CommitAttack(currentWeapon is IChargeableWeapon ? Mathf.Clamp01(chargeRatio) : 0f);
         return IsAttacking;
@@ -406,6 +423,8 @@ public class PlayerAttack : MonoBehaviour
 
     private void OnSwapWeapon(InputAction.CallbackContext context)
     {
+        if (statusEffects != null && statusEffects.StunActiveNet)
+            return;
         PlayerWeaponInventory inventory = GetComponent<PlayerWeaponInventory>();
 
         if (inventory == null)
