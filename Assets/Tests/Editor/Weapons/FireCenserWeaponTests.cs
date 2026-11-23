@@ -163,36 +163,34 @@ public class FireCenserWeaponTests : PlayModeTestFixture
             Assert.That(effect, Is.Not.Null);
             ParticleSystem effectParticles = effect.GetComponent<ParticleSystem>();
             Assert.That(effectParticles.isPlaying, Is.True);
-            var emitted = new ParticleSystem.Particle[640];
+            var emitted = new ParticleSystem.Particle[2048];
             int emittedCount = effectParticles.GetParticles(emitted);
             Assert.That(emittedCount, Is.GreaterThan(0));
             float minAngle = float.PositiveInfinity;
             float maxAngle = float.NegativeInfinity;
-            float minTravelled = float.PositiveInfinity;
-            float maxTravelled = float.NegativeInfinity;
+            float minRadius = float.PositiveInfinity;
+            float maxRadius = float.NegativeInfinity;
             var radialBands = new HashSet<int>();
             for (int j = 0; j < emittedCount; j++)
             {
-                Vector3 velocity = emitted[j].velocity;
-                Vector3 flatVelocity = new Vector3(velocity.x, 0f, velocity.z);
-                float yaw = Vector3.SignedAngle(directions[i], flatVelocity, Vector3.up);
+                Vector3 offset = emitted[j].position - Origin;
+                Vector3 flatPosition = new Vector3(offset.x, 0f, offset.z);
+                float yaw = Vector3.SignedAngle(directions[i], flatPosition, Vector3.up);
                 minAngle = Mathf.Min(minAngle, yaw);
                 maxAngle = Mathf.Max(maxAngle, yaw);
                 Assert.That(Mathf.Abs(yaw), Is.LessThanOrEqualTo(50.01f));
-                Assert.That(emitted[j].startLifetime, Is.EqualTo(0.55f / 1.3f).Within(0.001f));
-                float travelled = flatVelocity.magnitude * emitted[j].startLifetime;
-                minTravelled = Mathf.Min(minTravelled, travelled);
-                maxTravelled = Mathf.Max(maxTravelled, travelled);
-                radialBands.Add(Mathf.RoundToInt(travelled * 100f));
-                Assert.That(
-                    (emitted[j].position - (Origin + Vector3.up * 0.25f)).magnitude,
-                    Is.LessThan(0.001f));
+                Assert.That(emitted[j].startLifetime, Is.EqualTo(0.54f / 1.2f).Within(0.001f));
+                float radius = flatPosition.magnitude;
+                minRadius = Mathf.Min(minRadius, radius);
+                maxRadius = Mathf.Max(maxRadius, radius);
+                radialBands.Add(Mathf.RoundToInt(radius * 100f));
+                Assert.That(offset.y, Is.EqualTo(0.25f).Within(0.001f));
             }
             Assert.That(minAngle, Is.EqualTo(-50f).Within(0.01f));
             Assert.That(maxAngle, Is.EqualTo(50f).Within(0.01f));
-            Assert.That(minTravelled, Is.EqualTo(0.8f).Within(0.01f));
-            Assert.That(maxTravelled, Is.EqualTo(4f).Within(0.01f));
-            Assert.That(radialBands.Count, Is.EqualTo(5));
+            Assert.That(minRadius, Is.EqualTo(0.56f).Within(0.01f));
+            Assert.That(maxRadius, Is.EqualTo(4f).Within(0.01f));
+            Assert.That(radialBands.Count, Is.EqualTo(8));
             effects.Add(effect);
         }
 
@@ -237,24 +235,25 @@ public class FireCenserWeaponTests : PlayModeTestFixture
                 prefabAsset, Origin, directions[i], 4f, 100f);
             Assert.That(effect, Is.Not.Null);
             ParticleSystem particles = effect.GetComponent<ParticleSystem>();
-            var emitted = new ParticleSystem.Particle[640];
+            var emitted = new ParticleSystem.Particle[2048];
             int emittedCount = particles.GetParticles(emitted);
             Assert.That(emittedCount, Is.GreaterThan(0));
-            float maxTravelled = 0f;
+            float maxRadius = 0f;
             var radialBands = new HashSet<int>();
             for (int j = 0; j < emittedCount; j++)
             {
                 ParticleSystem.Particle particle = emitted[j];
-                Vector3 flatVelocity = new Vector3(particle.velocity.x, 0f, particle.velocity.z);
-                float yaw = Mathf.Abs(Vector3.SignedAngle(directions[i], flatVelocity, Vector3.up));
+                Vector3 offset = particle.position - Origin;
+                Vector3 flatPosition = new Vector3(offset.x, 0f, offset.z);
+                float yaw = Mathf.Abs(Vector3.SignedAngle(directions[i], flatPosition, Vector3.up));
                 Assert.That(yaw, Is.LessThanOrEqualTo(50.01f));
-                Assert.That(particle.startSize, Is.InRange(0.35f, 0.55f));
-                float travelled = flatVelocity.magnitude * particle.startLifetime;
-                maxTravelled = Mathf.Max(maxTravelled, travelled);
-                radialBands.Add(Mathf.RoundToInt(travelled * 100f));
+                Assert.That(particle.startSize, Is.InRange(0.42f, 0.9f));
+                float radius = flatPosition.magnitude;
+                maxRadius = Mathf.Max(maxRadius, radius);
+                radialBands.Add(Mathf.RoundToInt(radius * 100f));
             }
-            Assert.That(maxTravelled, Is.EqualTo(4f).Within(0.01f));
-            Assert.That(radialBands.Count, Is.EqualTo(5));
+            Assert.That(maxRadius, Is.EqualTo(4f).Within(0.01f));
+            Assert.That(radialBands.Count, Is.EqualTo(8));
             Object.Destroy(effect);
         }
         Assert.That(prefabAsset.GetComponent<ParticleSystem>().shape.radius,
@@ -286,23 +285,21 @@ public class FireCenserWeaponTests : PlayModeTestFixture
             Assert.That((effect.transform.position - Origin).magnitude, Is.LessThan(0.001f));
 
             ParticleSystem particles = effect.GetComponent<ParticleSystem>();
-            var emitted = new ParticleSystem.Particle[640];
+            var emitted = new ParticleSystem.Particle[2048];
             int emittedCount = particles.GetParticles(emitted);
             Assert.That(emittedCount, Is.GreaterThan(0));
-            float maxTravelled = 0f;
+            float maxRadius = 0f;
             var radialBands = new HashSet<int>();
             for (int i = 0; i < emittedCount; i++)
             {
-                float travelled = new Vector3(emitted[i].velocity.x, 0f, emitted[i].velocity.z).magnitude
-                    * emitted[i].startLifetime;
-                maxTravelled = Mathf.Max(maxTravelled, travelled);
-                radialBands.Add(Mathf.RoundToInt(travelled * 100f));
-                Assert.That(
-                    (emitted[i].position - (Origin + Vector3.up * 0.25f)).magnitude,
-                    Is.LessThan(0.001f));
+                Vector3 offset = emitted[i].position - Origin;
+                float radius = new Vector2(offset.x, offset.z).magnitude;
+                maxRadius = Mathf.Max(maxRadius, radius);
+                radialBands.Add(Mathf.RoundToInt(radius * 100f));
+                Assert.That(offset.y, Is.EqualTo(0.25f).Within(0.001f));
             }
-            Assert.That(maxTravelled, Is.EqualTo(configuredRange).Within(0.01f));
-            Assert.That(radialBands.Count, Is.EqualTo(5));
+            Assert.That(maxRadius, Is.EqualTo(configuredRange).Within(0.01f));
+            Assert.That(radialBands.Count, Is.EqualTo(8));
 
             Object.Destroy(effect);
             yield return null;
