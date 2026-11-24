@@ -8,6 +8,8 @@ public sealed class DuelSettings
     public const int MaxSize = 61;
     public const float MaxObstacleDensity = 0.25f;
     public const float MaxBushDensity = 0.2f;
+    // 로비 화면에서 고를 수 있는 텔레포트 타일 쌍 수의 상한. 쌍 색(TeleporterBlock)도 세 가지다.
+    public const int MaxTeleporterPairs = 3;
 
     // 노이즈는 강도만 고른다. 스케일은 강도에 따라 변형이 가장 고르게 커지는 생성기 기본값(0.75)을 그대로 쓴다.
     public MapGenerationSettings Map = new MapGenerationSettings();
@@ -23,6 +25,7 @@ public sealed class DuelSettings
         ObstacleDensity = Map.ObstacleDensity,
         BushDensity = Map.BushDensity,
         Symmetry = Map.Symmetry,
+        TeleporterPairs = Map.TeleporterPairs,
         NoiseStrength = Map.NoiseStrength,
         NoiseScale = Map.NoiseScale
     };
@@ -42,6 +45,7 @@ public sealed class DuelSettings
             !(map.BushDensity >= 0 && map.BushDensity <= DuelSettings.MaxBushDensity) ||
             !(map.NoiseStrength >= 0 && map.NoiseStrength <= 1) ||
             !(map.NoiseScale >= 0.25f && map.NoiseScale <= 2)) return false;
+        if (map.TeleporterPairs < 0 || map.TeleporterPairs > DuelSettings.MaxTeleporterPairs) return false;
         reason = LobbyReason.None;
         return true;
     }

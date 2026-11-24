@@ -664,6 +664,7 @@ public class LobbyInputTests : PlayModeTestFixture
         Assert.That(actual.ObstacleDensity, Is.EqualTo(expected.ObstacleDensity));
         Assert.That(actual.BushDensity, Is.EqualTo(expected.BushDensity));
         Assert.That(actual.Symmetry, Is.EqualTo(expected.Symmetry));
+        Assert.That(actual.TeleporterPairs, Is.EqualTo(expected.TeleporterPairs));
         Assert.That(actual.NoiseStrength, Is.EqualTo(expected.NoiseStrength));
         Assert.That(actual.NoiseScale, Is.EqualTo(expected.NoiseScale));
     }

@@ -12,6 +12,7 @@ public struct NetworkMapSettings : INetworkSerializable
     public float ObstacleDensity;
     public float BushDensity;
     public MapSymmetry Symmetry;
+    public int TeleporterPairs;
     public float NoiseStrength;
     public float NoiseScale;
 
@@ -24,6 +25,7 @@ public struct NetworkMapSettings : INetworkSerializable
         ObstacleDensity = settings.ObstacleDensity;
         BushDensity = settings.BushDensity;
         Symmetry = settings.Symmetry;
+        TeleporterPairs = settings.TeleporterPairs;
         NoiseStrength = settings.NoiseStrength;
         NoiseScale = settings.NoiseScale;
     }
@@ -36,6 +38,7 @@ public struct NetworkMapSettings : INetworkSerializable
         ObstacleDensity = ObstacleDensity,
         BushDensity = BushDensity,
         Symmetry = Symmetry,
+        TeleporterPairs = TeleporterPairs,
         NoiseStrength = NoiseStrength,
         NoiseScale = NoiseScale
     };
@@ -49,6 +52,7 @@ public struct NetworkMapSettings : INetworkSerializable
         serializer.SerializeValue(ref ObstacleDensity);
         serializer.SerializeValue(ref BushDensity);
         serializer.SerializeValue(ref Symmetry);
+        serializer.SerializeValue(ref TeleporterPairs);
         serializer.SerializeValue(ref NoiseStrength);
         serializer.SerializeValue(ref NoiseScale);
     }

@@ -13,7 +13,8 @@ public struct LobbyJoinRequest : INetworkSerializable
     // 9: 공격 RPC에 공격 번호·무기 id를 싣고, 로비 거절 사유를 enum 코드로 보낸다.
     // 10: Random map layouts now include seed-derived destructible walls.
     // 11: Destructible walls exclude all void-adjacent arena boundary cells.
-    public const int CurrentVersion = 11;
+    // 12: 맵 설정에 텔레포트 타일 쌍 수를 넣고 맵에 타일을 두며, 텔레포트 요청·상태 메시지를 추가했다.
+    public const int CurrentVersion = 12;
 
     public int Version;
     public bool CreateRoom;
