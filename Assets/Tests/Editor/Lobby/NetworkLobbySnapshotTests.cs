@@ -303,6 +303,7 @@ public class NetworkLobbySnapshotTests
                 ObstacleDensity = 0.24f,
                 BushDensity = 0.17f,
                 Symmetry = MapSymmetry.None,
+                TeleporterPairs = DuelSettings.MaxTeleporterPairs,
                 NoiseStrength = 0.9f,
                 NoiseScale = 1.8f
             }
@@ -377,8 +378,16 @@ public class NetworkLobbySnapshotTests
         AssertInvalid(s => s.Map.Size = new Vector2Int(DuelSettings.MinSize, DuelSettings.MinSize - 1));
         AssertInvalid(s => s.Map.Size = new Vector2Int(DuelSettings.MaxSize + 1, DuelSettings.MaxSize));
         AssertInvalid(s => s.Map.Size = new Vector2Int(DuelSettings.MaxSize, DuelSettings.MaxSize + 1));
+        AssertInvalid(s => s.Map.TeleporterPairs = -1);
+        AssertInvalid(s => s.Map.TeleporterPairs = DuelSettings.MaxTeleporterPairs + 1);
 
         AssertValid(Settings());
+        for (int pairs = 0; pairs <= DuelSettings.MaxTeleporterPairs; pairs++)
+        {
+            DuelSettings withPairs = Settings();
+            withPairs.Map.TeleporterPairs = pairs;
+            AssertValid(withPairs);
+        }
         AssertValid(WithMapSizeAndRanges(
             new Vector2Int(DuelSettings.MinSize, DuelSettings.MaxSize), 0,
             0, 0.25f, 0));
@@ -425,6 +434,7 @@ public class NetworkLobbySnapshotTests
         Assert.That(actual.Map.ObstacleDensity, Is.EqualTo(expected.Map.ObstacleDensity));
         Assert.That(actual.Map.BushDensity, Is.EqualTo(expected.Map.BushDensity));
         Assert.That(actual.Map.Symmetry, Is.EqualTo(expected.Map.Symmetry));
+        Assert.That(actual.Map.TeleporterPairs, Is.EqualTo(expected.Map.TeleporterPairs));
         Assert.That(actual.Map.NoiseStrength, Is.EqualTo(expected.Map.NoiseStrength));
         Assert.That(actual.Map.NoiseScale, Is.EqualTo(expected.Map.NoiseScale));
     }

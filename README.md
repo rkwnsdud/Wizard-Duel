@@ -155,6 +155,7 @@ flowchart TD
 | 부시 밀도 | 0 ~ 0.20 | 몸을 숨길 부시가 깔리는 정도 |
 | 대칭 | 없음 / 180° 회전 | 180° 회전이면 두 스폰에서 본 맵이 같음 |
 | 노이즈 강도 | 0 ~ 1 | 맵 윤곽을 얼마나 울퉁불퉁하게 만들지 |
+| 텔레포트 | 없음 / 1 ~ 3쌍 | 가운데에 서면 같은 색 짝 타일로 순간 이동하는 타일 쌍 수. 쓰면 그 쌍은 5초 동안 쉼 |
 
 - 스폰 지점 주변은 항상 비워 두어 시작하자마자 벽에 갇히는 일이 없습니다.
 - 모든 바닥은 서로 이어져 있어 들어갈 수 없는 구역이 생기지 않습니다.
@@ -274,6 +275,7 @@ sequenceDiagram
 - **무기 스폰과 인벤토리**는 서버 권한으로 처리합니다. 서버는 판마다 맵에서 두 플레이어가 모두 갈 수 있는 자리를 골라 두고 그 자리에 무기를 떨어뜨립니다. 줍기와 교체는 요청을 보내 확인받은 뒤에 반영됩니다. 전용 서버는 맵 지문을 확인한 뒤 맵을 지우지만, 그 전에 스폰 자리와 맵 배치를 기억해 두므로 온라인에서도 같은 규칙으로 동작합니다. 자세한 규칙은 [무기 스폰 문서](Docs/WeaponSpawning.md)에 있습니다.
 - **로비 화면의 거절·오류 사유**는 문장 대신 코드(`LobbyReason`)로 주고받고, 각 화면이 한국어 안내 문구로 바꿔 보여 줍니다.
 - **부시 시야**는 각 화면에서 따로 계산합니다. 숨은 상대는 그리지 않을 뿐이고, 충돌과 위치 동기화는 그대로입니다.
+- **텔레포트 타일**은 서버가 승인합니다. 타일 가운데에 선 플레이어의 화면이 요청하면 서버가 판과 쿨타임을 확인하고, 승인되면 그 화면이 캐릭터를 짝 타일로 옮깁니다. 자세한 규칙은 [텔레포트 타일 문서](Docs/Teleporters.md)에 있습니다.
 
 ## 프로젝트 구조
 
@@ -306,7 +308,7 @@ Wizard-Duel/
 │  │  ├─ UI/                  전투 HUD, UI 아트·아이콘, UI 글꼴(Fonts)
 │  │  └─ Weapons/             무기 5종(BasicWand, ExplosionMagicBook, FireCenser, LightningStaff, LightOrb), 공통 계약(Common), 정의(Definitions)
 │  ├─ Input/                  PlayerInputActions 입력 액션과 생성 래퍼 (WizardDuel.Input)
-│  ├─ Map/                    맵 조립, 블록, 배경, 맵 지문, 바닥·벽·부시·스폰 프리팹·아트 (WizardDuel.Map)
+│  ├─ Map/                    맵 조립, 블록, 배경, 맵 지문, 바닥·벽·부시·스폰·텔레포트 프리팹·아트 (WizardDuel.Map)
 │  │  └─ Generation/          맵 생성기(WizardDuel.MapGeneration)
 │  ├─ Scenes/                 게임 본편(Main)과 오프라인 테스트 씬(DuelOfflineTest)
 │  ├─ Settings/               URP 파이프라인·렌더러·볼륨 프로필·카메라 설정
@@ -328,7 +330,7 @@ Wizard-Duel/
 - [무기 패시브와 쿨다운](Docs/WeaponPassivesAndCooldown.md) · [이동 속도 배율과 상태이상](Docs/MoveSpeedAndStatusEffects.md)
 - [서버 보고 처리 규칙](Docs/ServerHitReportRules.md)
 - [기본 완드 에셋](Docs/BasicWand/README_KO.md) · [완드 마력탄 VFX](Assets/Game/Weapons/BasicWand/Art/VFX/README_KO.md) · [번개 이펙트](Assets/Effects/Lightning/README.md)
-- [맵 생성](Assets/Map/Generation/README.md)
+- [맵 생성](Assets/Map/Generation/README.md) · [텔레포트 타일](Docs/Teleporters.md)
 - [네트워크 테스트 창과 온라인 흐름](Assets/Editor/Multiplayer/README.md) · [리눅스 전용 서버 배포](Deploy/Server/README.md)
 - [Unity 밖에서 돌리는 보조 스크립트](Tools/README.md)
 

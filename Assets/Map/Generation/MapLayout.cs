@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 public enum MapCell
@@ -23,6 +24,9 @@ public sealed class MapLayout
     readonly MapCell[,] cells;
     readonly bool[,] destructibleWalls;
     readonly int[,] bushIds;
+    readonly TeleporterPair[] teleporters;
+    // 텔레포트 타일 칸에는 쌍 번호 * 2 + 쪽(0은 A, 1은 B)을, 나머지 칸에는 -1을 넣는다.
+    readonly int[,] teleporterIds;
 
     public int Width => cells.GetLength(0);
     public int Height => cells.GetLength(1);
@@ -40,12 +44,17 @@ public sealed class MapLayout
     // 부시 덩어리 수. 덩어리 번호는 0부터 BushCount - 1까지다.
     public int BushCount { get; }
 
+    // 텔레포트 타일 쌍. 목록 순서가 쌍 번호이고, 번호는 TeleporterRegions.Parse(ToLayout())와 같다.
+    // 타일 칸은 MapCell.Floor 그대로라서 이동·경로 찾기는 바닥으로 본다.
+    public IReadOnlyList<TeleporterPair> Teleporters => teleporters;
+
     // x는 열, y는 행이며 ToLayout()[y][x]와 같은 좌표를 사용한다.
     public MapCell this[int x, int y] => cells[x, y];
     public bool IsDestructibleWall(int x, int y) => destructibleWalls[x, y];
 
     internal MapLayout(MapCell[,] cells, Vector2Int spawnA, Vector2Int spawnB,
-        MapShape shape, float actualObstacleDensity, float actualBushDensity, bool[,] destructibleWalls)
+        MapShape shape, float actualObstacleDensity, float actualBushDensity,
+        bool[,] destructibleWalls, TeleporterPair[] teleporters = null)
     {
         this.cells = cells;
         this.destructibleWalls = destructibleWalls;
@@ -56,7 +65,31 @@ public sealed class MapLayout
         ActualBushDensity = actualBushDensity;
         bushIds = BushRegions.Label(cells, out int bushCount);
         BushCount = bushCount;
+        this.teleporters = teleporters ?? new TeleporterPair[0];
+        teleporterIds = new int[Width, Height];
+        for (int x = 0; x < Width; x++)
+            for (int y = 0; y < Height; y++)
+                teleporterIds[x, y] = -1;
+        for (int pair = 0; pair < this.teleporters.Length; pair++)
+            for (int side = 0; side < 2; side++)
+            {
+                Vector2Int tile = this.teleporters[pair][side];
+                for (int dy = 0; dy < TeleporterRegions.Size; dy++)
+                    for (int dx = 0; dx < TeleporterRegions.Size; dx++)
+                        teleporterIds[tile.x + dx, tile.y + dy] = pair * 2 + side;
+            }
     }
+
+    // (x, y) 칸이 텔레포트 타일이면 그 쌍 번호와 쪽(0은 A, 1은 B)을 준다.
+    public bool TryGetTeleporter(int x, int y, out int pair, out int side)
+    {
+        int id = x >= 0 && y >= 0 && x < Width && y < Height ? teleporterIds[x, y] : -1;
+        pair = id >= 0 ? id / 2 : -1;
+        side = id >= 0 ? id % 2 : -1;
+        return id >= 0;
+    }
+
+    public bool IsTeleporter(int x, int y) => TryGetTeleporter(x, y, out _, out _);
 
     // (x, y) 칸이 속한 부시 덩어리 번호. 부시가 아니면 -1이다. 번호는 BushRegions.Label(ToLayout())과 같다.
     public int BushId(int x, int y) => bushIds[x, y];
@@ -84,6 +117,7 @@ public sealed class MapLayout
                     MapCell.Bush => BushRegions.Symbol,
                     _ => ' '
                 };
+                if (TryGetTeleporter(x, y, out int pair, out _)) row[x] = TeleporterRegions.Symbol(pair);
                 var cell = new Vector2Int(x, y);
                 if (InSpawn(cell, SpawnA)) row[x] = 'B';
                 if (InSpawn(cell, SpawnB)) row[x] = 'O';

@@ -16,7 +16,7 @@ public static class WeaponSpawnPlacement
         for (int x = 1; x < map.Width - 1; x++)
         {
             var cell = new Vector2Int(x, y);
-            if (map[x, y] != MapCell.Floor || a[x, y] < 0 || b[x, y] < 0 ||
+            if (map[x, y] != MapCell.Floor || a[x, y] < 0 || b[x, y] < 0 || NearTeleporter(map, x, y) ||
                 MapLayout.InSpawnZone(cell, map.SpawnA, 3) || MapLayout.InSpawnZone(cell, map.SpawnB, 3)) continue;
             bool clear = true;
             foreach (var step in Steps)
@@ -68,6 +68,15 @@ public static class WeaponSpawnPlacement
                 map[x, y] == MapCell.Void || map[x, y] == MapCell.Wall) return false;
         }
         return true;
+    }
+
+    // 텔레포트 타일 칸이나 그 둘레 한 칸이면 무기를 두지 않는다. 떠 있는 무기가 타일 빛을 가리고, 줍다가 이동되지 않게 한다.
+    static bool NearTeleporter(MapLayout map, int x, int y)
+    {
+        for (int dy = -1; dy <= 1; dy++)
+            for (int dx = -1; dx <= 1; dx++)
+                if (map.IsTeleporter(x + dx, y + dy)) return true;
+        return false;
     }
 
     static bool Walkable(MapLayout map, int x, int y) => x >= 0 && y >= 0 && x < map.Width && y < map.Height &&

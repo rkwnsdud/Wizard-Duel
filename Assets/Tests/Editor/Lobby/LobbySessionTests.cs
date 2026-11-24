@@ -394,6 +394,7 @@ public class LobbySessionTests
         Assert.That(actual.Map.ObstacleDensity, Is.EqualTo(expected.Map.ObstacleDensity));
         Assert.That(actual.Map.BushDensity, Is.EqualTo(expected.Map.BushDensity));
         Assert.That(actual.Map.Symmetry, Is.EqualTo(expected.Map.Symmetry));
+        Assert.That(actual.Map.TeleporterPairs, Is.EqualTo(expected.Map.TeleporterPairs));
         Assert.That(actual.Map.NoiseStrength, Is.EqualTo(expected.Map.NoiseStrength));
         Assert.That(actual.Map.NoiseScale, Is.EqualTo(expected.Map.NoiseScale));
     }

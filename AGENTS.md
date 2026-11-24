@@ -22,6 +22,7 @@ Wizard-Duel에서 일하는 에이전트를 위한 작업 안내입니다. 게�
 | 이동·입력·체력·상태이상 | `Assets/Game/Player/Scripts/`(`PlayerMotor`, `PlayerMovement`, `PlayerHealth`, `PlayerStatusEffects`), [Docs/MoveSpeedAndStatusEffects.md](Docs/MoveSpeedAndStatusEffects.md) |
 | AI 봇 | `Assets/Game/Battle/Scripts/Bot/`(`DuelBot`, `BotGrid`, `AiDuel`) |
 | 맵 생성 | `Assets/Map/Generation/`, [Assets/Map/Generation/README.md](Assets/Map/Generation/README.md) |
+| 텔레포트 타일(배치·서버 승인·빛) | [Docs/Teleporters.md](Docs/Teleporters.md), `ArenaTeleporters`·`TeleporterCooldowns`(`Assets/Game/Battle/Scripts/`), `PlayerTeleporter`, `TeleporterField`·`TeleporterBlock`(`Assets/Map/Scripts/`), 배치는 `MapLayoutGenerator.PlaceTeleporters` |
 | 효과음 | `Assets/Audio/`(`SfxId`, `SfxLibrary`, `Sfx.Play`), 표 `Assets/Audio/Resources/SfxLibrary.asset`, 메뉴 **Tools > Wizard Duel > 효과음 패널** |
 | 전용 서버 배포 | [Deploy/Server/README.md](Deploy/Server/README.md), 빌드 진입점 `Assets/Game/Main/Editor/LinuxServerBuild.cs` |
 | Unity 밖 보조 스크립트 | [Tools/README.md](Tools/README.md) |
@@ -38,7 +39,7 @@ Wizard-Duel에서 일하는 에이전트를 위한 작업 안내입니다. 게�
 - **온라인·AI·오프라인은 같은 전투 코드(`DuelPlayer`, `PlayerAttack`, `ServerHitReport`)를 쓴다.**
   - AI 대전은 로컬 호스트(`LocalHost` 세션 모드)로 돈다.
   - 오프라인 테스트 씬은 같은 플레이어 프리팹에 무기를 직접 붙인다(스폰·줍기 없음). 모드별 `if`를 늘리지 말고, 로컬 처리만 끼워 넣는다.
-- **접속 프로토콜 버전:** 아래가 바뀌면 `LobbyJoinRequest.CurrentVersion`을 1 올리고 그 위 주석에 한 줄 적는다(지금 11).
+- **접속 프로토콜 버전:** 아래가 바뀌면 `LobbyJoinRequest.CurrentVersion`을 1 올리고 그 위 주석에 한 줄 적는다(지금 12).
   - 서버와 클라이언트가 주고받는 메시지 형식, RPC 인자
   - 같은 시드에서 나오는 맵(`MapLayoutGenerator` 튜닝 값)
   - 버전이 다르면 서버가 접속을 거절하므로, 원격 서버도 같은 커밋으로 다시 배포해야 한다.
@@ -107,7 +108,7 @@ Wizard-Duel에서 일하는 에이전트를 위한 작업 안내입니다. 게�
   - 가벼운 테스트: `System.Type.GetType("TestSuites, WizardDuel.EditorTests").GetMethod("RunLight").Invoke(null, null)`
     - 플레이 모드에 들어가지 않고 요약 문자열을 바로 돌려준다.
     - 결과는 `Logs/TestResults/light.txt`
-    - 기준: `passed=480 failed=0 skipped=1`. 건너뛰는 것은 `AiDuelWeaponTests.LobbyHasAButtonForEveryCatalogWeapon`이다.
+    - 기준: `passed=505 failed=0 skipped=1`. 건너뛰는 것은 `AiDuelWeaponTests.LobbyHasAButtonForEveryCatalogWeapon`이다.
   - 전체 테스트: `…GetMethod("StartFull")`
     - 플레이 모드 테스트까지 돌고, 도메인을 여러 번 다시 불러와 오래 걸린다.
     - 진행 중에는 `Logs/TestResults/full.txt.partial`, 끝나면 `full.txt`. 기준은 `passed=528 failed=0 skipped=1`이다.
@@ -124,7 +125,7 @@ Wizard-Duel에서 일하는 에이전트를 위한 작업 안내입니다. 게�
   - 서버: `WizardDuel.exe -batchmode -nographics -server -logFile server.log`
   - 클라이언트: `WizardDuel.exe -join 127.0.0.1 -screen-fullscreen 0 -screen-width 960 -screen-height 540`
   - 띄운 프로세스는 PID를 적어 두고 그 PID로만 끈다. 이름으로 끄면 다른 사람이 띄운 게임 창까지 꺼진다.
-- **로그에서 볼 줄:** `[Lobby] Listening`, `[Lobby] Approval … reason=…`, `[Arena] Ready … fingerprint=`, `[WeaponSpawn] Round …`, `[Combat] Hit …`, `[Combat] … dropped reason=…`
+- **로그에서 볼 줄:** `[Lobby] Listening`, `[Lobby] Approval … reason=…`, `[Arena] Ready … fingerprint=`, `[WeaponSpawn] Round …`, `[Teleport] Round …`, `[Combat] Hit …`, `[Combat] … dropped reason=…`
 - **화면 캡처:** 창을 숨기면 `ScreenCapture.CaptureScreenshot` 결과가 생기지 않는다. 작은 창 모드로 띄운다.
 - **입력 시험:** 실제 키보드 대신 Input System 가상 장치로 넣는다. `Assets/Tests/Editor/PlayModeTestFixture.cs`와 `LobbyInputTests`가 예시다.
 - **리눅스 전용 서버 빌드**는 Unity에 Linux Build Support(Dedicated Server) 모듈이 있어야 한다. 없으면 `BuildPipeline.IsBuildTargetSupported`가 false다.
