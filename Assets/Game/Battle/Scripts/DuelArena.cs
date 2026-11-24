@@ -48,14 +48,22 @@ public sealed class DuelArena : MonoBehaviour
     [SerializeField, Min(0f)] float combatDelayPadding = 0.15f;
     [SerializeField] WeaponSpawnCatalog weaponCatalog;
     public ArenaWeaponSpawner Weapons { get; private set; }
+    public ArenaTeleporters Teleporters { get; private set; }
 
-    public void RegisterWeaponMessages(NetworkManager manager)
+    // 전투 중 서버와 주고받는 무기 스폰·텔레포트 메시지를 등록한다.
+    public void RegisterMessages(NetworkManager manager)
     {
         if (Weapons == null) Weapons = gameObject.AddComponent<ArenaWeaponSpawner>();
         Weapons.Initialize(manager, weaponCatalog);
+        if (Teleporters == null) Teleporters = gameObject.AddComponent<ArenaTeleporters>();
+        Teleporters.Initialize(manager);
     }
 
-    public void UnregisterWeaponMessages() => Weapons?.Shutdown();
+    public void UnregisterMessages()
+    {
+        Weapons?.Shutdown();
+        Teleporters?.Shutdown();
+    }
 
     public bool HasMap => map.GeneratedLayout != null;
     public IEnumerable<IEnvironmentDestructible> EnvironmentBlocks => map != null ? map.Destructibles : System.Array.Empty<IEnvironmentDestructible>();
@@ -98,9 +106,11 @@ public sealed class DuelArena : MonoBehaviour
 
         // 가시성 판정은 지금 싸우는 맵의 부시만 본다. map이 지워지거나 다시 만들어지면 스스로 등록을 푼다.
         BushField.Activate(map.Bushes);
+        TeleporterField.Activate(map.Teleporters);
         MapLayout layout = map.GeneratedLayout;
         Debug.Log($"[Arena] Ready settings={JsonUtility.ToJson(new NetworkMapSettings(settings))} shape={layout.Shape} " +
-            $"size={layout.Size} spawnA={layout.SpawnA} spawnB={layout.SpawnB} fingerprint={Fingerprint}");
+            $"size={layout.Size} spawnA={layout.SpawnA} spawnB={layout.SpawnB} teleporters={string.Join(" ", layout.Teleporters)} " +
+            $"fingerprint={Fingerprint}");
         for (int slot = 0; slot < map.SpawnPoints.Length; slot++)
             Debug.Log($"[Arena] Spawn {slot}: position={map.SpawnPoints[slot].position} rotation={map.SpawnPoints[slot].rotation}");
         return true;
@@ -222,6 +232,7 @@ public sealed class DuelArena : MonoBehaviour
         foreach (DuelPlayer player in spawned)
             if (player != null) player.ServerEnableCombat();
         Weapons?.BeginRound(match);
+        Teleporters?.BeginRound(match);
         combatEnabled?.Invoke();
     }
 
@@ -231,6 +242,7 @@ public sealed class DuelArena : MonoBehaviour
         if (match == null) return;
         match.CombatEnded = true;
         Weapons?.EndRound(match);
+        Teleporters?.EndRound(match);
         if (match.Combat != null) StopCoroutine(match.Combat);
         match.Combat = null;
         match.PlayerDefeated = null;
@@ -244,6 +256,7 @@ public sealed class DuelArena : MonoBehaviour
         if (match == null) return;
         match.CombatEnded = true;
         Weapons?.Clear(match);
+        Teleporters?.EndRound(match);
         if (match.Combat != null) StopCoroutine(match.Combat);
         match.Combat = null;
         match.PlayerDefeated = null;

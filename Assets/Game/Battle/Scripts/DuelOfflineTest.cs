@@ -20,6 +20,8 @@ public sealed class DuelOfflineTest : MonoBehaviour
 
     DuelPlayer player;
     DuelPlayer dummy;
+    // Main의 DuelArena처럼 서버 승인으로 텔레포트한다. 이 오브젝트를 판 key로 쓴다.
+    ArenaTeleporters teleporters;
     PlayerHealth dummyHealth;
     PlayerBushVisibility dummyVisibility;
     // 더미가 서 있는 부시 덩어리 번호. -1이면 스폰 자리다.
@@ -50,6 +52,8 @@ public sealed class DuelOfflineTest : MonoBehaviour
             enabled = false;
             return;
         }
+        teleporters = gameObject.AddComponent<ArenaTeleporters>();
+        teleporters.Initialize(manager);
         Respawn();
     }
 
@@ -65,7 +69,11 @@ public sealed class DuelOfflineTest : MonoBehaviour
         if (combatAt >= 0f && Time.time >= combatAt)
         {
             combatAt = -1f;
-            if (player != null) player.ServerEnableCombat();
+            if (player != null)
+            {
+                player.ServerEnableCombat();
+                teleporters.BeginRound(this, new[] { player }, map.Teleporters != null ? map.Teleporters.Count : 0);
+            }
         }
         if (dummyRespawnAt >= 0f && Time.time >= dummyRespawnAt) SpawnDummy();
         UpdateWeaponSwitch();
@@ -123,6 +131,7 @@ public sealed class DuelOfflineTest : MonoBehaviour
     // 플레이어와 더미를 각자의 스폰 위치에 새로 세운다.
     void Respawn()
     {
+        if (teleporters != null) teleporters.EndRound(this);
         SpawnDummy();
         Despawn(player);
         player = Spawn(playerPrefab, 0);

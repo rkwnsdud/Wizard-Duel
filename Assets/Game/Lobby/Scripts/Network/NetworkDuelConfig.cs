@@ -86,13 +86,13 @@ public static class NetworkDuelConfig
 
     public static void RegisterMessages(NetworkManager manager, DuelArena arena, NamedMessageGroup handlers = null)
     {
-        if (arena != null && manager != null) arena.RegisterWeaponMessages(manager);
+        if (arena != null && manager != null) arena.RegisterMessages(manager);
         handlers?.Register(manager);
     }
 
     public static void UnregisterMessages(DuelArena arena, NamedMessageGroup handlers = null)
     {
-        if (arena != null) arena.UnregisterWeaponMessages();
+        if (arena != null) arena.UnregisterMessages();
         handlers?.Unregister();
     }
 }
