@@ -29,7 +29,8 @@ The real arena is procedurally generated, so fixed scene coordinates would be
 unsafe across seeds. `WeaponSpawnPlacement` analyses the generated layout on the
 server: both players must be able to reach each site, the centre must be open
 floor, cardinal neighbours must be walkable, and player starting zones are
-excluded with a three-cell margin. Up to 12 sites are spread at least four metres
+excluded with a three-cell margin. Teleporter tiles and the one-cell ring
+around them are excluded too ([Teleporters.md](Teleporters.md)). Up to 12 sites are spread at least four metres
 apart, with walking-distance balance considered. Physics checks then confirm
 the actual floor height and reject obstacles (`ArenaWeaponSpawner.FindSites`).
 At spawn time, sites within two metres of a player are also skipped. The server

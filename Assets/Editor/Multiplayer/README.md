@@ -44,6 +44,7 @@
 - `[Arena] Ready … fingerprint=…`, `[Arena] Spawn 0/1`: 각 프로세스가 만든 전투 맵의 지문과 스폰 위치. 서버와 두 클라이언트의 값이 같아야 한다.
 - `[Lobby] Client … map ready (n/2)`, `[Lobby] Players spawned`: 지문이 맞은 클라이언트 수와 소환.
 - `[WeaponSpawn] Round …`: 판마다 고른 스폰 자리 수와 떨어진 무기.
+- `[Teleport] Round …`: 판마다 텔레포트 쌍 수와 쿨타임, 받아 준 이동(`side=0->1`)과 버린 요청(`dropped reason=…`). 이동한 화면에는 `[Teleport] … arrived`가 남는다.
 - `[Combat] Hit … health=`: 서버가 받은 명중과 남은 체력. `[Combat] Hit dropped reason=…`, `[Combat] DoT dropped reason=…`은 버린 보고와 이유다.
 - `[Lobby] Player defeated`, `[Lobby] Closed`: 승부가 난 판과 닫힌 방.
 
