@@ -155,8 +155,22 @@ public sealed class DuelBot : MonoBehaviour
         motor = GetComponent<PlayerMotor>();
         attack = GetComponent<PlayerAttack>();
         health = GetComponent<PlayerHealth>();
+        // 봇은 텔레포트 타일을 피해 다니지만 밟혀서 옮겨지면 새 자리에서 길을 다시 찾는다.
+        if (TryGetComponent(out PlayerTeleporter teleporter)) teleporter.Teleported += OnTeleported;
         // 전투가 켜질 때 DuelPlayer가 켠다.
         enabled = false;
+    }
+
+    void OnDestroy()
+    {
+        if (TryGetComponent(out PlayerTeleporter teleporter)) teleporter.Teleported -= OnTeleported;
+    }
+
+    void OnTeleported(PlayerTeleporter teleporter, Vector3 from)
+    {
+        path.Clear();
+        repathAt = 0f;
+        stuckTime = stuckProgress = 0f;
     }
 
     // DuelArena가 봇을 소환하기 전에 부른다. opponent는 봇이 싸울 상대(사람)다.
@@ -455,7 +469,7 @@ public sealed class DuelBot : MonoBehaviour
     Vector3 Follow(Vector3 destination, float now)
     {
         Vector3 position = transform.position;
-        if (grid.HasClearLine(position, destination, BodyRadius))
+        if (grid.HasClearPath(position, destination, BodyRadius))
         {
             path.Clear();
             return Direction(destination - position);
@@ -477,7 +491,7 @@ public sealed class DuelBot : MonoBehaviour
         // 곧게 갈 수 있는 가장 먼 칸으로 향하고, 그 앞의 칸은 지나간 것으로 본다.
         for (int i = Mathf.Min(path.Count, LookAhead) - 1; i > 0; i--)
         {
-            if (!grid.HasClearLine(position, grid.CenterOf(path[i]), BodyRadius)) continue;
+            if (!grid.HasClearPath(position, grid.CenterOf(path[i]), BodyRadius)) continue;
             path.RemoveRange(0, i);
             break;
         }
@@ -492,7 +506,7 @@ public sealed class DuelBot : MonoBehaviour
 
     // 그 방향으로 한 걸음 내디딜 자리가 비어 있는지.
     bool CanStep(Vector3 direction) =>
-        grid.HasClearLine(transform.position, transform.position + direction * 0.9f, BodyRadius);
+        grid.HasClearPath(transform.position, transform.position + direction * 0.9f, BodyRadius);
 
     // 상대가 공격을 시작했다. 나를 겨누고 있으면 반응 시간 뒤에 조준선 밖으로 비켜선다.
     void PlanDodge(float now)
