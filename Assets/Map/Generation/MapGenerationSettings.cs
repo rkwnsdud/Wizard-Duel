@@ -30,6 +30,10 @@ public sealed class MapGenerationSettings
     public float BushDensity { get; set; } = 0.05f;
     public MapSymmetry Symmetry { get; set; } = MapSymmetry.Rotate180;
 
+    // 텔레포트 타일 쌍 수. 벽·엄폐물·부시를 다 둔 뒤 남은 빈터에 두므로 이 값만 바꾸면 나머지 맵은 그대로다.
+    // 자리가 모자라면 더 적게 둔다. 범위: 0~TeleporterRegions.MaxPairs.
+    public int TeleporterPairs { get; set; } = 1;
+
     // 0이면 변형 없음, 1이면 가장 강한 변형.
     public float NoiseStrength { get; set; } = 0.5f;
 

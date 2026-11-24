@@ -54,6 +54,42 @@ public static class MapLayoutGenerator
     const float lineBendChance = 0.4f;
     const int lineArmMin = 3;                  // 꺾인 띠에서 한 팔의 최소 칸 수(모서리 포함)
 
+    // 텔레포트 타일 튜닝 값. 바꾸면 같은 시드의 맵이 달라지므로 LobbyJoinRequest.CurrentVersion도 올린다.
+    // 타일은 벽·엄폐물·부시를 다 둔 뒤 같은 난수열로 둔다. 쌍 수가 0이면 난수를 쓰지 않아 나머지 맵이 그대로다.
+    // 둘레 칸(teleporterRing)은 타일을 한 바퀴 도는 순서다. 걸을 수 있는 둘레 칸이 한 줄로 이어져 있으면 타일을 밟지 않고 돌아갈 수 있다.
+    static readonly Vector2Int[] teleporterRing =
+    {
+        new Vector2Int(-1, -1), new Vector2Int(0, -1), new Vector2Int(1, -1), new Vector2Int(2, -1),
+        new Vector2Int(2, 0), new Vector2Int(2, 1), new Vector2Int(2, 2), new Vector2Int(1, 2),
+        new Vector2Int(0, 2), new Vector2Int(-1, 2), new Vector2Int(-1, 1), new Vector2Int(-1, 0)
+    };
+    const int teleporterOpenRing = 5;          // 타일 둘레 12칸 중 끊기지 않고 이어져 걸을 수 있어야 하는 칸 수의 하한
+    const int teleporterSpacing = 6;           // 서로 다른 타일의 최소 좌표 칸 사이 체비셰프 거리 하한(타일 사이 4칸)
+    const int teleporterTries = 64;            // 단계마다 남은 쌍 하나에 살펴볼 첫 타일 후보 수
+
+    // 배치 단계. 둘레로 돌아갈 수 있는 자리부터 찾고, 모자라면 길을 끊지만 않는 자리, 그다음 더 가까운 짝을 허용한다.
+    // MinTravel·TravelShare: 한 쌍의 두 타일 사이를 걸어서 가는 거리 하한(칸)과, 두 스폰 사이 걷는 거리 중 그 몫.
+    static readonly TeleporterTier[] teleporterTiers =
+    {
+        new TeleporterTier(needRing: true, minTravel: 10, travelShare: 0.4f),
+        new TeleporterTier(needRing: false, minTravel: 10, travelShare: 0.4f),
+        new TeleporterTier(needRing: false, minTravel: 8, travelShare: 0.25f)
+    };
+
+    readonly struct TeleporterTier
+    {
+        public readonly bool NeedRing;
+        public readonly int MinTravel;
+        public readonly float TravelShare;
+
+        public TeleporterTier(bool needRing, int minTravel, float travelShare)
+        {
+            NeedRing = needRing;
+            MinTravel = minTravel;
+            TravelShare = travelShare;
+        }
+    }
+
     static readonly Vector2Int[] directions =
     {
         Vector2Int.left, Vector2Int.right, Vector2Int.up, Vector2Int.down
@@ -97,8 +133,10 @@ public static class MapLayoutGenerator
             int bushes = PlaceBushes(cells, spawnA, spawnB, floorCount,
                 settings.BushDensity, settings.Symmetry, random, distances, queue);
             bool[,] destructibleWalls = SelectDestructibleWalls(cells, settings.Symmetry, random);
+            TeleporterPair[] teleporters = PlaceTeleporters(cells, spawnA, spawnB,
+                settings.TeleporterPairs, settings.Symmetry, random, queue);
             return new MapLayout(cells, spawnA, spawnB, shape,
-                (float)obstacles / floorCount, (float)bushes / floorCount, destructibleWalls);
+                (float)obstacles / floorCount, (float)bushes / floorCount, destructibleWalls, teleporters);
         }
 
         throw new InvalidOperationException(
@@ -213,6 +251,9 @@ public static class MapLayoutGenerator
             || settings.NoiseScale < 0.25f || settings.NoiseScale > 2f)
             throw new ArgumentOutOfRangeException(nameof(settings.NoiseScale),
                 "Noise scale must be a finite value between 0.25 and 2.");
+        if (settings.TeleporterPairs < 0 || settings.TeleporterPairs > TeleporterRegions.MaxPairs)
+            throw new ArgumentOutOfRangeException(nameof(settings.TeleporterPairs),
+                $"Teleporter pairs must be between 0 and {TeleporterRegions.MaxPairs}.");
         if (float.IsNaN(settings.BushDensity) || float.IsInfinity(settings.BushDensity)
             || settings.BushDensity < 0f || settings.BushDensity > 1f)
             throw new ArgumentOutOfRangeException(nameof(settings.BushDensity),
@@ -1349,6 +1390,226 @@ public static class MapLayoutGenerator
         bool IsWall(Vector2Int cell) => InBounds(cell) && cells[cell.x, cell.y] == MapCell.Wall;
         bool IsBush(Vector2Int cell) => InBounds(cell) && cells[cell.x, cell.y] == MapCell.Bush;
         bool InBounds(Vector2Int cell) => cell.x >= 0 && cell.y >= 0 && cell.x < size.x && cell.y < size.y;
+    }
+
+    // 남은 빈터에 텔레포트 타일 쌍을 count개까지 둔다. 조건을 지키는 자리가 모자라면 teleporterTiers 순서로 조건을 낮춰
+    // 남은 쌍을 다시 찾고, 그래도 없으면 더 적게 둔다. 앞 단계에서 둔 타일은 그대로 둔다.
+    // 대칭 맵은 타일과 180도 반대편 타일이 한 쌍이다. 대칭이 아니면 한쪽 타일에서 한 스폰까지 걷는 거리와
+    // 짝 타일에서 다른 스폰까지 걷는 거리가 가장 비슷한 자리를 짝으로 고른다.
+    // 어느 단계든 둔 타일을 모두 막아도 스폰 A에서 걸어 닿던 칸에는 그대로 닿는다.
+    static TeleporterPair[] PlaceTeleporters(MapCell[,] cells, Vector2Int spawnA, Vector2Int spawnB, int count,
+        MapSymmetry symmetry, Random random, Queue<Vector2Int> queue)
+    {
+        if (count <= 0) return new TeleporterPair[0];
+        int width = cells.GetLength(0), height = cells.GetLength(1);
+        var size = new Vector2Int(width, height);
+        var fromA = new int[width, height];
+        var fromB = new int[width, height];
+        WalkDistances(cells, spawnA, fromA, queue);
+        WalkDistances(cells, spawnB, fromB, queue);
+        int spawnTravel = fromA[spawnB.x, spawnB.y];
+        int reachable = 0;
+        foreach (int distance in fromA)
+            if (distance >= 0) reachable++;
+
+        var placed = new List<TeleporterPair>();
+        var candidates = new List<Vector2Int>();
+        var usable = new bool[width, height];
+        var travel = new int[width, height];
+        var marks = new int[width, height];
+        var alone = new sbyte[width, height];   // 타일 하나만 막았을 때 길이 이어지는지. 0은 아직 안 셌고, 1은 이어지고, -1은 끊긴다.
+        var blocked = new List<Vector2Int>();
+        int mark = 0;
+        foreach (TeleporterTier tier in teleporterTiers)
+        {
+            if (placed.Count >= count) break;
+            int minTravel = Math.Max(tier.MinTravel, (int)Math.Ceiling(spawnTravel * tier.TravelShare));
+            candidates.Clear();
+            for (int y = 0; y + TeleporterRegions.Size <= height; y++)
+                for (int x = 0; x + TeleporterRegions.Size <= width; x++)
+                {
+                    var tile = new Vector2Int(x, y);
+                    usable[x, y] = fromA[x, y] >= 0 && fromB[x, y] >= 0 && FarFromTeleporters(tile, placed)
+                        && CanHoldTeleporter(cells, size, tile, spawnA, spawnB)
+                        && (!tier.NeedRing || OpenRing(cells, size, tile) >= teleporterOpenRing);
+                    if (usable[x, y]) candidates.Add(tile);
+                }
+            for (int i = candidates.Count - 1; i > 0; i--)
+            {
+                int j = random.Next(i + 1);
+                (candidates[i], candidates[j]) = (candidates[j], candidates[i]);
+            }
+
+            int tries = 0, limit = teleporterTries * (count - placed.Count);
+            foreach (Vector2Int first in candidates)
+            {
+                if (placed.Count >= count || tries >= limit) break;
+                if (!FarFromTeleporters(first, placed) || !Passable(first)) continue;
+                tries++;
+                WalkDistances(cells, first, travel, queue);
+                bool found = false;
+                Vector2Int partner = default;
+                if (symmetry == MapSymmetry.Rotate180)
+                {
+                    partner = Mirror(first, size) - Vector2Int.one * (TeleporterRegions.Size - 1);
+                    found = PartnerFits(partner) && Passable(partner);
+                }
+                else
+                {
+                    int best = int.MaxValue;
+                    foreach (Vector2Int other in candidates)
+                    {
+                        if (!PartnerFits(other)) continue;
+                        int score = Math.Min(Math.Abs(fromA[first.x, first.y] - fromB[other.x, other.y]),
+                            Math.Abs(fromB[first.x, first.y] - fromA[other.x, other.y]));
+                        if (score >= best || !Passable(other)) continue;
+                        best = score;
+                        partner = other;
+                        found = true;
+                    }
+                }
+                if (!found) continue;
+
+                // 하나씩은 길을 끊지 않아도 여럿이 함께 끊을 수 있으므로 지금까지 둔 타일과 함께 다시 센다.
+                blocked.Clear();
+                foreach (TeleporterPair pair in placed)
+                {
+                    blocked.Add(pair.A);
+                    blocked.Add(pair.B);
+                }
+                blocked.Add(first);
+                blocked.Add(partner);
+                if (KeepsWalkable(blocked)) placed.Add(new TeleporterPair(first, partner));
+
+                bool PartnerFits(Vector2Int other) =>
+                    other.x >= 0 && other.y >= 0 && other.x < width && other.y < height && usable[other.x, other.y] &&
+                    Chebyshev(first, other) >= teleporterSpacing && FarFromTeleporters(other, placed) &&
+                    travel[other.x, other.y] >= minTravel;
+            }
+
+            // 둘레로 돌아갈 수 있는 단계는 따로 세지 않는다. 둘레가 한 줄로 이어져 있으면 타일 하나로는 길이 끊기지 않는다.
+            bool Passable(Vector2Int tile)
+            {
+                if (tier.NeedRing) return true;
+                if (alone[tile.x, tile.y] == 0)
+                {
+                    blocked.Clear();
+                    blocked.Add(tile);
+                    alone[tile.x, tile.y] = KeepsWalkable(blocked) ? (sbyte)1 : (sbyte)-1;
+                }
+                return alone[tile.x, tile.y] > 0;
+            }
+        }
+        return placed.ToArray();
+
+        bool KeepsWalkable(List<Vector2Int> tiles) =>
+            CountWalkable(cells, spawnA, tiles, marks, ++mark, queue)
+                == reachable - tiles.Count * TeleporterRegions.Size * TeleporterRegions.Size;
+    }
+
+    // tile(최소 좌표 칸)에서 시작하는 2×2 칸이 모두 바닥이고 두 스폰의 부시 금지 구역(BushSpawnClearance) 밖인지.
+    static bool CanHoldTeleporter(MapCell[,] cells, Vector2Int size, Vector2Int tile, Vector2Int spawnA, Vector2Int spawnB)
+    {
+        for (int dy = 0; dy < TeleporterRegions.Size; dy++)
+            for (int dx = 0; dx < TeleporterRegions.Size; dx++)
+            {
+                var cell = new Vector2Int(tile.x + dx, tile.y + dy);
+                if (cell.x < 0 || cell.y < 0 || cell.x >= size.x || cell.y >= size.y
+                    || cells[cell.x, cell.y] != MapCell.Floor
+                    || MapLayout.InSpawnZone(cell, spawnA, MapLayout.BushSpawnClearance)
+                    || MapLayout.InSpawnZone(cell, spawnB, MapLayout.BushSpawnClearance)) return false;
+            }
+        return true;
+    }
+
+    // start에서 상하좌우로 걸어서 닿는 칸 수. 바닥과 부시를 지나고 blocked 타일 칸은 지나지 않는다.
+    // marks에는 칸마다 마지막으로 센 차례(mark)를 적어, 칸을 매번 지우지 않고 다시 센다.
+    static int CountWalkable(MapCell[,] cells, Vector2Int start, List<Vector2Int> blocked, int[,] marks, int mark,
+        Queue<Vector2Int> queue)
+    {
+        int width = cells.GetLength(0), height = cells.GetLength(1);
+        queue.Clear();
+        queue.Enqueue(start);
+        marks[start.x, start.y] = mark;
+        int count = 0;
+        while (queue.Count > 0)
+        {
+            Vector2Int cell = queue.Dequeue();
+            count++;
+            foreach (Vector2Int direction in directions)
+            {
+                Vector2Int next = cell + direction;
+                if (next.x < 0 || next.y < 0 || next.x >= width || next.y >= height || marks[next.x, next.y] == mark) continue;
+                MapCell kind = cells[next.x, next.y];
+                if (kind != MapCell.Floor && kind != MapCell.Bush || InTiles(blocked, next)) continue;
+                marks[next.x, next.y] = mark;
+                queue.Enqueue(next);
+            }
+        }
+        return count;
+    }
+
+    static bool InTiles(List<Vector2Int> tiles, Vector2Int cell)
+    {
+        foreach (Vector2Int tile in tiles)
+            if (TeleporterRegions.Contains(tile, cell)) return true;
+        return false;
+    }
+
+    // 타일 둘레 12칸 중 걸을 수 있는(바닥이나 부시) 칸 수. 걸을 수 있는 칸이 둘레에서 두 토막 이상으로 끊기면 0이다.
+    static int OpenRing(MapCell[,] cells, Vector2Int size, Vector2Int tile)
+    {
+        int open = 0, runs = 0;
+        bool previous = RingWalkable(cells, size, tile, teleporterRing[teleporterRing.Length - 1]);
+        foreach (Vector2Int offset in teleporterRing)
+        {
+            bool walkable = RingWalkable(cells, size, tile, offset);
+            if (walkable) open++;
+            if (walkable && !previous) runs++;
+            previous = walkable;
+        }
+        return runs <= 1 ? open : 0;
+    }
+
+    static bool RingWalkable(MapCell[,] cells, Vector2Int size, Vector2Int tile, Vector2Int offset)
+    {
+        int x = tile.x + offset.x, y = tile.y + offset.y;
+        return x >= 0 && y >= 0 && x < size.x && y < size.y
+            && (cells[x, y] == MapCell.Floor || cells[x, y] == MapCell.Bush);
+    }
+
+    static bool FarFromTeleporters(Vector2Int tile, List<TeleporterPair> placed)
+    {
+        foreach (TeleporterPair pair in placed)
+            if (Chebyshev(tile, pair.A) < teleporterSpacing || Chebyshev(tile, pair.B) < teleporterSpacing) return false;
+        return true;
+    }
+
+    static int Chebyshev(Vector2Int a, Vector2Int b) => Math.Max(Math.Abs(a.x - b.x), Math.Abs(a.y - b.y));
+
+    // start에서 상하좌우로 걸어서 가는 칸 수. 바닥과 부시를 지나고, 닿지 않는 칸은 -1이다.
+    static void WalkDistances(MapCell[,] cells, Vector2Int start, int[,] distances, Queue<Vector2Int> queue)
+    {
+        int width = cells.GetLength(0), height = cells.GetLength(1);
+        for (int y = 0; y < height; y++)
+            for (int x = 0; x < width; x++)
+                distances[x, y] = -1;
+        queue.Clear();
+        queue.Enqueue(start);
+        distances[start.x, start.y] = 0;
+        while (queue.Count > 0)
+        {
+            Vector2Int cell = queue.Dequeue();
+            foreach (Vector2Int direction in directions)
+            {
+                Vector2Int next = cell + direction;
+                if (next.x < 0 || next.y < 0 || next.x >= width || next.y >= height || distances[next.x, next.y] >= 0) continue;
+                MapCell kind = cells[next.x, next.y];
+                if (kind != MapCell.Floor && kind != MapCell.Bush) continue;
+                distances[next.x, next.y] = distances[cell.x, cell.y] + 1;
+                queue.Enqueue(next);
+            }
+        }
     }
 
     // 180도 돌리면 영역의 최소 좌표 칸은 반대편 영역의 최대 좌표 칸이 된다.
