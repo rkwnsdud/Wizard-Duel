@@ -7,7 +7,7 @@ public class LightOrbProjectile : MonoBehaviour
     [SerializeField] private float maxDistance = 20f;
     [SerializeField] private LayerMask reflectionMask;
     [SerializeField] private LayerMask hitMask;
-    [SerializeField] private int maxReflections = 3;
+    [SerializeField] private int maxReflections = 5;
     [SerializeField] private GameObject reflectPrefab;
     [SerializeField] private LineRenderer beamGlow;
     [SerializeField] private float damage = 10f;

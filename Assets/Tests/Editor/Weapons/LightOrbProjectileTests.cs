@@ -113,5 +113,31 @@ public class LightOrbProjectileTests : PlayModeTestFixture
         Advance.Invoke(beam, new object[] { 0.1f });
         Assert.That(target.CurrentHealth, Is.EqualTo(90f));
     }
+
+    [UnityTest]
+    public IEnumerator Beam_ReflectsFiveTimesAndStopsAtTheNextWall()
+    {
+        foreach (float x in new[] { -2f, 2f })
+        {
+            var wall = new GameObject("Reflection limit wall");
+            wall.layer = LayerMask.NameToLayer("Wall");
+            wall.transform.position = Origin + Vector3.right * x;
+            wall.AddComponent<BoxCollider>().size = new Vector3(1f, 3f, 3f);
+        }
+
+        var beam = Beam();
+        beam.InitializeVisualOnly(Vector3.right, null);
+        int initialLines = beam.GetComponentsInChildren<LineRenderer>().Length;
+        Physics.SyncTransforms();
+        for (int reflection = 1; reflection <= 5; reflection++)
+        {
+            Advance.Invoke(beam, new object[] { 0.15f });
+            Assert.That(beam.GetComponentsInChildren<LineRenderer>().Length, Is.EqualTo(initialLines + 2 * reflection));
+        }
+
+        Advance.Invoke(beam, new object[] { 0.15f });
+        yield return null;
+        Assert.That(beam == null, Is.True, "The sixth wall impact stops the beam.");
+    }
 }
 #endif
