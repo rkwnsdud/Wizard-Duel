@@ -232,12 +232,13 @@ public class AttackEventTests
         mine[0].Land(target);
 
         var report = sink.Reports[0];
-        Assert.That(PlayerWeaponPassiveController.NotifyServerHit(server, report.attack, null, null), Is.True);
+        Assert.That(PlayerWeaponPassiveController.NotifyServerHit(server, report.attack, null, null, 1f), Is.True);
         Assert.That(serverWeapons[0].ServerHits, Is.EqualTo(1), "The fired weapon's hit passive applies.");
+        Assert.That(serverWeapons[0].LastServerHitCharge, Is.EqualTo(1f));
         Assert.That(serverWeapons[1].ServerHits, Is.Zero, "The weapon held now must not add its passive.");
 
         LogAssert.Expect(LogType.Warning, new Regex("Hit passive skipped for attack=9 weapon=200"));
-        Assert.That(PlayerWeaponPassiveController.NotifyServerHit(server, new AttackInfo(9, 200), null, null), Is.False);
+        Assert.That(PlayerWeaponPassiveController.NotifyServerHit(server, new AttackInfo(9, 200), null, null, 0f), Is.False);
         Assert.That(serverWeapons[0].ServerHits + serverWeapons[1].ServerHits, Is.EqualTo(1));
     }
 

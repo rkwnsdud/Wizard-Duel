@@ -133,7 +133,7 @@ public sealed class DuelPlayer : NetworkBehaviour, IAttackAuthority, IShotSink, 
         if (!IsSpawned || !IsOwner || !combatEnabled.Value || playerHealth.IsDead) return;
         // 봇의 공격 시작을 받을 상대 클라이언트가 없으므로, 받은 쪽이 세던 부시 노출을 여기서 센다.
         if (IsBot && bushVisibility != null) bushVisibility.Reveal();
-        if (IsServer) RecordServerStartedAttack(attackInfo);
+        if (IsServer) RecordServerStartedAttack(attackInfo, chargeRatio);
         PlayAttackRpc(attackInfo.Id, attackInfo.WeaponId, chargeRatio);
     }
 
@@ -141,7 +141,7 @@ public sealed class DuelPlayer : NetworkBehaviour, IAttackAuthority, IShotSink, 
     void PlayAttackRpc(uint attackId, byte weaponId, float chargeRatio)
     {
         var attackInfo = new AttackInfo(attackId, weaponId);
-        if (IsServer) RecordServerStartedAttack(attackInfo);
+        if (IsServer) RecordServerStartedAttack(attackInfo, chargeRatio);
         if (IsClient) ReceiveAttack(attackInfo, chargeRatio);
     }
 
@@ -152,11 +152,11 @@ public sealed class DuelPlayer : NetworkBehaviour, IAttackAuthority, IShotSink, 
         if (IsServer && weapon != null) serverAttackHistory.RecordWeapon(weapon.Id);
     }
 
-    void RecordServerStartedAttack(AttackInfo attackInfo)
+    void RecordServerStartedAttack(AttackInfo attackInfo, float chargeRatio)
     {
         if (!IsServer || !IsSpawned || IsServerCombatEnded || !combatEnabled.Value) return;
         if (combat != null && combat.IsDefeated) return;
-        serverAttackHistory.RecordAttack(attackInfo);
+        serverAttackHistory.RecordAttack(attackInfo, chargeRatio);
     }
 
     // 오프라인 테스트 전용. 더미는 호스트 소유라 PlayAttackRpc를 받는 클라이언트가 없으므로, 받은 것처럼 같은 처리를 한다.
@@ -252,6 +252,7 @@ public sealed class DuelPlayer : NetworkBehaviour, IAttackAuthority, IShotSink, 
         if (!IsServer || !IsSpawned) return;
         DuelPlayer player = ResolveTarget(target, out string targetLabel);
         var attackInfo = new AttackInfo(attackId, weaponId);
+        bool knownAttack = serverAttackHistory.TryGetChargeRatio(attackInfo, out float chargeRatio);
         var request = new ServerHitReport.Request
         {
             IsStatusTick = false,
@@ -261,7 +262,7 @@ public sealed class DuelPlayer : NetworkBehaviour, IAttackAuthority, IShotSink, 
             HasTarget = player != null && player.IsSpawned && player.combat != null,
             SameMatch = player != null && player.Match == Match,
             AttackerHeldWeapon = serverAttackHistory.HasHeldWeapon(weaponId),
-            KnownStartedAttack = serverAttackHistory.HasStartedAttack(attackInfo),
+            KnownStartedAttack = knownAttack,
             AttackerSlot = slot,
             AttackId = attackId,
             WeaponId = weaponId,
@@ -279,7 +280,7 @@ public sealed class DuelPlayer : NetworkBehaviour, IAttackAuthority, IShotSink, 
         Debug.Log($"[Combat] Hit slot={player.slot} attacker={slot} id={attackId} weapon={weaponId} hit={hitIndex} health={player.combat.Health:F3}");
         player.health.Value = player.combat.Health;
         // 피해량은 쏜 쪽 보고대로, 적중 효과는 보고에 실린 쏜 무기로 정한다. 서버도 지금 든 무기를 보지 않는다.
-        PlayerWeaponPassiveController.NotifyServerHit(attack, attackInfo, this, player);
+        PlayerWeaponPassiveController.NotifyServerHit(attack, attackInfo, this, player, chargeRatio);
         if (defeatedNow)
         {
             player.ClearServerStatusEffects();

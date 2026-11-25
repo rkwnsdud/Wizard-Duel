@@ -13,6 +13,7 @@ public sealed class AttackTestWeapon : WeaponBase, IWeapon, IWeaponHitPassive
     public readonly List<ShotEvent> Presented = new List<ShotEvent>();
     // 서버가 이 무기의 적중 효과를 건 횟수.
     public int ServerHits { get; private set; }
+    public float LastServerHitCharge { get; private set; }
     public AttackInfo Fired { get; private set; }
     // 공격 모션 동안 켜지는 예고(향로의 부채꼴 같은 것)를 흉내 낸다.
     public bool Winding { get; private set; }
@@ -35,6 +36,10 @@ public sealed class AttackTestWeapon : WeaponBase, IWeapon, IWeaponHitPassive
     }
 
     public void Present(ShotEvent shot) => Presented.Add(shot);
-    public void OnServerHit(DuelPlayer attacker, DuelPlayer target) => ServerHits++;
+    public void OnServerHit(DuelPlayer attacker, DuelPlayer target, float chargeRatio)
+    {
+        ServerHits++;
+        LastServerHitCharge = chargeRatio;
+    }
 }
 #endif

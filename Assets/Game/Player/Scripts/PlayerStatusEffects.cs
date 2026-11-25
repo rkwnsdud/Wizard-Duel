@@ -19,6 +19,7 @@ public sealed class PlayerStatusEffects : NetworkBehaviour
 
     PlayerCombatStats combatStats;
     DuelPlayer duelPlayer;
+    [SerializeField] PlayerStunVisual stunVisual;
 
     // 서버 권위 상태. 클라는 NetworkVariable만 본다.
     // 틱 계산은 아래 순수 상태값에 두고, Test Runner에서 규칙만 검증한다.
@@ -39,12 +40,16 @@ public sealed class PlayerStatusEffects : NetworkBehaviour
     {
         slowMultiplierNet.OnValueChanged += OnSlowMultiplierChanged;
         ApplySlowMultiplierLocal(slowMultiplierNet.Value);
+        stunActiveNet.OnValueChanged += OnStunActiveChanged;
+        OnStunActiveChanged(false, stunActiveNet.Value);
     }
 
     public override void OnNetworkDespawn()
     {
         slowMultiplierNet.OnValueChanged -= OnSlowMultiplierChanged;
         ClearSlowMultiplierLocal();
+        stunActiveNet.OnValueChanged -= OnStunActiveChanged;
+        if (stunVisual != null) stunVisual.SetVisible(false);
     }
 
     void Update()
@@ -124,6 +129,11 @@ public sealed class PlayerStatusEffects : NetworkBehaviour
     }
 
     void OnSlowMultiplierChanged(float previous, float current) => ApplySlowMultiplierLocal(current);
+
+    void OnStunActiveChanged(bool previous, bool current)
+    {
+        if (IsClient && stunVisual != null) stunVisual.SetVisible(current);
+    }
 
     void ApplySlowMultiplierLocal(float multiplier)
     {

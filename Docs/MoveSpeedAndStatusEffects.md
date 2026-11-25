@@ -1,6 +1,6 @@
 # 이동 속도 배율과 상태이상
 
-이동 속도·공격 속도 배율과 화상(Burn)·둔화(Slow)가 어떻게 걸리고 풀리는지 정리한다. 무기 패시브를 만드는 방법은 [무기 패시브와 쿨다운](WeaponPassivesAndCooldown.md)을 본다.
+이동 속도·공격 속도 배율과 화상(Burn)·둔화(Slow)·스턴(Stun)이 어떻게 걸리고 풀리는지 정리한다. 무기 패시브를 만드는 방법은 [무기 패시브와 쿨다운](WeaponPassivesAndCooldown.md)을 본다.
 
 ## 속도 배율
 
@@ -11,12 +11,13 @@
 
 ## 상태이상
 
-`PlayerStatusEffects`(`DuelWizard-1` 프리팹에 붙어 있고 `DuelWizard-2`가 물려받음)가 서버 권위로 화상과 둔화를 관리한다. 적중 패시브는 `DuelPlayer.ServerInflictStatus`로 상태이상을 건다.
+`PlayerStatusEffects`(`DuelWizard-1` 프리팹에 붙어 있고 `DuelWizard-2`가 물려받음)가 서버에서 상태이상을 관리한다.
 
 - **화상**: `ServerApplyBurn(공격자 슬롯, 틱 피해, 틱 수, 지속 시간)`. 지속 시간을 틱 수로 나눈 간격마다 피해를 한 번씩 준다. 틱 피해는 `DuelPlayer.ServerApplyStatusTick`을 거쳐 일반 명중과 같은 `ServerHitReport`로 들어가므로, 판이 끝났거나 이미 쓰러진 대상에게는 들어가지 않는다([서버 보고 처리 규칙](ServerHitReportRules.md)). 화상 틱의 공격 번호는 최상위 비트(`StatusEffectState.DotAttackIdFlag`)를 켜서 일반 공격 번호와 겹치지 않게 한다.
 - **둔화**: `ServerApplySlow(배율, 지속 시간)`. 서버가 배율을 `NetworkVariable`로 보내고, 각 화면의 `PlayerStatusEffects`가 그 값으로 `PlayerCombatStats`의 이동 속도 배율을 건다. 배율은 0보다 크고 1보다 작아야 한다.
-- 같은 종류를 다시 맞으면 쌓지 않고 갱신한다. 화상은 틱을 처음부터 다시 세고, 둔화는 만료 시각을 지금부터 다시 잡는다.
-- 대상이 쓰러지거나 판이 끝나면 남은 화상과 둔화를 모두 지운다.
+- **스턴**: 번개 지팡이의 `StunOnHitPassive`가 최대 차지 명중 시 `ServerApplyStun(지속 시간)`을 부른다. 프리팹의 지속 시간은 1초다. 스턴 중에는 이동·공격·무기 교체가 제한되고, 각 클라이언트는 동기화된 상태를 보고 몸 주변에 번개를 표시한다.
+- 같은 종류를 다시 맞으면 쌓지 않고 갱신한다. 화상은 틱을 처음부터 다시 세고, 둔화는 만료 시각을 지금부터 다시 잡는다. 스턴은 기존 만료 시각과 새 만료 시각 중 더 늦은 쪽을 쓴다.
+- 대상이 쓰러지거나 판이 끝나면 남은 상태이상을 모두 지운다.
 - 화상 중인지(`BurnVisible`)도 동기화하지만, 아직 이 값을 쓰는 화면 표시는 없다.
 
 틱 계산 규칙은 MonoBehaviour 없이 `StatusEffectState`에 있고, `Assets/Tests/Editor/Player/StatusEffectStateTests.cs`가 검사한다.
