@@ -111,7 +111,7 @@ flowchart TD
 <td align="center"><img src="Docs/Readme/weapons/light-orb.png" width="56" alt=""></td>
 <td><b>빛 반사 구슬</b></td>
 <td>벽에 반사되는 빛줄기</td>
-<td>반사할 때마다 피해가 커짐. 벽 뒤의 상대를 노릴 수 있음</td>
+<td>최대 5회 반사하고, 반사할 때마다 피해가 커짐. 벽 뒤의 상대를 노릴 수 있음</td>
 </tr>
 <tr>
 <td align="center"><img src="Docs/Readme/weapons/explosion-book.png" width="56" alt=""></td>
