@@ -18,7 +18,7 @@ public class MapSettingsPanel : MonoBehaviour
     [SerializeField] GameObject lockNote;
     [Tooltip("방장만 만질 수 있는 컨트롤 묶음. 참가자에게는 흐리게 보인다.")]
     [SerializeField] CanvasGroup[] hostControls;
-    [Tooltip("줄 순서는 시드, 크기, 형태, 장애물 밀도, 부시 밀도, 대칭, 노이즈 강도.")]
+    [Tooltip("줄 순서는 시드, 크기, 형태, 장애물 밀도, 부시 밀도, 대칭, 노이즈 강도, 텔레포트.")]
     [SerializeField] Graphic[] rowHighlights;
     [SerializeField] TMP_InputField seedField;
     [SerializeField] SegmentedControl sizeMode;
@@ -33,6 +33,9 @@ public class MapSettingsPanel : MonoBehaviour
     [SerializeField] SegmentedControl symmetry;
     [SerializeField] Slider noiseStrength;
     [SerializeField] TMP_Text noiseStrengthValue;
+    [Tooltip("텔레포트 타일 쌍 수. 0부터 DuelSettings.MaxTeleporterPairs까지 정수 눈금이다.")]
+    [SerializeField] Slider teleporterPairs;
+    [SerializeField] TMP_Text teleporterPairsValue;
 
     DuelSettings settings = new DuelSettings();
     Coroutine[] highlights;
@@ -62,6 +65,10 @@ public class MapSettingsPanel : MonoBehaviour
         bushDensity.onValueChanged.AddListener(_ => Edit());
         symmetry.Changed += _ => Edit();
         noiseStrength.onValueChanged.AddListener(_ => Edit());
+        teleporterPairs.minValue = 0;
+        teleporterPairs.maxValue = DuelSettings.MaxTeleporterPairs;
+        teleporterPairs.wholeNumbers = true;
+        teleporterPairs.onValueChanged.AddListener(_ => Edit());
     }
 
     // 대기실을 열 때 설정을 받아 보여 준다. 참가자에게는 컨트롤을 잠근다.
@@ -99,11 +106,12 @@ public class MapSettingsPanel : MonoBehaviour
             !Mathf.Approximately(before.ObstacleDensity, after.ObstacleDensity),
             !Mathf.Approximately(before.BushDensity, after.BushDensity),
             before.Symmetry != after.Symmetry,
-            !Mathf.Approximately(before.NoiseStrength, after.NoiseStrength)
+            !Mathf.Approximately(before.NoiseStrength, after.NoiseStrength),
+            before.TeleporterPairs != after.TeleporterPairs
         };
         settings = changed.Clone();
         ShowSettings();
-        for (int row = 0; row < rows.Length; row++)
+        for (int row = 0; row < rows.Length && row < rowHighlights.Length; row++)
         {
             if (!rows[row]) continue;
             if (highlights[row] != null) StopCoroutine(highlights[row]);
@@ -150,6 +158,7 @@ public class MapSettingsPanel : MonoBehaviour
         map.BushDensity = bushDensity.value / DensitySteps;
         map.Symmetry = (MapSymmetry)symmetry.Value;
         map.NoiseStrength = noiseStrength.value / NoiseSteps;
+        map.TeleporterPairs = Mathf.RoundToInt(teleporterPairs.value);
         ShowSettings();
         Changed?.Invoke(settings);
     }
@@ -174,6 +183,8 @@ public class MapSettingsPanel : MonoBehaviour
         symmetry.SetValueWithoutNotify((int)map.Symmetry);
         noiseStrength.SetValueWithoutNotify(Mathf.Round(map.NoiseStrength * NoiseSteps));
         noiseStrengthValue.text = map.NoiseStrength.ToString("0.00");
+        teleporterPairs.SetValueWithoutNotify(map.TeleporterPairs);
+        teleporterPairsValue.text = map.TeleporterPairs == 0 ? "없음" : $"{map.TeleporterPairs}쌍";
     }
 
     // 줄 배경을 잠깐 밝혔다가 서서히 끈다.

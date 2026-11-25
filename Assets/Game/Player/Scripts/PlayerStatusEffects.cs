@@ -120,7 +120,7 @@ public sealed class PlayerStatusEffects : NetworkBehaviour
         slowActive = false;
         if (IsSpawned) slowMultiplierNet.Value = 1f;
     }
-        
+
     void ServerClearStun()
     {
         stunActive = false;

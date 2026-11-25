@@ -17,6 +17,8 @@ public class ProceduralMap : MonoBehaviour, ISpawnPointProvider
     [Tooltip("부시 칸 수 / 내부 바닥 칸 수. 벽과 엄폐물 다음에 두므로 이 값만 바꾸면 벽은 그대로다. 0이면 부시가 없다.")]
     [SerializeField, Range(0f, 1f)] float bushDensity = 0.05f;
     [SerializeField] MapSymmetry symmetry = MapSymmetry.Rotate180;
+    [Tooltip("텔레포트 타일 쌍 수. 다른 장애물을 다 둔 뒤 두므로 이 값만 바꾸면 나머지 맵은 그대로다.")]
+    [SerializeField, Range(0, TeleporterRegions.MaxPairs)] int teleporterPairs = 1;
     [SerializeField, Range(0f, 1f)] float noiseStrength = 0.5f;
     [SerializeField, Range(0.25f, 2f)] float noiseScale = 0.75f;
     [Tooltip("이 맵이 갱신되면 같이 갱신할 배경. 같은 오브젝트 하위에 두면 자동으로 찾는다.")]
@@ -32,6 +34,8 @@ public class ProceduralMap : MonoBehaviour, ISpawnPointProvider
     public MapLayout GeneratedLayout { get; private set; }
     // 깐 부시 칸과 덩어리. 맵을 지우면 null이다. 전투 맵이면 DuelArena가 BushField.Active로 등록한다.
     public BushField Bushes { get; private set; }
+    // 깐 텔레포트 타일 쌍. 맵을 지우면 null이다. 전투 맵이면 DuelArena가 TeleporterField.Active로 등록한다.
+    public TeleporterField Teleporters { get; private set; }
     public IReadOnlyList<IBlock> Blocks => blocks;
     public IEnumerable<IEnvironmentDestructible> Destructibles => destructibles.Values;
     public bool ApplyEnvironmentDestruction(int x, int z, bool burning)
@@ -69,6 +73,7 @@ public class ProceduralMap : MonoBehaviour, ISpawnPointProvider
             ObstacleDensity = obstacleDensity,
             BushDensity = bushDensity,
             Symmetry = symmetry,
+            TeleporterPairs = teleporterPairs,
             NoiseStrength = noiseStrength,
             NoiseScale = noiseScale
         };
@@ -93,6 +98,7 @@ public class ProceduralMap : MonoBehaviour, ISpawnPointProvider
         SpawnPoints = blockFactory.SpawnPoints;
         string[] layout = generatedLayout.ToBlockLayout();
         Bushes = new BushField(layout, transform, cellSize);
+        Teleporters = new TeleporterField(layout, transform, cellSize);
         try
         {
             for (int z = 0; z < layout.Length; z++)
@@ -116,6 +122,7 @@ public class ProceduralMap : MonoBehaviour, ISpawnPointProvider
                 }
             }
             blocks.AddRange(blockFactory.CreateSpawns(transform));
+            blocks.AddRange(blockFactory.CreateTeleporters(Teleporters, transform));
             if (combineRenderers) combiner.Build(transform);
         }
         finally
@@ -147,6 +154,7 @@ public class ProceduralMap : MonoBehaviour, ISpawnPointProvider
     void OnDestroy()
     {
         BushField.Deactivate(Bushes);
+        TeleporterField.Deactivate(Teleporters);
         // 런타임에 만든 메시는 오브젝트가 사라져도 남으므로 직접 지운다.
         combiner?.Clear();
     }
@@ -155,6 +163,8 @@ public class ProceduralMap : MonoBehaviour, ISpawnPointProvider
     {
         BushField.Deactivate(Bushes);
         Bushes = null;
+        TeleporterField.Deactivate(Teleporters);
+        Teleporters = null;
         destructibles.Clear();
         foreach (IBlock block in blocks)
         {

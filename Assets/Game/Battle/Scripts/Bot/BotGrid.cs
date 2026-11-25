@@ -10,6 +10,8 @@ public sealed class BotGrid
     const float Diagonal = 1.41421356f;
     // 벽이나 맵 밖과 맞닿은 칸에 더하는 비용. 길이 벽에 바짝 붙지 않아 모서리에 덜 걸린다.
     const float WallSidePenalty = 0.4f;
+    // 텔레포트 타일 칸에 더하는 비용. 봇은 타일을 피해 돌아가고, 다른 길이 없을 때만 밟고 지나간다.
+    const float TeleporterPenalty = 6f;
     static readonly Vector2Int[] Steps =
     {
         new Vector2Int(1, 0), new Vector2Int(-1, 0), new Vector2Int(0, 1), new Vector2Int(0, -1),
@@ -20,6 +22,8 @@ public sealed class BotGrid
     // 벽이 선 칸. 공격을 막아 뒤에 숨을 수 있다. 바닥이 없는 빈 칸은 걸을 수 없지만 공격은 지나간다.
     readonly bool[,] solid;
     readonly int[,] bushIds;
+    // 텔레포트 타일 칸. 걸을 수 있지만 봇이 곧게 가는 길로는 쓰지 않는다. 공격은 지나간다.
+    readonly bool[,] teleporters;
     readonly float[] penalty;
     readonly Transform root;
     readonly List<Vector2Int> floorCells = new List<Vector2Int>();
@@ -38,20 +42,22 @@ public sealed class BotGrid
     public int Height { get; }
 
     // root는 맵 블록을 깐 부모다. 없으면 맵 중심이 월드 원점에 있다고 본다.
-    public BotGrid(MapLayout layout, Transform root) : this(Walkable(layout), Solid(layout), BushIds(layout), root)
+    public BotGrid(MapLayout layout, Transform root)
+        : this(Walkable(layout), Solid(layout), BushIds(layout), Teleporters(layout), root)
     {
     }
 
     // walkable[x, y]가 참인 칸만 걸을 수 있다. 걸을 수 없는 칸은 모두 벽이고 부시는 없는 맵으로 본다.
-    public BotGrid(bool[,] walkable, Transform root = null) : this(walkable, Inverse(walkable), null, root)
+    public BotGrid(bool[,] walkable, Transform root = null) : this(walkable, Inverse(walkable), null, null, root)
     {
     }
 
-    BotGrid(bool[,] walkable, bool[,] solid, int[,] bushIds, Transform root)
+    BotGrid(bool[,] walkable, bool[,] solid, int[,] bushIds, bool[,] teleporters, Transform root)
     {
         this.walkable = walkable;
         this.solid = solid;
         this.bushIds = bushIds;
+        this.teleporters = teleporters;
         this.root = root;
         Width = walkable.GetLength(0);
         Height = walkable.GetLength(1);
@@ -64,7 +70,7 @@ public sealed class BotGrid
             {
                 if (!walkable[x, y]) continue;
                 bool besideWall = !IsWalkable(x + 1, y) || !IsWalkable(x - 1, y) || !IsWalkable(x, y + 1) || !IsWalkable(x, y - 1);
-                penalty[y * Width + x] = besideWall ? WallSidePenalty : 0f;
+                penalty[y * Width + x] = (besideWall ? WallSidePenalty : 0f) + (IsTeleporter(x, y) ? TeleporterPenalty : 0f);
                 (BushId(x, y) >= 0 ? bushCells : floorCells).Add(new Vector2Int(x, y));
             }
     }
@@ -88,6 +94,15 @@ public sealed class BotGrid
         return cells;
     }
 
+    static bool[,] Teleporters(MapLayout layout)
+    {
+        var cells = new bool[layout.Width, layout.Height];
+        for (int x = 0; x < layout.Width; x++)
+            for (int y = 0; y < layout.Height; y++)
+                cells[x, y] = layout.IsTeleporter(x, y);
+        return cells;
+    }
+
     static bool[,] Inverse(bool[,] cells)
     {
         var inverse = new bool[cells.GetLength(0), cells.GetLength(1)];
@@ -107,6 +122,9 @@ public sealed class BotGrid
     }
 
     int BushId(int x, int y) => bushIds != null ? bushIds[x, y] : -1;
+
+    public bool IsTeleporter(int x, int y) =>
+        teleporters != null && x >= 0 && y >= 0 && x < Width && y < Height && teleporters[x, y];
 
     public bool IsWalkable(Vector2Int cell) => IsWalkable(cell.x, cell.y);
 
@@ -212,7 +230,12 @@ public sealed class BotGrid
 
     // 두 월드 좌표 사이를 반지름 radius인 원이 벽이나 맵 밖에 닿지 않고 곧게 지나갈 수 있는지.
     // 길을 따라갈 때 건너뛸 수 있는 칸과, 쏜 공격이 벽에 막히는지를 가늠할 때 쓴다.
-    public bool HasClearLine(Vector3 from, Vector3 to, float radius)
+    public bool HasClearLine(Vector3 from, Vector3 to, float radius) => HasClearLine(from, to, radius, false);
+
+    // HasClearLine처럼 보되 텔레포트 타일도 막힌 칸으로 본다. 봇이 곧게 걸어갈 길을 고를 때 쓴다.
+    public bool HasClearPath(Vector3 from, Vector3 to, float radius) => HasClearLine(from, to, radius, true);
+
+    bool HasClearLine(Vector3 from, Vector3 to, float radius, bool avoidTeleporters)
     {
         Vector3 a = root != null ? root.InverseTransformPoint(from) : from;
         Vector3 b = root != null ? root.InverseTransformPoint(to) : to;
@@ -222,15 +245,20 @@ public sealed class BotGrid
         for (int i = 0; i <= samples; i++)
         {
             Vector3 point = Vector3.Lerp(a, b, (float)i / samples);
-            if (!LocalWalkable(point.x - radius, point.z - radius) || !LocalWalkable(point.x + radius, point.z - radius) ||
-                !LocalWalkable(point.x - radius, point.z + radius) || !LocalWalkable(point.x + radius, point.z + radius))
+            if (!LocalWalkable(point.x - radius, point.z - radius, avoidTeleporters) ||
+                !LocalWalkable(point.x + radius, point.z - radius, avoidTeleporters) ||
+                !LocalWalkable(point.x - radius, point.z + radius, avoidTeleporters) ||
+                !LocalWalkable(point.x + radius, point.z + radius, avoidTeleporters))
                 return false;
         }
         return true;
     }
 
-    bool LocalWalkable(float x, float z) => IsWalkable(
-        Mathf.RoundToInt(x / CellSize + (Width - 1) * 0.5f), Mathf.RoundToInt((Height - 1) * 0.5f - z / CellSize));
+    bool LocalWalkable(float x, float z, bool avoidTeleporters)
+    {
+        int cx = Mathf.RoundToInt(x / CellSize + (Width - 1) * 0.5f), cy = Mathf.RoundToInt((Height - 1) * 0.5f - z / CellSize);
+        return IsWalkable(cx, cy) && !(avoidTeleporters && IsTeleporter(cx, cy));
+    }
 
     // from에서 쏜 공격이 벽에 막혀 to에 선 몸(반지름 halfWidth)에 닿지 않는지.
     // 몸의 가운데와 양옆 끝으로 가는 선이 모두 벽에 막혀야 가려진 것으로 본다.

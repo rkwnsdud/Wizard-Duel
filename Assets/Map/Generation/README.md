@@ -11,6 +11,7 @@ MapLayout map = MapLayoutGenerator.Generate(new MapGenerationSettings
     ObstacleDensity = 0.2f,
     BushDensity = 0.05f,
     Symmetry = MapSymmetry.Rotate180,
+    TeleporterPairs = 1,
     NoiseStrength = 0.65f,
     NoiseScale = 0.75f
 });
@@ -23,6 +24,8 @@ int bushId = map.BushId(10, 5); // 부시 덩어리 번호, 부시가 아니면 
 int bushCount = map.BushCount;
 float actualDensity = map.ActualObstacleDensity;      // 벽과 엄폐물
 float actualBushDensity = map.ActualBushDensity;      // 부시
+IReadOnlyList<TeleporterPair> teleporters = map.Teleporters; // 텔레포트 타일 쌍(A, B는 2×2 타일의 최소 좌표 칸)
+bool onTile = map.TryGetTeleporter(10, 5, out int pair, out int side);
 ```
 
 - `Seed` 기본값은 `7301`, `Shape`은 `Random`, `ObstacleDensity`는 `0.15`, `Symmetry`는 `Rotate180`이다. `None`으로 비대칭 맵을 생성할 수 있다.
@@ -33,7 +36,8 @@ float actualBushDensity = map.ActualBushDensity;      // 부시
 - 작은 스케일에서는 윤곽의 변위도 줄여 가는 목과 고립 영역을 완화한다. 격자화 중 생긴 의도하지 않은 구멍은 메우며, 도넛의 중앙 구멍은 유지한다. 연결성과 스폰 조건을 충족하지 못하는 형태는 다시 생성한다.
 - `Size`는 결과 격자의 크기다. 생략하면 원형·사각형·도넛은 각 축 25~41칸, 길쭉한 형태는 긴 축 41~61칸과 짧은 축 13~19칸에서 선택한다. 형태는 격자 안에 들어가며 외곽에 빈 공간이 남을 수 있다.
 - 좌표의 `x`는 열, `y`는 행이다. `map[x, y]`와 `layout[y][x]`가 대응한다. 월드 좌표 변환과 실제 블록 생성은 호출자가 처리한다.
-- `ToLayout()`은 빈 공간을 공백, 바닥을 `.`, 벽을 `#`, 부시를 `*`, 두 스폰을 `B`와 `O`로 표시한다. 기존 격자 조회 기호를 유지한다. 블록 생성과 맵 지문에는 파괴 가능한 벽을 `D`로 표시하는 `ToBlockLayout()`을 사용한다. 스폰의 칸 타입은 `Floor`다.
+- `TeleporterPairs`는 `0~9`, 기본값은 `1`이다. 텔레포트 타일 쌍 수이고 로비 화면에서는 `0~3`(`DuelSettings.MaxTeleporterPairs`)을 고른다. 자리가 모자라면 더 적게 둔다.
+- `ToLayout()`은 빈 공간을 공백, 바닥을 `.`, 벽을 `#`, 부시를 `*`, 두 스폰을 `B`와 `O`, 텔레포트 타일을 쌍 번호 숫자(`1`부터)로 표시한다. 기존 격자 조회 기호를 유지한다. 블록 생성과 맵 지문에는 파괴 가능한 벽을 `D`로 표시하는 `ToBlockLayout()`을 사용한다. 스폰과 텔레포트 타일의 칸 타입은 `Floor`다.
 - 외곽과 도넛의 내부 테두리는 벽으로 막힌다. 모든 바닥과 부시는 상하좌우로 연결된다. 한 칸 폭의 통로와 우회 이동은 허용하고 직선 시야는 보장하지 않는다.
 - 스폰은 2×2 영역이고 둘레 1칸을 더한 4×4 안전 구역(`MapLayout.SpawnClearance`, `InSpawnZone`)은 모두 바닥이다. 외곽 벽도 장애물도 이 구역에 들어오지 않는다.
 - 장애물은 칸 단위가 아니라 구조물 단위로 놓는다. 튜닝 값은 `MapLayoutGenerator` 위쪽 상수에 모여 있다.
@@ -51,6 +55,16 @@ float actualBushDensity = map.ActualBushDensity;      // 부시
       - 길게 이어진 부시: 1칸 폭 5~8칸 또는 2칸 폭 4~6칸의 곧은 띠(2칸 폭 60%). 40% 확률로 한 번 꺾여 L자가 된다. 씨앗은 벽에서 2칸 이상 떨어진 칸을 먼저 쓴다.
     - 스폰 영역 둘레 3칸(`MapLayout.BushSpawnClearance`, 안전 구역보다 2칸 넓다)과 양옆이 벽인 1칸 틈에는 두지 않는다. 서로 다른 덩어리는 대각선까지 2칸 이상 띄운다. 1칸 틈은 화면에서 한 덩어리처럼 보이기 때문이다.
     - 대칭 맵이면 덩어리와 180도 짝을 같이 둔다. 맵 가운데에서 중앙 부시의 핵이 자기 짝과 닿으면 짝까지 합쳐 하나의 덩어리(최대 8칸)로 두고, 닿지는 않지만 2칸보다 가까우면 다른 자리를 본다. 다른 모양은 짝과 2칸 넘게 떨어진 칸만 쓴다.
+  - 텔레포트 단계(파괴 가능 벽 선택 다음): 2×2 타일을 쌍으로 둔다. 같은 난수열의 마지막 단계라 쌍 수가 달라도 벽·엄폐물·부시·파괴 가능 벽·스폰은 같고, 쌍 수가 0이면 난수를 쓰지 않는다.
+    - 타일 네 칸은 모두 바닥(부시 아님)이고 스폰 둘레 3칸(`MapLayout.BushSpawnClearance`) 밖이며 두 스폰에서 걸어서 닿는다. 서로 다른 타일은 최소 좌표 칸끼리 체비셰프 거리 6 이상(타일 사이 4칸) 떨어진다.
+    - 대칭 맵은 타일과 180도 반대편 타일이 한 쌍이다. 대칭이 아니면 한쪽 타일에서 한 스폰까지 걷는 거리와 짝 타일에서 다른 스폰까지 걷는 거리가 가장 비슷한 자리를 짝으로 고른다.
+    - 조건을 세 단계로 낮춰 가며 찾는다. 앞 단계에서 둔 타일은 그대로 두고 남은 쌍만 다음 단계로 넘긴다.
+      1. 둘레 12칸 중 걸을 수 있는 칸이 5칸 이상 한 줄로 이어져, 타일을 밟지 않고 돌아갈 수 있는 자리. 짝까지 걷는 거리는 10칸과 두 스폰 사이 걷는 거리의 40% 중 큰 값 이상.
+      2. 둘레 조건 대신 타일을 막아도 길이 끊기지 않는 자리. 거리 조건은 1단계와 같다.
+      3. 2단계에서 짝까지 걷는 거리만 8칸과 25% 중 큰 값 이상으로 낮춘다.
+    - 어느 단계든 둔 타일을 모두 막아도 스폰에서 닿던 칸에는 그대로 닿는다. 타일을 밟아야만 지나갈 수 있는 길은 없다.
+    - 장애물 0.15·부시 0.05에서 1쌍을 요청하면 시드 60개 중 원형·사각형·길쭉한 형태는 모두, 대칭 도넛은 57개에 놓인다. 장애물 0.25·부시 0.2이면 길쭉한 형태와 도넛의 약 7~12%가 좁은 길만 남아 타일을 두지 못한다.
+    - 손으로 쓴 레이아웃은 `TeleporterRegions.Parse`가 읽는다. 같은 숫자는 2×2 타일 정확히 두 개여야 하고, 숫자는 `1`부터 빠짐없이 쓴다. 숫자 순서가 쌍 번호이고, 행 우선으로 먼저 나오는 타일이 `A`다.
   - 부시 덩어리 번호는 `BushRegions.Label`이 매긴다. 8방향으로 이어진 부시 칸이 한 덩어리이고, 행 우선으로 처음 만나는 칸 순서대로 0부터 번호를 붙인다. 문자 레이아웃(`*`)에도 같은 함수를 쓸 수 있어서, 손으로 쓴 `GridMap` 레이아웃도 같은 규칙으로 번호를 얻는다.
 - 장애물 밀도는 **장애물(벽과 엄폐물) 수 / 장애물 배치 전 내부 바닥 수**다(`ActualObstacleDensity`). 경계 벽과 부시는 장애물 수에서 제외한다. 목표 개수는 비율을 곱한 값의 내림이며, 구조물이 들어갈 자리가 모자라면 실제 밀도가 요청보다 낮아진다. 생성기는 `0~1`을 받지만 로비 화면에서 고를 수 있는 범위는 `0~0.25`(`DuelSettings.MaxObstacleDensity`)다. 이 범위에서 평균적으로 원형·사각형은 요청의 94~97%, 길쭉한 형태는 90~94%, 폭이 좁은 도넛은 88~91%를 채운다.
 - 내부 벽 칸 중 약 25%는 같은 시드로 선택되는 파괴 가능 벽(`D`)이다. 벽 구조의 위치와 장애물 밀도는 그대로이며, 회전 대칭 맵은 파괴 가능 여부도 180도 대칭이다. 8방향 중 `Void` 또는 맵 외곽에 맞닿은 경계 벽과 부시는 후보에서 제외한다. 파괴 가능 벽은 전용 파손 표시를 사용하며 마도서·빛·번개 무기로 한 번 맞으면 사라진다. 무기 허용 여부는 `WeaponDefinition.environmentEffect`에서 정한다.
@@ -58,15 +72,15 @@ float actualBushDensity = map.ActualBushDensity;      // 부시
 - 같은 입력은 같은 결과를 만들고 Unity 전역 난수 상태는 소비하지 않는다. 재시도 중에도 선택된 형태와 격자 크기를 유지한다.
 - 잘못된 설정은 `ArgumentException` 계열 예외를 발생시킨다. 주어진 크기 안에서 연결된 바닥과 안전한 두 스폰을 32회 안에 만들 수 없으면 `InvalidOperationException`을 발생시킨다.
 
-`Assets/Tests/Editor/MapGeneration/`의 EditMode 테스트(`WizardDuel.MapGeneration.EditorTests`)로 형태, 노이즈 강도·스케일, 경계, 연결성, 밀도, 대칭, 스폰, 부시 배치 규칙과 입력 검증을 확인할 수 있다.
+`Assets/Tests/Editor/MapGeneration/`의 EditMode 테스트(`WizardDuel.MapGeneration.EditorTests`)로 형태, 노이즈 강도·스케일, 경계, 연결성, 밀도, 대칭, 스폰, 부시와 텔레포트 타일 배치 규칙, 입력 검증을 확인할 수 있다.
 
 ## 실제 맵 자동 생성
 
 `Assets/Map/Scripts/ProceduralMap.cs`의 `ProceduralMap`은 논리 맵을 생성한 뒤 `GridMap`과 같은 배치 규칙으로 `BlockFactory`를 통해 실제 블록을 만든다. 한 칸은 1단위이고 맵은 컴포넌트의 로컬 원점을 중심으로 배치된다. 벽 블록(`Assets/Map/Blocks/Walls/Wall-1~4`)은 1×1 돌 두 개를 쌓은 1×2×1 크기다.
 
 1. 맵 오브젝트에 기존 `GridMap` 대신 `ProceduralMap`을 추가한다. `BlockFactory`가 함께 추가된다.
-2. `BlockFactory`에 바닥·벽 블록과 두 스폰 블록을 지정한다. 스폰 순서는 파랑(`B`), 주황(`O`)이다. `Bush Blocks`에도 `Assets/Map/Blocks/Bushes/Reeds.prefab` 같은 `BushBlock` 프리팹을 하나 이상 지정한다. 기본 부시 밀도는 0.05이므로 비워 두면 `*` 칸을 만들 때 예외가 난다. 부시 밀도를 0으로 두고 부시가 없는 레이아웃만 쓸 때는 비워도 된다.
-3. Inspector에서 시드, 형태, 장애물 밀도, 부시 밀도, 대칭, 노이즈를 설정한다. `Automatic Size`를 끄면 `Size`의 칸 수를 사용한다.
+2. `BlockFactory`에 바닥·벽 블록과 두 스폰 블록을 지정한다. 스폰 순서는 파랑(`B`), 주황(`O`)이다. `Bush Blocks`에도 `Assets/Map/Blocks/Bushes/Reeds.prefab` 같은 `BushBlock` 프리팹을 하나 이상 지정한다. 기본 부시 밀도는 0.05이므로 비워 두면 `*` 칸을 만들 때 예외가 난다. 부시 밀도를 0으로 두고 부시가 없는 레이아웃만 쓸 때는 비워도 된다. `Teleporter Block`에는 `Assets/Map/Blocks/Teleporters/Teleporter.prefab`을 지정한다. 비워 두면 경고를 남기고 타일 칸에 바닥만 깐다.
+3. Inspector에서 시드, 형태, 장애물 밀도, 부시 밀도, 대칭, 텔레포트 쌍 수, 노이즈를 설정한다. `Automatic Size`를 끄면 `Size`의 칸 수를 사용한다.
 4. 두 스폰 위치는 `SpawnPoints`(`ISpawnPointProvider`)로 읽는다. 게임에서는 `DuelArena`가 전투 맵의 `SpawnPoints`로 두 플레이어를 소환하고 맵 지문도 이 위치로 계산한다. `GridMap`도 같은 인터페이스를 구현한다.
 
 `Generate On Awake`가 켜져 있으면(기본값) Play 시작 시 자동 생성되며, `GeneratedLayout`, `Blocks`, `SpawnPoints`로 생성 결과를 조회할 수 있다. 코드에서 외부 설정으로 생성하거나 다시 생성할 수도 있다.

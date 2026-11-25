@@ -10,6 +10,8 @@ public class BlockFactory : MonoBehaviour
     [SerializeField] Block[] spawnBlocks = new Block[0];
     [Tooltip("부시 칸(*)에 바닥 위로 까는 덤불. 부시가 없는 손 레이아웃만 쓰는 씬이면 비워 둬도 된다.")]
     [SerializeField] BushBlock[] bushBlocks = new BushBlock[0];
+    [Tooltip("텔레포트 타일(숫자 칸 2×2)에 바닥 위로 까는 타일. 비우면 타일 칸에는 바닥만 깔린다.")]
+    [SerializeField] TeleporterBlock teleporterBlock;
 
     System.Random random;
     readonly List<Vector3>[] spawnCells = { new List<Vector3>(), new List<Vector3>() };
@@ -65,12 +67,13 @@ public class BlockFactory : MonoBehaviour
                 throw new InvalidOperationException($"BlockFactory {label} element {i} is not assigned.");
     }
 
-    // . = 바닥, # = 바닥과 벽, * = 바닥과 부시, B/O = 파랑/주황 스폰 영역, 공백 = 빈 공간
-    // 스폰 칸은 모아 두었다가 CreateSpawns에서 영역 가운데에 스폰 타일 하나로 깐다.
+    // . = 바닥, # = 바닥과 벽, D = 바닥과 파괴 가능한 벽, * = 바닥과 부시, 1~9 = 바닥(텔레포트 타일 칸), B/O = 파랑/주황 스폰 영역, 공백 = 빈 공간
+    // 스폰 칸은 모아 두었다가 CreateSpawns에서 영역 가운데에 스폰 타일 하나로 깐다. 텔레포트 타일은 CreateTeleporters가 깐다.
     public IEnumerable<IBlock> CreateCell(char cell, Vector3 position, Transform parent)
     {
         int spawnIndex = cell == 'B' ? 0 : cell == 'O' ? 1 : -1;
         if (spawnIndex >= 0) spawnCells[spawnIndex].Add(position);
+        if (TeleporterRegions.IsSymbol(cell)) cell = '.';
         if (cell != '.' && cell != '#' && cell != 'D' && cell != BushRegions.Symbol) yield break;
 
         yield return CreateBlock(floorBlocks, position, parent);
@@ -107,6 +110,25 @@ public class BlockFactory : MonoBehaviour
             SpawnPoints[i] = spawn.Transform.Find("Spawn Position");
             yield return spawn;
         }
+    }
+
+    // 모든 칸을 깐 뒤 부른다. 쌍마다 두 타일을 2×2 영역 가운데에 깔고 field의 상태를 읽게 묶는다.
+    // 타일 프리팹이 없으면 경고만 남기고 바닥만 둔다. 이동 판정은 블록이 아니라 field로 하므로 그대로 돈다.
+    public IEnumerable<IBlock> CreateTeleporters(TeleporterField field, Transform parent)
+    {
+        if (field == null || field.Count == 0) yield break;
+        if (teleporterBlock == null)
+        {
+            Debug.LogWarning($"[Teleporter] {name} has no teleporter block prefab; {field.Count} pair(s) show only floor.", this);
+            yield break;
+        }
+        for (int pair = 0; pair < field.Count; pair++)
+            for (int side = 0; side < 2; side++)
+            {
+                var block = (TeleporterBlock)teleporterBlock.Create(parent, field.LocalCenterOf(pair, side), Quaternion.identity);
+                block.Bind(field, pair, side);
+                yield return block;
+            }
     }
 
     IBlock CreateBlock(Block[] variants, Vector3 position, Transform parent, bool combineRenderer = true)

@@ -23,6 +23,7 @@ public class NetworkMapSettingsTests
             ObstacleDensity = 0.27f,
             BushDensity = 0.13f,
             Symmetry = symmetry,
+            TeleporterPairs = 2,
             NoiseStrength = 0.65f,
             NoiseScale = 1.25f
         };
@@ -38,6 +39,7 @@ public class NetworkMapSettingsTests
         Assert.That(client.ObstacleDensity, Is.EqualTo(original.ObstacleDensity));
         Assert.That(client.BushDensity, Is.EqualTo(original.BushDensity));
         Assert.That(client.Symmetry, Is.EqualTo(original.Symmetry));
+        Assert.That(client.TeleporterPairs, Is.EqualTo(original.TeleporterPairs));
         Assert.That(client.NoiseStrength, Is.EqualTo(original.NoiseStrength));
         Assert.That(client.NoiseScale, Is.EqualTo(original.NoiseScale));
 
@@ -47,6 +49,7 @@ public class NetworkMapSettingsTests
         Assert.That(clientMap.ToLayout(), Is.EqualTo(serverMap.ToLayout()));
         Assert.That(clientMap.SpawnA, Is.EqualTo(serverMap.SpawnA));
         Assert.That(clientMap.SpawnB, Is.EqualTo(serverMap.SpawnB));
+        Assert.That(clientMap.Teleporters, Is.EqualTo(serverMap.Teleporters));
     }
 }
 #endif

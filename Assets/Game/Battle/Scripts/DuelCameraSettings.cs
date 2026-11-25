@@ -23,11 +23,14 @@ public sealed class DuelCameraSettings : ScriptableObject
     [Tooltip("방장과 참가자의 전투 카메라가 바라보는 방향 사이 각도. 각자 상대 스폰 쪽을 화면 위로 두고, " +
         "180보다 작으면 그 차이의 절반씩 서로 반대쪽으로 비튼다. 180이면 상대 스폰이 화면 정위쪽에 온다.")]
     [SerializeField, Range(0f, 180f)] float facingSpread = 160f;
+    [Tooltip("텔레포트로 순간 이동한 뒤 카메라가 새 자리까지 뒤쫓는 시간(초). 0이면 바로 옮겨 간다.")]
+    [SerializeField, Min(0f)] float teleportChaseTime = 0.35f;
 
     public float Height => height;
     public float Distance => distance;
     public float LookHeight => lookHeight;
     public float FacingSpread => facingSpread;
+    public float TeleportChaseTime => teleportChaseTime;
 
     // 카메라에서 바라보는 지점까지의 거리.
     public float FollowDistance => Mathf.Max(0.01f, new Vector2(height - lookHeight, distance).magnitude);

@@ -153,15 +153,15 @@ MonoBehaviour:
   seed: 7301
   layout:
   - '###############'
-  - '#.............#'
-  - '#.***..#..**..#'
+  - '#.......11....#'
+  - '#.***..#11**..#'
   - '#.***..#..**..#'
   - '#.............#'
   - '#...BB...OO...#'
   - '#...BB...OO...#'
   - '#.............#'
-  - '#......#..**..#'
-  - '#......#..**..#'
+  - '#....11#..**..#'
+  - '#....11#..**..#'
   - '###############'
 --- !u!114 &568773227
 MonoBehaviour:
@@ -190,6 +190,7 @@ MonoBehaviour:
   - {fileID: 7208045001040428938, guid: ff3c1e5e26ff0b545845bfafb0351f39, type: 3}
   bushBlocks:
   - {fileID: 5384837213045814529, guid: c87e7197a319345429fe8e8ef2b8f2e6, type: 3}
+  teleporterBlock: {fileID: 5617705171198666423, guid: 464d0b2568d33f04191fc2108f230c95, type: 3}
 --- !u!4 &568773228
 Transform:
   m_ObjectHideFlags: 0
@@ -292,6 +293,7 @@ MonoBehaviour:
   height: 10
   distance: 8
   lookHeight: 1
+  teleportChaseTime: 0.35
 --- !u!114 &1234340424
 MonoBehaviour:
   m_ObjectHideFlags: 0

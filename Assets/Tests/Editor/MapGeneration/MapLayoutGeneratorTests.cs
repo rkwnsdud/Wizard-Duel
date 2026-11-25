@@ -562,10 +562,10 @@ public class MapLayoutGeneratorTests
     [Test]
     public void ToLayout_UsesGridMapSymbolsAndRowCoordinates()
     {
-        MapLayout map = MapLayoutGenerator.Generate(new MapGenerationSettings { Shape = MapShape.Donut });
+        MapLayout map = MapLayoutGenerator.Generate(new MapGenerationSettings { Shape = MapShape.Donut, TeleporterPairs = 2 });
         string[] rows = map.ToLayout();
         Assert.That(rows.Length, Is.EqualTo(map.Height));
-        int blueSpawns = 0, orangeSpawns = 0;
+        int blueSpawns = 0, orangeSpawns = 0, teleporterCells = 0;
         for (int y = 0; y < map.Height; y++)
         {
             Assert.That(rows[y].Length, Is.EqualTo(map.Width));
@@ -574,12 +574,21 @@ public class MapLayoutGeneratorTests
                 char symbol = rows[y][x];
                 if (symbol == 'B') blueSpawns++;
                 else if (symbol == 'O') orangeSpawns++;
+                else if (TeleporterRegions.IsSymbol(symbol))
+                {
+                    // 텔레포트 타일 칸은 바닥 칸에 쌍 번호 숫자를 적는다.
+                    teleporterCells++;
+                    Assert.That(map[x, y], Is.EqualTo(MapCell.Floor));
+                    Assert.That(map.TryGetTeleporter(x, y, out int pair, out _), Is.True);
+                    Assert.That(symbol, Is.EqualTo(TeleporterRegions.Symbol(pair)));
+                }
                 else Assert.That(symbol, Is.EqualTo(map[x, y] == MapCell.Floor ? '.'
                     : map[x, y] == MapCell.Wall ? '#' : map[x, y] == MapCell.Bush ? '*' : ' '));
             }
         }
         Assert.That(blueSpawns, Is.EqualTo(MapLayout.SpawnSize * MapLayout.SpawnSize));
         Assert.That(orangeSpawns, Is.EqualTo(MapLayout.SpawnSize * MapLayout.SpawnSize));
+        Assert.That(teleporterCells, Is.EqualTo(map.Teleporters.Count * 2 * TeleporterRegions.Size * TeleporterRegions.Size));
         Assert.That(rows[map.SpawnA.y][map.SpawnA.x], Is.EqualTo('B'));
         Assert.That(rows[map.SpawnB.y][map.SpawnB.x], Is.EqualTo('O'));
     }
