@@ -338,7 +338,7 @@ MonoBehaviour:
   minRange: 2
   maxRange: 8
   minDamage: 5
-  maxDamage: 15
+  maxDamage: 20
   minHitWidth: 0.4
   maxHitWidth: 0.8
   hitHeight: 2
@@ -357,4 +357,4 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1617c8226190507418d68003c3cf3fc3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: WizardDuel.Game::StunOnHitPassive
-  stunDuration: 1
+  stunDuration: 0.5

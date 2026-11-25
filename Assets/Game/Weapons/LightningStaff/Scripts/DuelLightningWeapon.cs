@@ -10,7 +10,7 @@ public sealed class DuelLightningWeapon : WeaponBase, IChargeableWeapon, IWeapon
     [SerializeField] private float minRange = 2f;
     [SerializeField] private float maxRange = 8f;
     [SerializeField] private float minDamage = 5f;
-    [SerializeField] private float maxDamage = 15f;
+    [SerializeField] private float maxDamage = 20f;
     [SerializeField] private float minHitWidth = 0.4f;
     [SerializeField] private float maxHitWidth = 0.8f;
     [SerializeField] private float hitHeight = 2f;

@@ -66,6 +66,7 @@ public class DuelLightningWeaponTests : PlayModeTestFixture
     static PlayerHealth Target(Vector3 offset)
     {
         var target = new GameObject("Duel lightning test target");
+        target.layer = LayerMask.NameToLayer("Hitbox");
         target.transform.position = Origin + offset;
         target.AddComponent<BoxCollider>();
         return target.AddComponent<PlayerHealth>();
@@ -101,14 +102,15 @@ public class DuelLightningWeaponTests : PlayModeTestFixture
         Assert.That(sink.Target, Is.SameAs(target));
         Assert.That(sink.AttackId, Is.EqualTo(1u));
         Assert.That(sink.HitIndex, Is.Zero);
-        Assert.That(sink.Damage, Is.EqualTo(15f));
+        Assert.That(sink.Damage, Is.EqualTo(20f));
         Assert.That(target.CurrentHealth, Is.EqualTo(100f));
         Assert.That(owner.CurrentHealth, Is.EqualTo(100f));
         Assert.That(Object.FindObjectsByType<LightningEffect>(FindObjectsSortMode.None), Is.Empty);
     }
 
     [TestCase(0f, 5f)]
-    [TestCase(1f, 15f)]
+    [TestCase(0.5f, 12.5f)]
+    [TestCase(1f, 20f)]
     public void Fire_UsesLocalChargeForDamageAndStopsAtTarget(float charge, float damage)
     {
         Target(Vector3.right * 1.25f);
