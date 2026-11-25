@@ -32,7 +32,7 @@ public class WeaponFiringTests
     }
 
     [TestCase(0f, 5f)]
-    [TestCase(1f, 15f)]
+    [TestCase(1f, 20f)]
     public void LocalSinkAppliesDamageThroughTheSharedWeaponFire(float charge, float damage)
     {
         var root = new GameObject("Firing test owner");
