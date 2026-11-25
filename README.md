@@ -105,7 +105,7 @@ flowchart TD
 <td align="center"><img src="Docs/Readme/weapons/lightning-staff.png" width="56" alt=""></td>
 <td><b>번개 지팡이</b></td>
 <td>충전한 뒤 일직선으로 뻗는 번개</td>
-<td>오래 충전할수록 사거리와 피해가 커짐. 쏘는 순간 끝까지 닿음</td>
+<td>오래 충전할수록 사거리와 피해가 커짐. 최대 충전으로 명중하면 1초간 스턴. 쏘는 순간 끝까지 닿음</td>
 </tr>
 <tr>
 <td align="center"><img src="Docs/Readme/weapons/light-orb.png" width="56" alt=""></td>

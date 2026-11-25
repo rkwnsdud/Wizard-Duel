@@ -2,5 +2,5 @@
 public interface IWeaponHitPassive
 {
     /// <remarks>Called on the server once per accepted hit. Refresh existing timed effects instead of stacking them.</remarks>
-    void OnServerHit(DuelPlayer attacker, DuelPlayer target);
+    void OnServerHit(DuelPlayer attacker, DuelPlayer target, float chargeRatio);
 }

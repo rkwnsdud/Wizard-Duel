@@ -10,12 +10,16 @@ public sealed class PlayerStatusEffects : NetworkBehaviour
         NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
     readonly NetworkVariable<float> slowMultiplierNet = new NetworkVariable<float>(1f,
         NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
+    readonly NetworkVariable<bool> stunActiveNet =  new NetworkVariable<bool>(false,
+        NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
 
     public bool BurnVisible => burnVisible.Value;
     public float SlowMultiplierNet => slowMultiplierNet.Value;
+    public bool StunActiveNet => stunActiveNet.Value;
 
     PlayerCombatStats combatStats;
     DuelPlayer duelPlayer;
+    [SerializeField] PlayerStunVisual stunVisual;
 
     // 서버 권위 상태. 클라는 NetworkVariable만 본다.
     // 틱 계산은 아래 순수 상태값에 두고, Test Runner에서 규칙만 검증한다.
@@ -23,6 +27,8 @@ public sealed class PlayerStatusEffects : NetworkBehaviour
 
     bool slowActive;
     float slowExpiryTime;
+    bool stunActive;
+    float stunExpiryTime;
 
     void Awake()
     {
@@ -34,12 +40,16 @@ public sealed class PlayerStatusEffects : NetworkBehaviour
     {
         slowMultiplierNet.OnValueChanged += OnSlowMultiplierChanged;
         ApplySlowMultiplierLocal(slowMultiplierNet.Value);
+        stunActiveNet.OnValueChanged += OnStunActiveChanged;
+        OnStunActiveChanged(false, stunActiveNet.Value);
     }
 
     public override void OnNetworkDespawn()
     {
         slowMultiplierNet.OnValueChanged -= OnSlowMultiplierChanged;
         ClearSlowMultiplierLocal();
+        stunActiveNet.OnValueChanged -= OnStunActiveChanged;
+        if (stunVisual != null) stunVisual.SetVisible(false);
     }
 
     void Update()
@@ -47,11 +57,12 @@ public sealed class PlayerStatusEffects : NetworkBehaviour
         if (!IsServer || !IsSpawned) return;
         if (duelPlayer != null && (duelPlayer.IsServerDefeated || duelPlayer.IsServerCombatEnded))
         {
-            if (State.BurnActive || slowActive) ServerClearAll();
+            if (State.BurnActive || slowActive || stunActive) ServerClearAll();
             return;
         }
         float now = Time.time;
         if (slowActive && now >= slowExpiryTime) ServerClearSlow();
+        if (stunActive && now >= stunExpiryTime) ServerClearStun();
         if (!State.TryConsumeTick(now, out int attackerSlot, out uint dotId, out int tickIndex, out float damage))
             return;
         if (duelPlayer != null)
@@ -79,6 +90,21 @@ public sealed class PlayerStatusEffects : NetworkBehaviour
         slowMultiplierNet.Value = Mathf.Clamp(multiplier, 0.01f, 1f);
     }
 
+    // 스턴
+    public void ServerApplyStun(float duration)
+    {
+        if (!IsServer || !IsSpawned) return;
+
+        if (duration <= 0f) return;
+
+        if (duelPlayer != null &&
+            (duelPlayer.IsServerDefeated || duelPlayer.IsServerCombatEnded))
+            return;
+
+        stunActive = true;
+        stunActiveNet.Value = true;
+        stunExpiryTime = Mathf.Max(Time.time + duration, stunExpiryTime);
+    }
     /// <summary>서버에서 호출. 사망·전투 종료 시 남은 효과를 지운다.</summary>
     public void ServerClearAll()
     {
@@ -86,6 +112,7 @@ public sealed class PlayerStatusEffects : NetworkBehaviour
         State.ClearBurn();
         if (IsSpawned) burnVisible.Value = false;
         ServerClearSlow();
+        ServerClearStun();
     }
 
     void ServerClearSlow()
@@ -94,7 +121,19 @@ public sealed class PlayerStatusEffects : NetworkBehaviour
         if (IsSpawned) slowMultiplierNet.Value = 1f;
     }
 
+    void ServerClearStun()
+    {
+        stunActive = false;
+        stunExpiryTime = 0f;
+        stunActiveNet.Value = false;
+    }
+
     void OnSlowMultiplierChanged(float previous, float current) => ApplySlowMultiplierLocal(current);
+
+    void OnStunActiveChanged(bool previous, bool current)
+    {
+        if (IsClient && stunVisual != null) stunVisual.SetVisible(current);
+    }
 
     void ApplySlowMultiplierLocal(float multiplier)
     {

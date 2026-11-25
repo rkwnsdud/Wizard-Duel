@@ -21,22 +21,31 @@ public enum HitReportDecision
 public sealed class ServerAttackHistory
 {
     readonly HashSet<byte> heldWeapons = new HashSet<byte>();
-    readonly Dictionary<uint, byte> startedAttacks = new Dictionary<uint, byte>();
+    readonly Dictionary<uint, (byte WeaponId, float ChargeRatio)> startedAttacks =
+        new Dictionary<uint, (byte, float)>();
 
     public void RecordWeapon(byte weaponId)
     {
         if (weaponId != 0) heldWeapons.Add(weaponId);
     }
 
-    public void RecordAttack(AttackInfo attack)
+    public void RecordAttack(AttackInfo attack, float chargeRatio)
     {
-        if (attack.IsValid) startedAttacks[attack.Id] = attack.WeaponId;
+        if (attack.IsValid) startedAttacks[attack.Id] = (attack.WeaponId, chargeRatio);
     }
 
     public bool HasHeldWeapon(byte weaponId) => weaponId != 0 && heldWeapons.Contains(weaponId);
 
-    public bool HasStartedAttack(AttackInfo attack) =>
-        attack.IsValid && startedAttacks.TryGetValue(attack.Id, out byte weaponId) && weaponId == attack.WeaponId;
+    public bool HasStartedAttack(AttackInfo attack) => TryGetChargeRatio(attack, out _);
+
+    public bool TryGetChargeRatio(AttackInfo attack, out float chargeRatio)
+    {
+        chargeRatio = 0f;
+        if (!attack.IsValid || !startedAttacks.TryGetValue(attack.Id, out var started) ||
+            started.WeaponId != attack.WeaponId) return false;
+        chargeRatio = started.ChargeRatio;
+        return true;
+    }
 
     public void Clear()
     {

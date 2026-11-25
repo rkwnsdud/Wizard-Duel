@@ -16,7 +16,7 @@ public sealed class CenserFlameHitPassive : MonoBehaviour, IWeaponHitPassive
     private float slowDuration = 1.5f;
 
     /// <remarks>Called on the server once per accepted hit. Refreshes instead of stacking.</remarks>
-    public void OnServerHit(DuelPlayer attacker, DuelPlayer target)
+    public void OnServerHit(DuelPlayer attacker, DuelPlayer target, float chargeRatio)
     {
         if (attacker == null || target == null) return;
         if (!target.TryGetComponent(out PlayerStatusEffects status))

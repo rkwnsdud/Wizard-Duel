@@ -14,7 +14,8 @@ public struct LobbyJoinRequest : INetworkSerializable
     // 10: Random map layouts now include seed-derived destructible walls.
     // 11: Destructible walls exclude all void-adjacent arena boundary cells.
     // 12: 맵 설정에 텔레포트 타일 쌍 수를 넣고 맵에 타일을 두며, 텔레포트 요청·상태 메시지를 추가했다.
-    public const int CurrentVersion = 12;
+    // 13: 전투 플레이어 상태이상에 동기화되는 스턴 상태를 추가했다.
+    public const int CurrentVersion = 13;
 
     public int Version;
     public bool CreateRoom;

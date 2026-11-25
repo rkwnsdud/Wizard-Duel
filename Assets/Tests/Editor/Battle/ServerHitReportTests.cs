@@ -99,12 +99,12 @@ public class ServerHitReportTests
         var history = new ServerAttackHistory();
         history.RecordWeapon(1);
         var delayedAttack = new AttackInfo(10, 1);
-        history.RecordAttack(delayedAttack);
+        history.RecordAttack(delayedAttack, 0f);
 
         // 공격자가 다른 무기로 바꿔 쏜 뒤에도, 먼저 쏜 무기의 늦은 명중(예: 폭발 화염 공)은 받아야 한다.
         history.RecordWeapon(2);
         var areaAttack = new AttackInfo(11, 2);
-        history.RecordAttack(areaAttack);
+        history.RecordAttack(areaAttack, 0f);
 
         var targetA = new DuelCombatState(1, 100f);
         var targetB = new DuelCombatState(2, 100f);
@@ -194,8 +194,8 @@ public class ServerHitReportTests
         history.RecordWeapon(0);
         Assert.That(history.HasHeldWeapon(0), Is.False);
 
-        history.RecordAttack(new AttackInfo(0, 1));
-        history.RecordAttack(new AttackInfo(1, 0));
+        history.RecordAttack(new AttackInfo(0, 1), 1f);
+        history.RecordAttack(new AttackInfo(1, 0), 1f);
         Assert.That(history.HasStartedAttack(new AttackInfo(0, 1)), Is.False);
         Assert.That(history.HasStartedAttack(new AttackInfo(1, 0)), Is.False);
 
@@ -206,10 +206,15 @@ public class ServerHitReportTests
         Assert.That(history.HasHeldWeapon(3), Is.False);
 
         var attack = new AttackInfo(7, 2);
-        history.RecordAttack(attack);
+        history.RecordAttack(attack, 0.9999f);
+        history.RecordAttack(new AttackInfo(8, 4), 1f);
         Assert.That(history.HasStartedAttack(attack), Is.True);
         Assert.That(history.HasStartedAttack(new AttackInfo(7, 4)), Is.False);
         Assert.That(history.HasStartedAttack(new AttackInfo(8, 2)), Is.False);
+        Assert.That(history.TryGetChargeRatio(attack, out float partialCharge), Is.True);
+        Assert.That(partialCharge, Is.EqualTo(0.9999f));
+        Assert.That(history.TryGetChargeRatio(new AttackInfo(8, 4), out float fullCharge), Is.True);
+        Assert.That(fullCharge, Is.EqualTo(1f));
 
         history.Clear();
         Assert.That(history.HasHeldWeapon(2), Is.False);

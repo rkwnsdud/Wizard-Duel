@@ -7,6 +7,7 @@ public sealed class PlayerMotor : MonoBehaviour
     public const float BaseSpeed = 5f;
     public const float Gravity = -20f;
 
+    PlayerStatusEffects statusEffects;
     CharacterController controller;
     Animator animator;
     PlayerAttack attack;
@@ -24,6 +25,7 @@ public sealed class PlayerMotor : MonoBehaviour
         stats = GetComponent<PlayerCombatStats>();
         Transform character = transform.Find("Wizard");
         animator = character != null ? character.GetComponent<Animator>() : null;
+        statusEffects = GetComponent<PlayerStatusEffects>();
     }
 
     public void ResetVisualRotation()
@@ -37,6 +39,7 @@ public sealed class PlayerMotor : MonoBehaviour
     // 사람은 수평·중력 순서의 두 sweep, 봇은 합친 한 sweep을 써 온 충돌 동작을 유지한다.
     public void Move(Vector3 direction, float deltaTime, bool combinedGravity = false)
     {
+        if (statusEffects != null && statusEffects.StunActiveNet) direction = Vector3.zero;
         bool grounded = controller.isGrounded;
         Vector3 horizontal = direction * MoveSpeed * deltaTime;
         if (!combinedGravity) controller.Move(horizontal);
@@ -50,6 +53,7 @@ public sealed class PlayerMotor : MonoBehaviour
     {
         direction.y = 0f;
         if (IsAttacking || direction.sqrMagnitude <= 0.001f) return;
+        if (statusEffects != null && statusEffects.StunActiveNet) return;
         Quaternion rotation = Quaternion.LookRotation(direction);
         transform.rotation = float.IsPositiveInfinity(turnSpeed) ? rotation :
             Quaternion.RotateTowards(transform.rotation, rotation, turnSpeed * deltaTime);
@@ -60,6 +64,11 @@ public sealed class PlayerMotor : MonoBehaviour
 
     public void Animate(Vector3 direction, float deltaTime)
     {
+        if (statusEffects != null && statusEffects.StunActiveNet)
+        {
+            StopAnimation();
+            return;
+        }
         if (animator == null || !animator.enabled) return;
         float dampTime = animator.GetFloat("MoveSpeed") > 0f ? 0.1f : 0f;
         animator.SetFloat("MoveSpeed", direction.sqrMagnitude > 0f ? MoveSpeed : 0f);
