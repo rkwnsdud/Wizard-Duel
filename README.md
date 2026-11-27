@@ -4,8 +4,8 @@
 
 **매번 새로 만들어지는 결투장에서 두 마법사가 맞붙는 1대1 온라인 대전 게임**
 
-![Unity](https://img.shields.io/badge/Unity-6000.3_LTS-222C37?style=flat-square&logo=unity&logoColor=white)
-![URP](https://img.shields.io/badge/URP-17.3-4DA3FF?style=flat-square)
+![Unity](https://img.shields.io/badge/Unity-6000.4-222C37?style=flat-square&logo=unity&logoColor=white)
+![URP](https://img.shields.io/badge/URP-17.4-4DA3FF?style=flat-square)
 ![Netcode for GameObjects](https://img.shields.io/badge/Netcode_for_GameObjects-2.13-FF6B5E?style=flat-square)
 ![Platform](https://img.shields.io/badge/platform-Windows_%7C_Linux_server-FFD866?style=flat-square)
 
@@ -175,7 +175,7 @@ flowchart TD
 
 ### 준비물
 
-- Unity **6000.3.24f1** (Unity Hub에서 설치)
+- Unity **6000.4.6f1** (Unity Hub에서 설치)
 - Git
 
 ### 에디터에서 실행
