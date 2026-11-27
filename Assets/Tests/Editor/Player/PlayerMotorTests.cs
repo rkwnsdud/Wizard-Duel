@@ -57,8 +57,11 @@ public class PlayerMotorTests
             Assert.That(animator.GetFloat("MoveSpeed"), Is.EqualTo(2.5f));
             Assert.That(animator.GetFloat("MoveX"), Is.EqualTo(0f).Within(0.001f));
             Assert.That(animator.GetFloat("MoveZ"), Is.EqualTo(1f).Within(0.001f));
+            Assert.That(animator.GetFloat("LocomotionSpeed"), Is.EqualTo(2.5f));
             motor.StopAnimation();
             Assert.That(animator.GetFloat("MoveSpeed"), Is.Zero);
+            // 대기로 넘어가는 동안 달리기 재생 빠르기는 마지막 값을 유지한다.
+            Assert.That(animator.GetFloat("LocomotionSpeed"), Is.EqualTo(2.5f));
         }
         finally { Object.DestroyImmediate(root); }
     }

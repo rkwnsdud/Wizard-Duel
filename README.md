@@ -292,6 +292,7 @@ sequenceDiagram
 - `Assets/Game/Weapons/BasicWand/Art/Models/BasicWand_v2.fbx`와 `Assets/Game/Weapons/LightningStaff/Art/Models/FixedStaff/LightningStaff_Fixed.fbx`는 현재 사용하는 감량 모델의 원본입니다.
 - `Assets/Game/Weapons/BasicWand/Art/Textures/texture_0_{metallic,roughness}.png`와 `Assets/Game/Player/Art/Models/WizardAnimated/Textures/`의 금속·거칠기 채널 맵은 현재 금속/매끄러움 텍스처를 다시 합성할 때 쓰는 원본입니다.
 - `Assets/Game/Weapons/FireCenser/Art/Animations/Standing Melee Attack Horizontal (1).fbx`는 현재 `FireCenserSwingMixamo.anim`의 Mixamo 원본입니다. `Art/Models/`의 `.fbm` 폴더에는 향로 모델의 원본 금속·거칠기·결합 채널 맵도 보관합니다.
+- `Assets/ThirdParty/Kevin Iglesias/Human Animations/`의 달리기·옆걸음 달리기 FBX(Humanoid)는 마법사 달리기 클립(`Assets/Game/Player/Art/Animations/WizardRun/`)의 원본입니다. 마법사 뼈대가 Generic이라 **Tools > Wizard Duel > Bake Wizard Run Clips**(`WizardRunClipBaker`)로 마법사 뼈대용 클립으로 구워서 씁니다.
 - `Assets/Game/Weapons/LightningStaff/Art/Models/FixedStaff/LightningStaff_Fixed.fbm/Texture_1.png`, `Texture_3.png`와 `Preview_Front.png`는 수정 모델의 원본 채널 맵과 외형 비교 기준 이미지입니다. 현재 수정체는 텍스처 대신 균일한 발광색을 씁니다.
 
 ```text
@@ -313,7 +314,7 @@ Wizard-Duel/
 │  ├─ Scenes/                 게임 본편(Main)과 오프라인 테스트 씬(DuelOfflineTest)
 │  ├─ Settings/               URP 파이프라인·렌더러·볼륨 프로필·카메라 설정
 │  ├─ TextMesh Pro/           TMP 기본 리소스(패키지 경로 고정 제약으로 루트 유지)
-│  ├─ ThirdParty/             외부 에셋 팩(DanielMistage, EricVFXStudio, MagicEffectsPack, MapParts, VFXPackFireWallcoeur)
+│  ├─ ThirdParty/             외부 에셋 팩(DanielMistage, EricVFXStudio, Kevin Iglesias, MagicEffectsPack, MapParts, VFXPackFireWallcoeur)
 │  ├─ Editor/                 여러 기능에 걸친 에디터 도구(NetworkTestWindow, WeaponHudIconBaker, NetworkPrefabHashRepair) (WizardDuel.Editor)
 │  └─ Tests/                  테스트 실행기(TestSuites)와 기능별 EditMode·런타임 테스트 (WizardDuel.EditorTests, WizardDuel.RuntimeTests, WizardDuel.MapGeneration.EditorTests)
 ├─ Deploy/Server/             리눅스 전용 서버 Docker 배포
@@ -394,6 +395,12 @@ Magic effects pack
 <td>
 마법사, 기본 완드: Meshy AI로 생성<br>
 화염 향로: Stylized Fantasy Armory (Daniel Mistage)
+</td>
+</tr>
+<tr>
+<td align="center"><b>애니메이션</b></td>
+<td>
+마법사 달리기: Human Melee Animations FREE (Kevin Iglesias)
 </td>
 </tr>
 <tr>

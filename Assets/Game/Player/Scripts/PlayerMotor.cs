@@ -71,7 +71,10 @@ public sealed class PlayerMotor : MonoBehaviour
         }
         if (animator == null || !animator.enabled) return;
         float dampTime = animator.GetFloat("MoveSpeed") > 0f ? 0.1f : 0f;
-        animator.SetFloat("MoveSpeed", direction.sqrMagnitude > 0f ? MoveSpeed : 0f);
+        bool moving = direction.sqrMagnitude > 0f;
+        animator.SetFloat("MoveSpeed", moving ? MoveSpeed : 0f);
+        // 달리기 클립의 재생 빠르기(이동 속도 m/s). 멈출 때는 마지막 값을 남겨 대기로 넘어가는 동안 다리가 굳지 않게 한다.
+        if (moving) animator.SetFloat("LocomotionSpeed", MoveSpeed);
         Vector3 local = transform.InverseTransformDirection(direction);
         animator.SetFloat("MoveX", local.x, dampTime, deltaTime);
         animator.SetFloat("MoveZ", local.z, dampTime, deltaTime);
