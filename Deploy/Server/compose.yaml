@@ -7,7 +7,7 @@ services:
       context: ../..
       dockerfile: Deploy/Server/Dockerfile
       args:
-        UNITY_VERSION: ${UNITY_VERSION:-6000.3.24f1}
+        UNITY_VERSION: ${UNITY_VERSION:-6000.4.6f1}
       secrets:
         - unity_license
         - unity_email

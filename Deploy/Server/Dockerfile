@@ -3,7 +3,7 @@
 # 1단계는 Unity로 Main 씬을 전용 서버로 빌드하고, 2단계는 빌드 결과만 작은 이미지에 담는다.
 
 # Unity 버전은 build.sh가 ProjectSettings/ProjectVersion.txt에서 읽어 넘긴다.
-ARG UNITY_VERSION=6000.3.24f1
+ARG UNITY_VERSION=6000.4.6f1
 ARG UNITY_IMAGE_REV=3
 
 FROM unityci/editor:ubuntu-${UNITY_VERSION}-linux-il2cpp-${UNITY_IMAGE_REV} AS builder

@@ -2,7 +2,7 @@
 
 Wizard-Duel에서 일하는 에이전트를 위한 작업 안내입니다. 게임 소개, 조작, 실행 방법은 [README.md](README.md)에 있습니다. 이 파일에는 코드를 고칠 때 지켜야 할 규칙과, 알아 두면 시간을 아끼는 함정을 모았습니다.
 
-- 엔진: Unity **6000.3.24f1**, URP, Netcode for GameObjects(NGO), Unity Transport
+- 엔진: Unity **6000.4.6f1**, URP, Netcode for GameObjects(NGO), Unity Transport
 - 모드: 온라인 1대1(전용 서버), AI 대전(로컬 호스트), 오프라인 테스트 씬(`Assets/Scenes/DuelOfflineTest.unity`)
 - 빌드 씬: `Assets/Scenes/Main.unity` 하나
 
